@@ -1,0 +1,50 @@
+{% from "portal/_ui.html" import mantra_mark, ms_logo, merdeka %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in - MANTRA</title>
+  <link rel="icon" href="{{ url_for('static', filename='img/mantra-mark.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/portal.css') }}">
+</head>
+<body class="login-page">
+  <section class="login-visual" style="--login-bg: url('{{ url_for('static', filename='img/login-bg.jpg') }}')">
+    <div class="login-visual-top">{{ merdeka(dark=True) }}</div>
+    <svg class="login-hills" viewBox="0 0 800 300" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M0 220 L120 140 L210 190 L330 90 L450 170 L560 110 L680 180 L800 120 V300 H0 Z" fill="rgba(255,255,255,.06)"/>
+      <path d="M0 260 C 160 200, 300 280, 460 230 S 700 200, 800 240 V300 H0 Z" fill="rgba(212,160,23,.18)"/>
+    </svg>
+    <p class="login-tagline">Smarter Data <span>•</span> Better Decisions <span>•</span> A Stronger Tomorrow</p>
+  </section>
+
+  <main class="login-panel">
+    <div class="login-card">
+      <div class="login-brand">
+        {{ mantra_mark(size=64) }}
+        <div>
+          <h1>MANTRA</h1>
+          <p>Multi-Agent Network for Tracking &amp; Reporting Analytics</p>
+        </div>
+      </div>
+
+      <h2>Sign in to your account</h2>
+      <p class="muted">Access your data, insights, and reports in one place.</p>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}
+      {% endwith %}
+
+      <a class="btn-microsoft{{ ' disabled' if not configured }}" href="{{ url_for('auth.microsoft', next=next) }}">
+        {{ ms_logo() }} Sign in with Microsoft
+      </a>
+      {% if configured %}
+      <p class="login-note">Gunakan akun Microsoft perusahaan. Akses dashboard mengikuti role yang diberikan admin di Microsoft Entra.</p>
+      {% else %}
+      <p class="login-note warn">Login Microsoft belum dikonfigurasi. Isi <code>ENTRA_TENANT_ID</code>, <code>ENTRA_CLIENT_ID</code>,
+        dan <code>ENTRA_CLIENT_SECRET</code> di <code>.env</code>, atau pakai <code>AUTH_DISABLED=1</code> untuk development.</p>
+      {% endif %}
+    </div>
+    <p class="login-tagline mobile">Smarter Data • Better Decisions • A Stronger Tomorrow</p>
+  </main>
+</body>
+</html>

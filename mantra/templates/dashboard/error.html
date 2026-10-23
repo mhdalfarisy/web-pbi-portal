@@ -1,0 +1,9 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+<section class="panel empty-panel">
+  <h2>Gagal mengambil data dari Power BI</h2>
+  <p>Coba muat ulang halaman ini. Kalau masih gagal, jalankan <code>python scripts\check_setup.py</code> untuk mengecek
+    koneksi service principal ke semantic model dashboard ini.</p>
+  <pre class="err-detail">{{ message }}</pre>
+</section>
+{% endblock %}

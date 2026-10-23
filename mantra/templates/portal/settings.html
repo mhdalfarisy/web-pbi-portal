@@ -1,0 +1,50 @@
+{% extends "portal/base.html" %}
+{% from "portal/_ui.html" import icon %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+{% macro badge(ok, yes='Configured', no='Not configured') -%}
+<span class="status {{ 'ok' if ok else 'bad' }}">{{ icon('check' if ok else 'x') }}{{ yes if ok else no }}</span>
+{%- endmacro %}
+<div class="page-head"><div><h1>Settings</h1><p class="muted">Your account and portal configuration</p></div></div>
+
+<section class="panel">
+  <h2>Profile</h2>
+  <dl class="kv">
+    <dt>Name</dt><dd>{{ current_user.name }}</dd>
+    <dt>Email</dt><dd>{{ current_user.email }}</dd>
+    <dt>Roles</dt><dd>{% for r in current_user.roles %}<span class="pill">{{ r }}</span> {% else %}<span class="muted">Tidak ada role</span>{% endfor %}</dd>
+    <dt>Dashboards</dt><dd>{% for d in dashboards %}<span class="pill">{{ d.title }}</span> {% else %}<span class="muted">Belum ada</span>{% endfor %}</dd>
+  </dl>
+  <p class="muted small">Role diatur admin di Microsoft Entra (Enterprise applications &rsaquo; MANTRA Portal &rsaquo; Users and groups)
+    dan berlaku setelah login ulang.</p>
+</section>
+
+{% if status %}
+<section class="panel">
+  <h2>System status <span class="pill">Admin</span></h2>
+  <dl class="kv">
+    <dt>Login Microsoft Entra</dt><dd>{{ badge(status.entra) }}{% if status.auth_disabled %} <span class="status warn">AUTH_DISABLED=1</span>{% endif %}</dd>
+    <dt>Power BI service principal</dt><dd>{{ badge(status.powerbi) }}</dd>
+    <dt>AI agent ({{ status.ai_provider }})</dt><dd>{{ badge(status.ai) }}</dd>
+  </dl>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Dashboard</th><th>Slug</th><th>App role</th><th>Workspace / Dataset</th><th>AI agent</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for d in status.dashboards %}
+        <tr>
+          <td>{{ d.title }}</td>
+          <td><code>{{ d.slug }}</code></td>
+          <td><code>{{ d.role }}</code></td>
+          <td>{% if d.dataset %}<code class="small">{{ d.dataset.ids[0][:8] }}… / {{ d.dataset.ids[1][:8] }}…</code>{% else %}-{% endif %}</td>
+          <td>{% if d.chat %}{{ d.chat.tools|length }} tools{% else %}-{% endif %}</td>
+          <td>{{ badge(d.ready, 'Ready', 'Coming soon') }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="muted small">Cek koneksi lengkap (token, akses workspace, RLS, mode storage): <code>python scripts\check_setup.py</code></p>
+</section>
+{% endif %}
+{% endblock %}

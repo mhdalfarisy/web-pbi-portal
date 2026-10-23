@@ -1,0 +1,83 @@
+{# Komponen UI portal: ikon, logo, kartu report. Ikon dashboard dipilih lewat Dashboard.icon di manifest. #}
+
+{% macro icon(name) -%}
+<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+{%- if name == 'home' %}<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>
+{%- elif name == 'reports' %}<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>
+{%- elif name == 'star' %}<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>
+{%- elif name == 'history' %}<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v5h5M12 7v5l3 2"/>
+{%- elif name == 'settings' %}<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>
+{%- elif name == 'search' %}<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+{%- elif name == 'filter' %}<path d="M3 5h18l-7 8v6l-4-2v-4z"/>
+{%- elif name == 'logout' %}<path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 17l5-5-5-5M15 12H3"/>
+{%- elif name == 'arrow' %}<path d="M5 12h14M13 6l6 6-6 6"/>
+{%- elif name == 'menu' %}<path d="M4 6h16M4 12h16M4 18h16"/>
+{%- elif name == 'lock' %}<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+{%- elif name == 'check' %}<path d="m5 12.5 4.5 4.5L19 7.5"/>
+{%- elif name == 'x' %}<path d="M6 6l12 12M18 6 6 18"/>
+{%- elif name == 'database' %}<ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6M4 11.5v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>
+{%- elif name == 'layout' %}<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+{%- elif name == 'sparkles' %}<path d="m12 3 1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="m19 15 .8 2.2 2.2.8-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>
+{%- elif name == 'target' %}<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>
+{%- elif name == 'chart' %}<path d="M5 20V11M11 20V5M17 20v-6"/><path d="M3 20h18"/>
+{%- elif name == 'gear' %}<circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>
+{%- elif name == 'truck' %}<path d="M2 6h12v10H2zM14 10h4l3 3v3h-7"/><circle cx="6.5" cy="18" r="2"/><circle cx="17.5" cy="18" r="2"/>
+{%- elif name == 'users' %}<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.2c2.1.7 3.5 2.6 3.5 5.8"/>
+{%- elif name == 'leaf' %}<path d="M5 19C5 11 10 5 20 4c-1 10-7 15-15 15z"/><path d="m5 19 7-7"/>
+{%- elif name == 'factory' %}<path d="M3 21V10l6 4v-4l6 4V5h6v16z"/><path d="M8 17h2M13 17h2"/>
+{%- elif name == 'shield' %}<path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z"/><path d="M12 9v6M9 12h6"/>
+{%- elif name == 'coins' %}<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/>
+{%- elif name == 'wrench' %}<path d="M14.7 6.3a4 4 0 0 0 5 5l-8.4 8.4a2.1 2.1 0 0 1-3-3z"/><path d="M14.7 6.3 17 4"/>
+{%- elif name == 'doc-plus' %}<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M12 11v6M9 14h6"/>
+{%- else %}<rect x="4" y="4" width="16" height="16" rx="3"/>
+{%- endif %}
+</svg>
+{%- endmacro %}
+
+{% macro mantra_mark(dark=False, size=40) -%}
+{% set navy = '#ffffff' if dark else '#1e3a8a' %}
+<svg class="mantra-mark" width="{{ size }}" height="{{ size }}" viewBox="0 0 64 64" aria-hidden="true">
+  <g stroke="{{ navy }}" stroke-width="3" stroke-linecap="round" opacity=".9">
+    <path d="M32 34 14 14M32 34 46 10M32 34l22 6M32 34 16 50M32 34l6 22M14 14l32-4M54 40 38 56"/>
+  </g>
+  <circle cx="32" cy="34" r="7" fill="{{ navy }}"/>
+  <circle cx="14" cy="14" r="6" fill="#f59e0b"/>
+  <circle cx="46" cy="10" r="5" fill="#d4a017"/>
+  <circle cx="54" cy="40" r="5.5" fill="{{ navy }}"/>
+  <circle cx="16" cy="50" r="6" fill="#f59e0b"/>
+  <circle cx="38" cy="56" r="4.5" fill="#d4a017"/>
+</svg>
+{%- endmacro %}
+
+{% macro brand(dark=False) -%}
+<span class="brand">{{ mantra_mark(dark, 34) }}<span class="brand-name">MANTRA</span></span>
+{%- endmacro %}
+
+{% macro ms_logo() -%}
+<svg width="18" height="18" viewBox="0 0 21 21" aria-hidden="true"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
+{%- endmacro %}
+
+{% macro merdeka(dark=False) -%}
+<div class="merdeka {{ 'dark' if dark }}">
+  <img src="https://i.ibb.co.com/C1HHKQS/MCG.png" alt="" width="34" height="34">
+  <div><b>MERDEKA</b><span>COPPER GOLD</span><small>Tbk</small></div>
+</div>
+{%- endmacro %}
+
+{% macro report_card(card, compact=False) -%}
+{% set d = card.d %}
+<article class="report-card tone-{{ d.color }}{{ ' soon' if not d.ready }}" data-category="{{ d.category }}"
+         data-search="{{ (d.title ~ ' ' ~ d.description ~ ' ' ~ d.category)|lower }}">
+  <div class="rc-top">
+    <span class="rc-icon">{{ icon(d.icon) }}</span>
+    <button class="fav-btn{{ ' on' if card.fav }}" type="button" data-slug="{{ d.slug }}"
+            aria-pressed="{{ 'true' if card.fav else 'false' }}" title="Favorite">{{ icon('star') }}</button>
+  </div>
+  <h3>{% if d.ready %}<a href="{{ d.url }}">{{ d.title }}</a>{% else %}{{ d.title }}{% endif %}</h3>
+  <p>{{ d.description }}</p>
+  <div class="rc-foot">
+    {% if d.ready %}<span class="pill">{{ d.category }}</span>{{ icon('arrow') }}
+    {% else %}<span class="pill muted">Coming soon</span>{% endif %}
+  </div>
+</article>
+{%- endmacro %}

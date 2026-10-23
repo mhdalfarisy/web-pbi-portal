@@ -1,0 +1,11 @@
+{% extends "portal/base.html" if current_user else "portal/bare.html" %}
+{% from "portal/_ui.html" import icon %}
+{% block title %}{{ code }}{% endblock %}
+{% block content %}
+<div class="empty big">
+  {{ icon('search') }}
+  <h3>{{ code }}</h3>
+  <p>{{ message }}</p>
+  <a class="btn" href="{{ url_for('portal.home') }}">Kembali ke Home</a>
+</div>
+{% endblock %}

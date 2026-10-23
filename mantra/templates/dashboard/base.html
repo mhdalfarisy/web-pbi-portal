@@ -1,0 +1,106 @@
+{% from "dashboard/_icons.html" import icon %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ dashboard.title }}{% endblock %} - MANTRA</title>
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <link rel="icon" href="{{ url_for('static', filename='img/mantra-mark.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+<div class="dash">
+
+  <header class="hd" id="hd">
+    <svg class="hd-deco" viewBox="0 0 1200 100" preserveAspectRatio="xMaxYMid slice" aria-hidden="true">
+      <path d="M0 60 C 300 20, 600 100, 900 60 S 1200 40, 1200 60 L1200 100 L0 100 Z" fill="rgba(255,255,255,0.05)"/>
+      <path d="M0 80 C 400 120, 800 20, 1200 80 L1200 100 L0 100 Z" fill="rgba(255,255,255,0.04)"/>
+    </svg>
+    <div class="hd-inner">
+      <div class="hd-left">
+        <div class="hd-logo-box" id="hdLogoBox">
+          <div class="hd-logos even">
+            <img src="https://i.ibb.co.com/C1HHKQS/MCG.png" alt="MCG" title="MCG">
+            <img src="https://i.ibb.co.com/7nwFp7Z/MBMA.png" alt="MBM" title="MBM">
+            <img src="https://i.ibb.co.com/VpCH8NKK/MGR.png" alt="MGR" title="MGR">
+          </div>
+        </div>
+        <div class="hd-title-block">
+          <div class="hd-title-row">
+            <div class="hd-main-title">{% block main_title %}{{ dashboard.title }} Dashboard{% endblock %}</div>
+            <span class="hd-pill"><span class="hd-pill-dot"></span>{% block pill %}{{ dashboard.pages[0][0] }}{% endblock %}</span>
+          </div>
+          <div class="hd-desc">{% block desc %}{{ dashboard.description }}{% endblock %}</div>
+          <div class="hd-crumb">
+            {{ icon('building') }}
+            <span class="hd-crumb-label">Entity</span>
+            <span class="hd-crumb-sep">&#8250;</span>
+            <span class="hd-crumb-value" id="hdEntity">All Companies</span>
+          </div>
+        </div>
+      </div>
+      <div class="hd-right">
+        <nav class="hd-nav">
+          <a href="{{ url_for('portal.home') }}" title="Kembali ke portal MANTRA">&#8592; MANTRA</a>
+          {% for label, endpoint in dashboard.pages %}
+          <a href="{{ url_for(endpoint) }}" class="{{ 'on' if request.endpoint == endpoint }}">{{ label }}</a>
+          {% endfor %}
+        </nav>
+        <div class="hd-stat">
+          <div class="hd-stat-ic">{{ icon('clock') }}</div>
+          <div>
+            <small>Last Update</small>
+            <b id="hdDate">{{ header.date }}</b>
+            <em><span id="hdTime">{{ header.time }}</span>{% block stat_note %}{% endblock %}</em>
+          </div>
+        </div>
+        <div class="hd-stat hd-user">
+          <div class="hd-stat-ic">{{ icon('user') }}</div>
+          <div>
+            <small>{{ current_user.email }}</small>
+            <b>{{ current_user.name }}</b>
+            <em>
+              {% if config.AUTH_DISABLED %}Mode development{% else %}
+              <form method="post" action="{{ url_for('auth.logout') }}">
+                <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                <button type="submit">Logout</button>
+              </form>{% endif %}
+            </em>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="hd-accent"></div>
+  </header>
+
+  {% block content %}{% endblock %}
+</div>
+{% if chat_enabled %}
+<button class="chat-fab" id="chatFab" type="button" aria-label="Tanya AI">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M8.5 11h.01M12 11h.01M15.5 11h.01"/></svg>
+  <span>Tanya AI</span>
+</button>
+<section class="chat-panel" id="chatPanel" hidden aria-label="AI agent">
+  <header class="chat-head">
+    <div>
+      <b>AI Agent {{ dashboard.title }}</b>
+      <small>AI membaca langsung dari semantic model · jawaban bisa keliru, cek di dashboard</small>
+    </div>
+    <button type="button" id="chatReset" title="Percakapan baru">&#8635;</button>
+    <button type="button" id="chatClose" title="Tutup">&times;</button>
+  </header>
+  <div class="chat-body" id="chatBody"></div>
+  <form class="chat-form" id="chatForm">
+    <textarea id="chatInput" rows="1" maxlength="1000" placeholder="Tanya soal data {{ dashboard.title }}..."></textarea>
+    <button type="submit" id="chatSend" aria-label="Kirim">&#10148;</button>
+  </form>
+</section>
+<script>window.CHAT = {{ {"url": url_for("chat.chat", slug=dashboard.slug), "title": dashboard.title,
+                          "suggestions": dashboard.chat.suggestions}|tojson }};</script>
+{% endif %}
+<script src="{{ url_for('static', filename='js/dash-common.js') }}"></script>
+{% block scripts %}{% endblock %}
+{% if chat_enabled %}<script src="{{ url_for('static', filename='js/chat.js') }}"></script>{% endif %}
+</body>
+</html>

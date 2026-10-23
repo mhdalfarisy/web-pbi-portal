@@ -1,0 +1,68 @@
+{% extends "dashboard/base.html" %}
+{% from "dashboard/_icons.html" import icon %}
+{% block title %}Summary - Material Readiness{% endblock %}
+{% block main_title %}Material Readiness Dashboard{% endblock %}
+{% block desc %}Summary of Material &amp; Work Order PO / SO Readiness{% endblock %}
+{% block stat_note %} &middot; Branch FP &amp; ME{% endblock %}
+{% block content %}
+<div class="sb">
+  <div class="sb-item sb-co">
+    <div class="sb-ic">{{ icon('building') }}</div>
+    <div class="sb-field">
+      <div class="sb-label">Company</div>
+      <select id="sbCo" class="sb-select"></select>
+    </div>
+  </div>
+  <div class="sb-item">
+    <div class="sb-ic">{{ icon('calendar') }}</div>
+    <div class="sb-field">
+      <div class="sb-label">Year (Start Date)</div>
+      <select id="sbYr" class="sb-select"></select>
+    </div>
+  </div>
+  <div class="sb-item">
+    <div class="sb-ic">{{ icon('calendar') }}</div>
+    <div class="sb-field">
+      <div class="sb-label">Month (Start Date)</div>
+      <select id="sbMo" class="sb-select"></select>
+    </div>
+  </div>
+  <div class="sb-item sb-tm">
+    <div class="sb-ic">{{ icon('calcheck') }}</div>
+    <div class="sb-field">
+      <div class="sb-label">This Month</div>
+      <label class="tg" title="ON = only show data of the current month">
+        <input type="checkbox" id="sbTm">
+        <span class="tg-sl"></span>
+        <span class="tg-txt" id="sbTmTxt">OFF</span>
+      </label>
+    </div>
+  </div>
+  <span class="sb-info" id="sbInfo"></span>
+  <button class="sb-reset" id="sbReset" type="button">{{ icon('reset') }} Reset</button>
+</div>
+
+<div class="grid-wrap">
+  {% for title, ic in [('ALL Material PO Readiness', 'box'), ('ALL Material SO Readiness', 'cart'),
+                       ('ALL Work Order PO Readiness', 'box'), ('ALL Work Order SO Readiness', 'cart')] %}
+  <div class="card">
+    <div class="card-head">
+      <div class="ic">{{ icon(ic) }}{% if ic == 'box' %}<span class="ic-badge">{{ icon('check') }}</span>{% endif %}</div>
+      <div class="card-title">{{ title }}</div>
+      <span class="card-meta" id="meta{{ loop.index0 }}"></span>
+      <button class="detail-btn" type="button" data-ci="{{ loop.index0 }}">{{ icon('list') }} Details</button>
+    </div>
+    <div class="chart" id="chart{{ loop.index0 }}" data-ci="{{ loop.index0 }}"></div>
+    <div class="xt" id="xt{{ loop.index0 }}">Week Category</div>
+    <div class="legend" id="leg{{ loop.index0 }}" data-ci="{{ loop.index0 }}"></div>
+  </div>
+  {% endfor %}
+</div>
+
+<div id="tip"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>window.SUMMARY = {{ payload|tojson }};</script>
+<script src="{{ url_for('material_readiness.static', filename='summary.js') }}"></script>
+{% endblock %}

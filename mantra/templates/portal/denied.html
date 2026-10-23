@@ -1,0 +1,16 @@
+{% extends "portal/base.html" %}
+{% from "portal/_ui.html" import icon %}
+{% block title %}Akses ditolak{% endblock %}
+{% block content %}
+<div class="empty big">
+  {{ icon('lock') }}
+  <h3>Akses ditolak</h3>
+  {% if admin_only %}
+  <p>Halaman ini hanya untuk admin MANTRA (role <code>Portal.Admin</code>).</p>
+  {% else %}
+  <p>Akun Anda belum punya role untuk membuka <b>{{ dashboard.title if dashboard else 'dashboard ini' }}</b>.
+    Hubungi admin MANTRA untuk meminta akses.</p>
+  {% endif %}
+  <a class="btn" href="{{ url_for('portal.reports') }}">Kembali ke Reports</a>
+</div>
+{% endblock %}

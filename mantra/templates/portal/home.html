@@ -1,0 +1,50 @@
+{% extends "portal/base.html" %}
+{% from "portal/_ui.html" import icon, mantra_mark, report_card %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="hero-text">
+    <div class="hero-brand">
+      {{ mantra_mark(size=72) }}
+      <div>
+        <h1>MANTRA</h1>
+        <p class="hero-sub">Multi-Agent Network for Tracking &amp; Reporting Analytics</p>
+      </div>
+    </div>
+    <p class="hero-desc">Platform analitik <b>terpadu</b> untuk memantau kinerja, mengolah data, dan menyajikan insight
+      berbasis AI agent secara cepat, akurat, dan terintegrasi.</p>
+    <ul class="hero-features">
+      <li><span>{{ icon('database') }}</span>Centralized<br>Semantic Models</li>
+      <li><span>{{ icon('layout') }}</span>Interactive<br>Dashboards</li>
+      <li><span>{{ icon('sparkles') }}</span>AI Agent<br>per Dashboard</li>
+      <li><span>{{ icon('target') }}</span>Better<br>Decision Making</li>
+    </ul>
+  </div>
+  <div class="hero-art" aria-hidden="true">
+    <svg viewBox="0 0 520 300" preserveAspectRatio="xMidYMid slice">
+      <path d="M0 210 L90 120 L170 170 L260 70 L350 150 L430 95 L520 150 V300 H0 Z" fill="#c7d6ee"/>
+      <path d="M0 240 L110 170 L220 220 L320 150 L420 200 L520 170 V300 H0 Z" fill="#a9bfe3"/>
+      <g fill="#7f97c4"><rect x="300" y="196" width="70" height="40"/><rect x="380" y="180" width="54" height="56"/><rect x="330" y="160" width="10" height="36"/><rect x="400" y="150" width="8" height="30"/></g>
+      <path d="M0 300 C 160 260, 330 300, 520 190 V300 Z" fill="#d4a017" opacity=".85"/>
+    </svg>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <h2>Quick Access</h2>
+    {% if total %}<a class="link-arrow" href="{{ url_for('portal.reports') }}">View All Reports {{ icon('arrow') }}</a>{% endif %}
+  </div>
+  {% if cards %}
+  <div class="card-grid quick">
+    {% for card in cards %}{{ report_card(card) }}{% endfor %}
+  </div>
+  {% else %}
+  <div class="empty">
+    {{ icon('lock') }}
+    <h3>Belum ada dashboard untuk akun ini</h3>
+    <p>Akses dashboard diberikan lewat role di Microsoft Entra. Hubungi admin MANTRA untuk meminta akses.</p>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

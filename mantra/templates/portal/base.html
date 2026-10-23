@@ -1,0 +1,65 @@
+{% from "portal/_ui.html" import icon, brand, merdeka %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}MANTRA{% endblock %} - MANTRA</title>
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <link rel="icon" href="{{ url_for('static', filename='img/mantra-mark.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/portal.css') }}">
+</head>
+<body>
+{% set nav = [('portal.home', 'Home', 'home'), ('portal.reports', 'Reports', 'reports'),
+              ('portal.favorites', 'Favorites', 'star'), ('portal.history', 'History', 'history')] %}
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <a class="sidebar-brand" href="{{ url_for('portal.home') }}">{{ brand(dark=True) }}</a>
+    <nav class="side-nav">
+      {% for endpoint, label, ic in nav %}
+      <a href="{{ url_for(endpoint) }}" class="{{ 'active' if request.endpoint == endpoint }}">{{ icon(ic) }}<span>{{ label }}</span></a>
+      {% endfor %}
+      <hr>
+      <a href="{{ url_for('portal.settings') }}" class="{{ 'active' if request.endpoint == 'portal.settings' }}">{{ icon('settings') }}<span>Settings</span></a>
+    </nav>
+    <div class="sidebar-foot">{{ merdeka(dark=True) }}</div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn nav-toggle" id="navToggle" type="button" aria-label="Menu">{{ icon('menu') }}</button>
+      <form class="top-search" action="{{ url_for('portal.reports') }}" method="get" role="search">
+        {{ icon('search') }}
+        <input type="search" name="q" placeholder="Search reports..." value="{{ q or '' }}" aria-label="Search reports">
+      </form>
+      <div class="user-chip">
+        {% set parts = current_user.name.split() %}
+        <span class="avatar">{{ ((parts[0][0] if parts else '?') ~ (parts[-1][0] if parts|length > 1 else ''))|upper }}</span>
+        <span class="user-meta">
+          <b>{{ current_user.name }}</b>
+          <small>{{ 'Portal Admin' if user_is_admin else 'Viewer' }}</small>
+        </span>
+        {% if not config.AUTH_DISABLED %}
+        <form method="post" action="{{ url_for('auth.logout') }}">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <button class="icon-btn" type="submit" title="Logout" aria-label="Logout">{{ icon('logout') }}</button>
+        </form>
+        {% endif %}
+      </div>
+    </header>
+
+    <main class="content">
+      {% if config.AUTH_DISABLED %}
+      <div class="flash warn">Mode development: login Microsoft dilewati (AUTH_DISABLED=1). Role: {{ current_user.roles|join(', ') }}.</div>
+      {% endif %}
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+<script src="{{ url_for('static', filename='js/portal.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

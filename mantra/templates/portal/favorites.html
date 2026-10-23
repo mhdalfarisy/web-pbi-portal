@@ -1,0 +1,19 @@
+{% extends "portal/base.html" %}
+{% from "portal/_ui.html" import icon, report_card %}
+{% block title %}Favorites{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Favorites</h1>
+    <p class="muted">Reports you marked with a star</p>
+  </div>
+</div>
+<div class="card-grid" id="favoriteGrid" {{ 'hidden' if not cards }}>
+  {% for card in cards %}{{ report_card(card) }}{% endfor %}
+</div>
+<div class="empty" id="favoriteEmpty" {{ 'hidden' if cards }}>
+  {{ icon('star') }}
+  <h3>Belum ada favorit</h3>
+  <p>Klik ikon bintang di kartu report pada halaman <a href="{{ url_for('portal.reports') }}">Reports</a>.</p>
+</div>
+{% endblock %}

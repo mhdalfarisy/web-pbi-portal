@@ -1,0 +1,25 @@
+{% extends "portal/base.html" %}
+{% from "portal/_ui.html" import icon %}
+{% block title %}History{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>History</h1>
+    <p class="muted">Pages you opened recently</p>
+  </div>
+</div>
+{% if rows %}
+<ul class="history-list">
+  {% for r in rows %}
+  <li class="tone-{{ r.d.color }}">
+    <span class="rc-icon small">{{ icon(r.d.icon) }}</span>
+    <a href="{{ r.url }}">{{ r.title }}</a>
+    <span class="pill">{{ r.d.category }}</span>
+    <time datetime="{{ r.visited_at }}">{{ r.visited_at[:16] }}</time>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<div class="empty">{{ icon('history') }}<h3>Belum ada riwayat</h3><p>Halaman dashboard yang Anda buka akan muncul di sini.</p></div>
+{% endif %}
+{% endblock %}

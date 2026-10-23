@@ -1,0 +1,120 @@
+{% extends "dashboard/base.html" %}
+{% from "dashboard/_icons.html" import icon %}
+{% block title %}Detail - Material Readiness{% endblock %}
+{% block main_title %}Material Readiness Dashboard{% endblock %}
+{% block stat_note %} &middot; Branch FP &amp; ME{% endblock %}
+{% block pill %}<span id="pillType">Detail - PO</span>{% endblock %}
+{% block desc %}Detail PO / SO Readiness Table with Conditional Status Badges{% endblock %}
+{% block content %}
+<div class="dt-layout">
+  <aside class="panel fp">
+    <div class="fp-title">FILTERS</div>
+    <label class="fp-field">
+      <span class="fp-label">{{ icon('calendar') }} Year</span>
+      <select id="fYear"></select>
+    </label>
+    <label class="fp-field">
+      <span class="fp-label">{{ icon('calendar') }} Month (Start Date)</span>
+      <select id="fMonth"></select>
+    </label>
+    <div class="fp-field">
+      <span class="fp-label">{{ icon('calcheck') }} This Month</span>
+      <label class="tg">
+        <input type="checkbox" id="fTm">
+        <span class="tg-sl"></span>
+        <span class="tg-txt" id="fTmTxt">ON</span>
+      </label>
+    </div>
+    <label class="fp-field">
+      <span class="fp-label">{{ icon('building') }} Company</span>
+      <select id="fCompany"></select>
+    </label>
+    <label class="fp-field">
+      <span class="fp-label">{{ icon('plant') }} Plant</span>
+      <select id="fPlant"></select>
+    </label>
+    <label class="fp-field">
+      <span class="fp-label">{{ icon('warehouse') }} Warehouse</span>
+      <select id="fWarehouse"></select>
+    </label>
+    <label class="fp-field">
+      <span class="fp-label">{{ icon('flag') }} Status</span>
+      <select id="fStatus"></select>
+    </label>
+    <label class="fp-field">
+      <span class="fp-label">{{ icon('doc') }} No Doc</span>
+      <input id="fDoc" list="docList" placeholder="All" autocomplete="off">
+      <datalist id="docList"></datalist>
+    </label>
+    <button class="fp-chip" id="fWeek" type="button" hidden></button>
+    <button class="sb-reset fp-reset" id="fReset" type="button">{{ icon('reset') }} Reset Filters</button>
+    <div class="fp-info" id="fInfo"></div>
+  </aside>
+
+  <section class="dt-main">
+    <div class="kpis">
+      <div class="panel kpi">
+        <div class="kpi-ic blue">{{ icon('box') }}</div>
+        <div class="kpi-body">
+          <small id="k1Label">Selected PO Readiness</small>
+          <b id="k1Val">-</b>
+          <em id="k1Sub"></em>
+          <div class="kbar" id="k1Bar"></div>
+        </div>
+      </div>
+      <div class="panel kpi">
+        <div class="kpi-ic red">{{ icon('cart') }}</div>
+        <div class="kpi-body">
+          <small id="k2Label">PO Not Ready</small>
+          <b id="k2Val" class="red">-</b>
+          <em id="k2Sub"></em>
+          <div class="kbar" id="k2Bar"></div>
+        </div>
+      </div>
+      <div class="panel kpi">
+        <div class="kpi-ic amber">{{ icon('clock') }}</div>
+        <div class="kpi-body">
+          <small>Avg. Schedule Lead Time</small>
+          <b id="k3Val">-</b>
+          <em id="k3Sub"></em>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel tbl-card">
+      <div class="tbl-head">
+        <div class="ic">{{ icon('list') }}</div>
+        <div class="tbl-title">Detail Readiness</div>
+        <div class="tabs" id="tabs">
+          <button type="button" data-type="PO">PO <span id="tabPO"></span></button>
+          <button type="button" data-type="SO">SO <span id="tabSO"></span></button>
+        </div>
+        <span class="card-meta" id="rowsChip"></span>
+        <label class="tbl-search">
+          {{ icon('search') }}
+          <input id="q" type="search" placeholder="Search job, stock code, doc, plant...">
+        </label>
+        <button class="detail-btn copy" id="copyBtn" type="button">{{ icon('copy') }} <span>Copy to Excel</span></button>
+      </div>
+      <div class="tbl-wrap" id="tblWrap">
+        <table class="dtable" id="tbl"><thead></thead><tbody></tbody></table>
+      </div>
+      <div class="pager">
+        <label>Rows per page
+          <select id="size">
+            <option>25</option><option selected>50</option><option>100</option><option>200</option>
+          </select>
+        </label>
+        <button type="button" id="prev" aria-label="Previous page">&#8249;</button>
+        <button type="button" id="next" aria-label="Next page">&#8250;</button>
+        <span class="pg-info" id="pageInfo"></span>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>window.DETAIL = {{ payload|tojson }};</script>
+<script src="{{ url_for('material_readiness.static', filename='detail.js') }}"></script>
+{% endblock %}

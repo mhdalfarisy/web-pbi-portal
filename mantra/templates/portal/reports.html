@@ -1,0 +1,32 @@
+{% extends "portal/base.html" %}
+{% from "portal/_ui.html" import icon, report_card %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Reports</h1>
+    <p class="muted">Choose a report to start analyzing your data</p>
+  </div>
+  <div class="page-tools">
+    <label class="field-search">{{ icon('search') }}
+      <input type="search" id="reportSearch" placeholder="Search reports..." value="{{ q }}" aria-label="Search reports">
+    </label>
+    <label class="field-select">{{ icon('filter') }}
+      <select id="reportCategory" aria-label="Category">
+        <option value="">All Categories</option>
+        {% for c in categories %}<option value="{{ c }}" {{ 'selected' if c == category }}>{{ c }}</option>{% endfor %}
+      </select>
+    </label>
+  </div>
+</div>
+
+{% if cards %}
+<div class="card-grid" id="reportGrid">
+  {% for card in cards %}{{ report_card(card) }}{% endfor %}
+</div>
+<div class="empty" id="reportEmpty" hidden>{{ icon('search') }}<h3>Tidak ada report yang cocok</h3><p>Coba kata kunci atau kategori lain.</p></div>
+{% else %}
+<div class="empty">{{ icon('lock') }}<h3>Belum ada dashboard untuk akun ini</h3>
+  <p>Akses dashboard diberikan lewat role di Microsoft Entra. Hubungi admin MANTRA untuk meminta akses.</p></div>
+{% endif %}
+{% endblock %}
