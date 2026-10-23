@@ -1,0 +1,109 @@
+{% extends "dashboard/base.html" %}
+{% from "pani_processing/_ui.html" import filters, picon, scripts with context %}
+{% block title %}Mining - PANI{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('pani_processing.static', filename='pani.css') }}">{% endblock %}
+{% block main_title %}Mining Production Report{% endblock %}
+{% block pill %}Mining{% endblock %}
+{% block desc %}Production, Movement &amp; Performance Summary{% endblock %}
+{% block stat_note %} &middot; Model refresh {{ refresh or '-' }}{% endblock %}
+{% block content %}
+{% set mtd = d.periods.mtd %}
+<div class="pg">
+  {{ filters(d, bounds) }}
+
+  <div class="row r4">
+    {% for key, title, ic, icls in [('mined', 'Total Mined (MTD)', 'in', 'ic-blue'), ('movement', 'Total Movement (MTD)', 'move', 'ic-green'),
+                                   ('waste', 'Total Waste Mined (MTD)', 'trend', 'ic-purple'), ('outpit', 'Total Out-Pit Movement (MTD)', 'truck', 'ic-orange')] %}
+    {% set r = mtd[key] %}
+    <div class="panel pk slate">
+      <div class="pk-top"><span class="pk-ic {{ icls }}">{{ picon(ic) }}</span>
+        <div><small>{{ title }}</small><b>{{ fmt(r.actual) }} <i>t</i></b><em>vs Plan {{ fmt(r.plan) }}</em></div></div>
+      <div class="pk-foot"><span></span><span class="vt {{ tone(r.pct) }}">{{ sgn(r.pct, 0) if r.plan else '0%' }}</span></div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="row r-4-6">
+    <section class="panel">
+      <div class="ph"><h3>Key Highlights</h3></div>
+      {% for key, title, ic in [('mined', 'MTD Production', 'trend'), ('movement', 'Total MTD Movement', 'move'), ('outpit', 'Out-Pit Movement', 'truck')] %}
+      {% set r = mtd[key] %}
+      <div class="hl"><span class="pk-ic {{ 'ic-green' if r.var >= 0 else 'ic-red' }}">{{ picon(ic) }}</span>
+        <div><b>{{ title }}</b>{{ title }} is {{ 'above' if r.var >= 0 else 'below' }} plan by
+          <span class="{{ tone(r.var) }}">{{ sgn(r.var, 0, ' t') }}{% if r.plan %} ({{ sgn(r.pct, 0) }}){% endif %}</span></div></div>
+      {% endfor %}
+    </section>
+    <section class="panel">
+      <div class="ph"><h3>Performance Summary <small>(ton)</small></h3></div>
+      <div style="overflow-x:auto">
+        <table class="psum">
+          <thead>
+            <tr><th rowspan="2">Description</th>
+              <th class="grp" colspan="4">DAILY ({{ dlabel(d.start) }} TO {{ dlabel(d.end) }})</th>
+              <th class="grp" colspan="4">MTD ({{ dlabel(d.month_start) }} - {{ dlabel(d.end) }})</th>
+              <th class="grp" colspan="4">YTD ({{ dlabel(d.year_start) }} - {{ dlabel(d.end) }})</th></tr>
+            <tr>{% for _ in range(3) %}<th class="bl">Actual</th><th>Plan</th><th>Var</th><th>% Var</th>{% endfor %}</tr>
+          </thead>
+          <tbody>
+            {% for key in ['ore', 'waste', 'mined', 'outpit', 'movement'] %}
+            <tr><td>{{ d.periods.daily[key].label }} (t)</td>
+              {% for p in ['daily', 'mtd', 'ytd'] %}{% set r = d.periods[p][key] %}
+              <td class="bl">{{ fmt(r.actual) }}</td><td>{{ fmt(r.plan) }}</td>
+              <td class="{{ tone(r.var) }}">{{ sgn(r.var, 0, '') }}</td><td class="{{ tone(r.pct) }}">{{ sgn(r.pct, 0) if r.plan else '0%' }}</td>
+              {% endfor %}</tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div class="row r-mining">
+    <section class="panel">
+      <div class="ph"><h3>Total Movement Overview <small>(MTD)</small></h3></div>
+      {% set ns = namespace(acc=0, stops=[]) %}
+      {% for p in d.donut %}{% set ns.stops = ns.stops + [p.color ~ ' ' ~ ns.acc ~ '% ' ~ (ns.acc + p.pct) ~ '%'] %}{% set ns.acc = ns.acc + p.pct %}{% endfor %}
+      <div class="donut" style="background: conic-gradient({{ ns.stops|join(', ') if d.donut_total else '#e8edf4 0 100%' }})">
+        <div><b>{{ fmt(d.donut_total) }} t</b><small>Total (t)</small></div></div>
+      <div class="dleg">{% for p in d.donut %}<span><i style="background:{{ p.color }}"></i>{{ p.label }} ({{ fmt(p.pct, 1) }}%)</span>{% endfor %}</div>
+    </section>
+    {% for key, title, bar_color in [('mined', 'Total Mined (MTD)', '#f59e0b'), ('movement', 'Total Movement (MTD)', '#10b981')] %}
+    {% set c = d.charts[key] %}
+    <section class="panel">
+      <div class="ph"><h3>{{ title }}</h3><span class="pill-b badge-r {{ 'green' if (c.achv or 0) >= 90 else 'red' }}">Achievement {{ fmt(c.achv) }}%</span></div>
+      <div class="cc-legend"><span><i style="background:{{ bar_color }}"></i>Daily Act</span><span><i style="background:#cbd5e1"></i>Daily Plan</span>
+        <span><i class="ln" style="background:#3b82f6"></i>Cumm Actual</span><span><i class="dsh" style="border-color:#ef4444"></i>Cumm Plan</span></div>
+      <div class="mchart">
+        <div class="cc" id="ch-{{ key }}"></div>
+        <div class="side">MTD Plan<b>{{ fmt((c.plan or 0) / 1000, 0) }} kt</b>MTD Actual<b>{{ fmt((c.actual or 0) / 1000, 0) }} kt</b>
+          <div class="ring lg" style="margin:0 auto; --v: {{ [c.achv or 0, 100]|min }}; --c: {{ ring(c.achv) }}"><span>{{ fmt(c.achv) }}%</span></div></div>
+      </div>
+    </section>
+    {% endfor %}
+  </div>
+  <p class="note">Satuan mengikuti data (ton). Out-Pit Movement memakai unit ton saja; plan Out-Pit tidak tersedia di model (0).</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ scripts() }}
+<script>
+(function () {
+    var d = Pani.P.data, MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    function lbl(iso) { return iso.slice(8, 10) + ' ' + MON[+iso.slice(5, 7) - 1]; }
+    Pani.onResize(function () {
+        [['mined', '#f59e0b'], ['movement', '#10b981']].forEach(function (k) {
+            var pts = d.charts[k[0]].points;
+            Pani.combo(document.getElementById('ch-' + k[0]), {
+                labels: pts.map(function (p) { return lbl(p.date); }),
+                bars: [{ name: 'Daily Act', values: pts.map(function (p) { return p.actual; }), color: k[1] },
+                       { name: 'Daily Plan', values: pts.map(function (p) { return p.plan; }), color: '#cbd5e1' }],
+                lines: [{ name: 'Cumm Actual', axis: 'right', color: '#3b82f6', values: pts.map(function (p) { return p.cum_actual; }) },
+                        { name: 'Cumm Plan', axis: 'right', color: '#ef4444', dash: true, values: pts.map(function (p) { return p.cum_plan; }) }],
+                minBand: 40, scrollEnd: true
+            });
+        });
+    });
+})();
+</script>
+{% endblock %}

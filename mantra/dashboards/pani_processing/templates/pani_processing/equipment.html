@@ -1,0 +1,111 @@
+{% extends "dashboard/base.html" %}
+{% from "pani_processing/_ui.html" import filters, picon, scripts with context %}
+{% block title %}Equipment - PANI{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('pani_processing.static', filename='pani.css') }}">{% endblock %}
+{% block main_title %}Equipment Performance Report{% endblock %}
+{% block pill %}Equipment{% endblock %}
+{% block desc %}Equipment Performance Overview{% endblock %}
+{% block stat_note %} &middot; Model refresh {{ refresh or '-' }}{% endblock %}
+
+
+
+{% block content %}
+{% macro model_card(m) %}
+<div class="panel mcard">
+  <div class="ph"><h3>{{ m.model }}</h3><span class="pill-b badge-r">{{ m.units|length }} unit{{ 's' if m.units|length > 1 }}</span></div>
+  <div class="mstat">
+    <div>PA<b class="{{ 'pos' if m.pa >= d.pa_target else 'neg' }}">{{ fmt(m.pa, 2) }}%</b><span class="note">Target PA &ge; {{ fmt(d.pa_target) }}%</span></div>
+    <div>UA<b class="{{ 'pos' if m.ua >= d.ua_target else 'neg' }}">{{ fmt(m.ua, 2) }}%</b><span class="note">Target UA &ge; {{ fmt(d.ua_target) }}%</span></div>
+  </div>
+  <div class="cc-legend"><span><i style="background:#3b82f6"></i>PA</span><span><i style="background:#1e3a8a"></i>UA</span>
+    <span><i class="dsh" style="border-color:#ef4444"></i>Target PA</span><span><i class="dsh" style="border-color:#eab308"></i>Target UA</span></div>
+  <div class="ubars">
+    <div class="tline" style="bottom: calc(18px + {{ d.pa_target }} * 0.68px); border-color: #ef4444"></div>
+    <div class="tline" style="bottom: calc(18px + {{ d.ua_target }} * 0.68px); border-color: #eab308"></div>
+    {% for u in m.units %}
+    <div class="ubar" title="{{ u.unit }} · PA {{ fmt(u.pa, 1) }}% · UA {{ fmt(u.ua, 1) }}%{{ '' if u.active else ' · inactive' }}">
+      <span style="height: {{ [u.pa, 100]|min }}%"></span><span class="ua" style="height: {{ [u.ua, 100]|min }}%"></span><label>{{ u.unit }}</label>
+    </div>
+    {% endfor %}
+  </div>
+  {% if m.ok %}<div class="mnote ok">&#10003; <b>Excellent</b> &middot; All units meet the performance targets.</div>
+  {% else %}<div class="mnote bad">&#9888; <b>Needs Attention</b> &middot; Some units are below the target.</div>{% endif %}
+</div>
+{% endmacro %}
+{% set qs = {'start': d.start, 'end': d.end} %}
+<div class="pg">
+  {% call filters(d, bounds) %}
+  <div class="sb-item" style="width:auto">
+    <div class="sb-field"><div class="sb-label">Status (Top 5)</div>
+      <span class="seg-btns">
+        {% for val, label in [('', 'All'), ('active', 'Active'), ('inactive', 'Inactive')] %}
+        <a href="{{ url_for('pani_processing.equipment', status=val or None, **qs) }}" class="{{ 'on' if d.status == val }}">{{ label }}</a>
+        {% endfor %}
+      </span></div>
+  </div>
+  <input type="hidden" name="status" value="{{ d.status }}">
+  {% endcall %}
+
+  <div class="row r4">
+    <a class="panel pk {{ 'sel' if d.status == 'active' }}" href="{{ url_for('pani_processing.equipment', status='active', **qs) }}" title="Tampilkan Top 5 unit aktif">
+      <div class="pk-top"><span class="pk-ic ic-blue">{{ picon('check') }}</span>
+        <div><small>Total Active Unit</small><b class="slate">{{ fmt(d.active) }}</b>
+          <em>{{ fmt(d.active / d.total * 100 if d.total else 0, 2) }}% dari total unit</em></div></div></a>
+    <a class="panel pk {{ 'sel' if d.status == 'inactive' }}" href="{{ url_for('pani_processing.equipment', status='inactive', **qs) }}" title="Tampilkan Top 5 unit nonaktif">
+      <div class="pk-top"><span class="pk-ic ic-red">{{ picon('x') }}</span>
+        <div><small>Total Inactive Unit</small><b class="slate">{{ fmt(d.inactive) }}</b>
+          <em>{{ fmt(d.inactive / d.total * 100 if d.total else 0, 2) }}% dari total unit</em></div></div></a>
+    {% for label, val, delta, ic in [('Average PA%', d.avg_pa, d.delta_pa, 'percent'), ('Average UA%', d.avg_ua, d.delta_ua, 'chart')] %}
+    <div class="panel pk green">
+      <div class="pk-top"><span class="pk-ic ic-green">{{ picon(ic) }}</span>
+        <div><small>{{ label }}</small><b>{{ fmt(val, 2) }}%</b>
+          <em>vs periode sebelumnya <span class="{{ tone(delta) }}">{{ sgn(delta, 2, ' pt') if delta is not none else '-' }}</span></em></div></div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="row r-4-6">
+    <section class="panel">
+      <div class="ph"><h3>Top 5 Duration Breakdown <small>(Status: {{ d.status|capitalize or 'All' }})</small></h3>
+        <span class="pill-b badge-r">Average PA%: {{ fmt(d.top_avg_pa, 2) }}%</span></div>
+      {% set maxdur = (d.top|map(attribute='dur')|max) if d.top else 0 %}
+      <table class="dtab">
+        <thead><tr><th>Unit</th><th>Model</th><th>Duration</th><th class="r">PA%</th></tr></thead>
+        <tbody>
+          {% for u in d.top|reverse %}
+          <tr><td><b>{{ u.unit }}</b></td><td>{{ u.model }}</td>
+            <td><div class="bar-wrap"><div class="bar"><span style="width: {{ u.dur / maxdur * 100 if maxdur else 0 }}%"></span></div><b>{{ fmt(u.dur, 1) }} h</b></div></td>
+            <td class="r" style="color:#2563eb;font-weight:700">{{ fmt(u.pa, 2) }}%</td></tr>
+          {% else %}<tr><td colspan="4" class="note">Tidak ada unit.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </section>
+    <section class="panel">
+      <div class="ph"><h3>Gain &amp; Loss <small>(Operational Hours)</small></h3>
+        <span class="pill-b badge-r {{ 'green' if d.net_gainloss > 0 else 'red' if d.net_gainloss < 0 }}">Net: {{ fmt(d.net_gainloss, 1) }} h</span></div>
+      {% set maxgl = (d.gainloss|map(attribute='dur')|map('abs')|max) if d.gainloss else 0 %}
+      {% if not maxgl %}<p class="note" style="margin-bottom:8px">Tidak ada jam gain/loss tercatat pada periode ini.</p>{% endif %}
+      <div class="glbars">
+        {% for g in d.gainloss %}
+        <div class="glrow"><span>{{ g.name }}</span>
+          <div class="bar"><span class="{{ 'gain' if g.dur > 0 else 'loss' }}" style="width: {{ (g.dur|abs) / maxgl * 100 if maxgl else 0 }}%"></span></div>
+          <b class="{{ tone(g.dur) }}" style="text-align:right">{{ fmt(g.dur, 1) }} h</b></div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <section>
+    <div class="ph"><h3>Performance by Model <small>(Target PA &ge; {{ fmt(d.pa_target) }}%, UA &ge; {{ fmt(d.ua_target) }}%)</small></h3></div>
+    {% set active_models = d.models|selectattr('active')|list %}
+    {% set idle_models = d.models|rejectattr('active')|list %}
+    <div class="models">{% for m in active_models %}{{ model_card(m) }}{% endfor %}</div>
+    {% if idle_models %}
+    <details class="more"><summary>Model tanpa unit aktif ({{ idle_models|length }})</summary>
+      <div class="models">{% for m in idle_models %}{{ model_card(m) }}{% endfor %}</div></details>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}{{ scripts() }}{% endblock %}

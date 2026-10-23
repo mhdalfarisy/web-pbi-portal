@@ -23,7 +23,7 @@ File `instance/mantra.db` hanya berisi Favorites dan History per user.
 | Dashboard | Slug | App role | Status |
 |---|---|---|---|
 | Material Readiness | `material-readiness` | `Report.MaterialReadiness` | Siap. Angka identik dengan project lama (66 perbandingan) dan 8 pertanyaan acuan AI agent lulus |
-| PANI Processing | `pani-processing` | `Report.PaniProcessing` | Coming soon: menunggu akses `mantra-powerbi` ke workspace PANI |
+| PANI Processing | `pani-processing` | `Report.PaniProcessing` | Siap. 4 halaman (Processing, Equipment, Mining, Production) dari model "PANI - PRCS - Processing". Rumus direkonstruksi dari tabel model dan divalidasi terhadap screenshot report |
 
 ## Struktur folder
 

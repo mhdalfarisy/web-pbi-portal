@@ -1,24 +1,34 @@
-"""Dashboard PANI - PRCS - Processing (dalam pengembangan).
+"""Dashboard PANI: 4 report dari semantic model "PANI - PRCS - Processing" (workspace PANI-MCG).
 
-Semantic model sudah ditentukan di bawah. Halaman dan AI agent dibuat setelah service principal mantra-powerbi punya
-akses ke workspace ini (cek dengan: python scripts\\check_setup.py) dan struktur model sudah dibaca.
+Halaman: Processing, Equipment Performance, Mining Production, Production (stockpile). Angka direkonstruksi dari tabel
+model (rumus DAX measure report tidak bisa dibaca service principal) dan divalidasi terhadap screenshot report.
 """
-from ...core.powerbi import Dataset
-from ...core.registry import Dashboard
+from pathlib import Path
 
-# ID bisa ditimpa lewat .env: PANI_PROCESSING_WORKSPACE_ID / PANI_PROCESSING_DATASET_ID
-DATASET = Dataset("PANI_PROCESSING", workspace_id="f8e25e4f-1d9b-44c5-94b2-069053b7b914",
-                  dataset_id="2a7f8bdf-8f64-4fb1-9ba3-c49eb680c9ac")
+from ...core.registry import ChatSpec, Dashboard
+from . import queries, tools
+from .routes import bp
+
+DATASET = queries.DATASET
 
 DASHBOARD = Dashboard(
     slug="pani-processing",
     title="PANI Processing",
-    description="Monitor PANI processing (PRCS) performance and operational metrics.",
+    description="Processing, equipment, mining, and stockpile production performance for PANI Gold Project.",
     category="Operations",
     icon="factory",
     color="teal",
     role="Report.PaniProcessing",
     dataset=DATASET,
-    ready=False,
+    blueprint=bp,
+    pages=[("Processing", "pani_processing.processing"), ("Equipment", "pani_processing.equipment"),
+           ("Mining", "pani_processing.mining"), ("Production", "pani_processing.production")],
+    chat=ChatSpec(
+        tools=tools.TOOLS,
+        prompt_dir=Path(__file__).resolve().parent / "prompts",
+        suggestions=tools.SUGGESTIONS,
+        clean_args=tools.clean_args,
+        parse_dash=tools.parse_dash,
+    ),
     order=20,
 )

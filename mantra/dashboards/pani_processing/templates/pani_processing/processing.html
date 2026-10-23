@@ -1,0 +1,154 @@
+{% extends "dashboard/base.html" %}
+{% from "pani_processing/_ui.html" import filters, picon, scripts with context %}
+{% block title %}Processing - PANI{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('pani_processing.static', filename='pani.css') }}">{% endblock %}
+{% block main_title %}Processing Report{% endblock %}
+{% block pill %}Processing{% endblock %}
+{% block desc %}Executive overview of production performance against target{% endblock %}
+{% block stat_note %} &middot; Model refresh {{ refresh or '-' }}{% endblock %}
+{% block content %}
+{% set STAGE_ICON = {'Crushing': 'hammer', 'Heap Leach': 'layers', 'Adsorption': 'filter', 'Elution - Smelting': 'flame'} %}
+<div class="pg">
+  {{ filters(d, bounds) }}
+  {% if d.provisional %}<div class="note">Sebagian angka pada tanggal akhir masih <b>provisional</b> (dapat berubah setelah data final masuk).</div>{% endif %}
+
+  <div class="row r4">
+    {% for k, tone_cls, ic, title in [('gold', '', 'ic-blue', 'Gold Produced (Ads)'), ('silver', 'green', 'ic-green', 'Silver Produced (Ads)')] %}
+    {% set m = d[k] %}
+    <div class="panel pk {{ tone_cls }}">
+      <div class="pk-top">
+        <span class="pk-ic {{ ic }}">{{ picon('coins') }}</span>
+        <div><small>{{ title }} <span class="tag">YTD</span></small>
+          <b>{{ fmt(m.actual, 2) }} <i>{{ m.unit }}</i></b><em>Target {{ fmt(m.target, 2) }} {{ m.unit }}</em></div>
+      </div>
+      <div class="pk-foot"><span class="{{ tone(m.var) }}">{{ arrow(m.var) }} {{ sgn(m.var) }} vs Target</span><div class="spark" id="sp-{{ k }}"></div></div>
+    </div>
+    {% endfor %}
+    <div class="panel pk red">
+      <div class="pk-top">
+        <span class="pk-ic ic-red">{{ picon('chart') }}</span>
+        <div><small>Gold Variance <span class="tag red">YTD</span></small>
+          <b class="{{ tone(d.gold_variance.var) }}">{{ sgn(d.gold_variance.var) }}</b>
+          <em>Actual {{ fmt(d.gold_variance.actual, 2) }} vs Target {{ fmt(d.gold_variance.target, 2) }}</em></div>
+      </div>
+      <div class="pk-foot"><span class="{{ tone(d.gold_variance.var) }}">{{ arrow(d.gold_variance.var) }} {{ sgn(d.gold_variance.var) }}</span><div class="spark" id="sp-var"></div></div>
+    </div>
+    <div class="panel pk amber">
+      <div class="pk-top">
+        <span class="pk-ic ic-amber">{{ picon('trophy') }}</span>
+        <div><small>Overall Achievement <span class="tag amber">YTD</span></small>
+          <b>{{ fmt(d.overall.achv, 0) }}%</b><em class="{{ tone(d.overall.var) }}">{{ sgn(d.overall.var) }} vs Target</em>
+          <em>Actual {{ fmt(d.overall.actual, 2) }} vs Target {{ fmt(d.overall.target, 2) }}</em></div>
+      </div>
+      <div class="ring lg pk-ring" style="--v: {{ [d.overall.achv or 0, 100]|min }}; --c: #f59e0b"><span>{{ fmt(d.overall.achv, 0) }}%</span></div>
+    </div>
+  </div>
+
+  <div class="row r-6-4">
+    <section class="panel">
+      <div class="ph"><h3>Actual vs Forecast Production <small>(Ton Dry · Total Crushed Ore)</small></h3></div>
+      <div class="cc-legend">
+        <span><i style="background:#3b82f6"></i>Actual</span><span><i style="background:#dbe3ee"></i>Forecast</span>
+        <span><i class="dsh" style="border-color:#94a3b8"></i>Target 100%</span><span><i class="dsh" style="border-color:#ef4444"></i>Min 90%</span>
+        <span><i class="ln" style="background:#f59e0b"></i>Achievement (%)</span>
+      </div>
+      <div class="cc" id="chartProd"></div>
+    </section>
+    <section class="panel">
+      <div class="ph"><h3>Production Summary by Stage <small>(YTD)</small></h3></div>
+      <div class="stage head"><span></span><span>Stage</span><span>Actual</span><span>vs Target</span><span>Achv.</span></div>
+      {% for s in d.stages %}
+      <div class="stage">
+        {{ picon(STAGE_ICON.get(s.stage, 'activity'), 'ic') }}
+        <b>{{ s.stage }}</b>
+        <div class="bar-wrap"><div class="bar"><span style="width: {{ [s.achv or 0, 100]|min }}%"></span></div><b>{{ fmt(s.actual, 2) }} {{ s.unit }}</b></div>
+        <span class="vt {{ tone(s.var) }}">{{ sgn(s.var) }}</span>
+        <div class="ring sm" style="--v: {{ [s.achv or 0, 100]|min }}; --c: {{ ring(s.achv) }}"><span>{{ fmt(s.achv, 0) }}%</span></div>
+      </div>
+      {% endfor %}
+    </section>
+  </div>
+
+  <div class="row r3">
+    <section class="panel">
+      <div class="ph"><h3>Metallurgical Performance <small>(YTD)</small></h3></div>
+      <div class="rings3">
+        {% for m in d.metallurgy %}
+        <div><b>{{ m.label }} (%)</b>
+          <div class="ring lg" style="--v: {{ [m.actual or 0, 100]|min }}; --c: #2563eb"><span>{{ fmt(m.actual, 1) }}%</span></div>
+          <span class="{{ tone(m.var) }}">{{ sgn(m.var) }}</span> vs Target</div>
+        {% endfor %}
+      </div>
+    </section>
+    <section class="panel">
+      <div class="ph"><h3>Grade Overview <small>(YTD)</small></h3></div>
+      <div class="grades">
+        {% for g in d.grades %}
+        {% set top = [g.actual or 0, g.target or 0]|max or 1 %}
+        <div><b>{{ g.label }} ({{ g.unit }})</b>
+          <div class="gvals">{{ fmt(g.actual, 2) }} <i>{{ fmt(g.target, 2) }}</i></div>
+          <div class="gbars"><span style="height: {{ (g.actual or 0) / top * 100 }}%" title="Actual"></span><span class="t" style="height: {{ (g.target or 0) / top * 100 }}%" title="Target"></span></div>
+          <b class="{{ tone(g.var) }}">{{ sgn(g.var) }}</b></div>
+        {% endfor %}
+      </div>
+    </section>
+    <section class="panel">
+      <div class="ph"><h3>Daily vs MTD vs YTD Snapshot</h3></div>
+      <table class="snap">
+        <thead><tr><th></th><th>DAILY</th><th>MTD</th><th>YTD</th></tr></thead>
+        <tbody>
+          {% for s in d.snapshot %}
+          <tr><td><b>{{ s.label }}</b><small>({{ s.unit }})</small></td>
+            {% for p in [s.daily, s.mtd, s.ytd] %}
+            <td><b>{{ fmt(p.actual, 2) }}</b><small>{{ fmt(p.target, 2) }}</small><em class="{{ tone(p.var) }}">{{ sgn(p.var) }}</em></td>
+            {% endfor %}</tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="note">Angka per {{ dlabel(d.end) }}: actual, target (abu-abu), variance.</p>
+    </section>
+  </div>
+
+  <section class="panel">
+    <div class="ph"><h3>Top 5 Negative Variance Drivers <small>(YTD)</small></h3></div>
+    {% if d.drivers %}
+    <div class="drivers">
+      {% for m in d.drivers %}
+      <div class="drv">
+        <span class="no">{{ loop.index }}</span><h4>{{ m.label }}</h4>
+        <span></span><span class="v">{{ sgn(m.var) }} <span class="muted">vs Target</span></span>
+        <p>{{ m.note }}</p>
+        <div class="spark" id="sp-drv-{{ loop.index0 }}"></div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}<p class="note">Tidak ada metrik di bawah target pada {{ dlabel(d.end) }}.</p>{% endif %}
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ scripts() }}
+<script>
+(function () {
+    var d = Pani.P.data, MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    function lbl(iso) { return iso.slice(8, 10) + ' ' + MON[+iso.slice(5, 7) - 1]; }
+    Pani.onResize(function () {
+        Pani.spark(document.getElementById('sp-gold'), d.gold.spark, '#2563eb');
+        Pani.spark(document.getElementById('sp-silver'), d.silver.spark, '#16a34a');
+        Pani.spark(document.getElementById('sp-var'), d.gold_variance.spark, '#dc2626');
+        d.drivers.forEach(function (m, i) { Pani.spark(document.getElementById('sp-drv-' + i), m.spark, '#ef4444'); });
+        var c = d.chart;
+        Pani.combo(document.getElementById('chartProd'), {
+            labels: c.map(function (p) { return lbl(p.date); }),
+            bars: [{ name: 'Forecast', values: c.map(function (p) { return p.target; }), color: '#dbe3ee' },
+                   { name: 'Actual', values: c.map(function (p) { return p.actual; }), color: '#3b82f6' }],
+            lines: [{ name: 'Achievement', axis: 'right', color: '#f59e0b', values: c.map(function (p) { return p.achv; }),
+                      fmt: function (v) { return v.toFixed(1) + '%'; } }],
+            refs: [{ value: 100, color: '#94a3b8' }, { value: 90, color: '#ef4444' }],
+            rightFmt: function (v) { return Math.round(v) + '%'; }, rightMax: 200, minBand: 46
+        });
+    });
+})();
+</script>
+{% endblock %}

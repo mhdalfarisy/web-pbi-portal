@@ -1,0 +1,129 @@
+{% extends "dashboard/base.html" %}
+{% from "pani_processing/_ui.html" import filters, picon, scripts with context %}
+{% block title %}Production - PANI{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('pani_processing.static', filename='pani.css') }}">{% endblock %}
+{% block main_title %}Production Report{% endblock %}
+{% block pill %}Production{% endblock %}
+{% block desc %}Production Inputs, Outputs &amp; Performance{% endblock %}
+{% block stat_note %} &middot; Model refresh {{ refresh or '-' }}{% endblock %}
+{% block content %}
+{% set top_in = d.top_input[0] if d.top_input else none %}
+{% set top_out = d.top_output[0] if d.top_output else none %}
+{% set stock_in = d.stock_input %}
+<div class="pg">
+  {{ filters(d, bounds) }}
+
+  <div class="row r4">
+    {% for title, val, ic, icls in [('Total Input', d.input, 'in', 'ic-blue'), ('Total Output', d.output, 'out', 'ic-green'),
+                                   ('Net Movement', d.net, 'scale', 'ic-purple'), ('Grand Total', d.grand, 'layers', 'ic-orange')] %}
+    <div class="panel pk slate">
+      <div class="pk-top"><span class="pk-ic {{ icls }}">{{ picon(ic) }}</span>
+        <div><small>{{ title }} (t)</small><b class="{{ 'neg' if val < 0 }}">{{ fmt(val, 2) }}</b><em>{{ fmt(val, 2) }} tonnes</em></div></div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="row r-6-4">
+    <section class="panel">
+      <div class="flow">
+        <div class="fbox in">INPUT<b>{{ fmt(d.input, 2) }} t</b>
+          <div class="ring lg" style="--v: 100; --c: #2563eb"><span>100%</span></div></div>
+        <div class="fstages">
+          {% for s, ic in [('Crushing', 'hammer'), ('Screening', 'filter'), ('Stockpile', 'mountain')] %}
+          <div class="fstage"><span>{{ s }}</span><b>{{ fmt(d.stages[s], 2) }} t</b></div>
+          {% endfor %}
+          <div class="note" style="text-align:center">Output {{ fmt(d.output_pct, 2) }}% dari input &rarr;</div>
+        </div>
+        <div class="fbox out">OUTPUT<b>{{ fmt(d.output, 2) }} t</b>
+          <div class="ring lg" style="--v: {{ [d.output_pct or 0, 100]|min }}; --c: #16a34a"><span>{{ fmt(d.output_pct, 0) }}%</span></div></div>
+      </div>
+      <div class="fsum">
+        <div><small>Net Movement</small><b class="{{ tone(d.net) }}">{{ fmt(d.net, 2) }} t</b>
+          <span class="note">({{ sgn(d.net_pct, 1) }} dari input)</span></div>
+        <div><small>Grand Total</small><b>{{ fmt(d.grand, 2) }} t</b></div>
+        <div><small>Top Input Location</small><b>{% if top_in %}{{ top_in.name }} ({{ fmt(top_in.input, 2) }} t){% else %}-{% endif %}</b></div>
+        <div><small>Top Output Location</small><b>{% if top_out %}{{ top_out.name }} ({{ fmt(top_out.output, 2) }} t){% else %}-{% endif %}</b></div>
+      </div>
+      {% if top_in %}<p class="note" style="margin-top:8px">&#128161; Output mencapai {{ fmt(d.output_pct, 1) }}% dari total input, dengan input utama dari {{ top_in.name }} ({{ fmt(top_in.input, 2) }} t).</p>{% endif %}
+    </section>
+    <section class="panel">
+      <div class="ph"><h3>Input &amp; Output by Location <small>(t)</small></h3></div>
+      <div class="cc-legend" style="justify-content:flex-start"><span><i style="background:#2563eb"></i>Input</span><span><i style="background:#22c55e"></i>Output</span></div>
+      {% set maxv = [(d.locations|map(attribute='input')|max) if d.locations else 0, (d.locations|map(attribute='output')|max) if d.locations else 0]|max %}
+      <div class="locs">
+        {% for l in d.locations %}
+        <div class="loc"><b>{{ l.name }}</b>
+          <div class="bars"><div class="bar"><span style="width: {{ l.input / maxv * 100 if maxv else 0 }}%"></span></div>
+            <div class="bar"><span class="o" style="width: {{ l.output / maxv * 100 if maxv else 0 }}%"></span></div></div>
+          <div class="vals"><span class="i">{{ fmt(l.input, 2) }} ({{ fmt(l.in_pct, 2) }}%)</span><br><span class="o">{{ fmt(l.output, 2) }} ({{ fmt(l.out_pct, 2) }}%)</span></div></div>
+        {% else %}<p class="note">Tidak ada data pada periode ini.</p>{% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <div class="row r-4-6">
+    <section class="panel">
+      <div class="ph"><h3>Top Input &amp; Output Detail <small>(t)</small></h3></div>
+      <div class="tsplit">
+        <div><h4>TOP INPUT</h4>
+          <table class="ttab"><thead><tr><th>Source Loc ID</th><th class="r">t</th><th class="r">%</th></tr></thead>
+            <tbody>{% for l in d.top_input %}<tr><td>{{ l.name }}</td><td class="r">{{ fmt(l.input, 2) }}</td><td class="r">{{ fmt(l.in_pct, 2) }}%</td></tr>{% endfor %}</tbody>
+            <tfoot><tr><td>Total Input</td><td class="r">{{ fmt(d.input, 2) }}</td><td class="r">100%</td></tr></tfoot></table></div>
+        <div><h4 class="o">TOP OUTPUT</h4>
+          <table class="ttab"><thead><tr><th>Dump Loc ID</th><th class="r">t</th><th class="r">%</th></tr></thead>
+            <tbody>{% for l in d.top_output %}<tr><td>{{ l.name }}</td><td class="r">{{ fmt(l.output, 2) }}</td><td class="r">{{ fmt(l.out_pct, 2) }}%</td></tr>{% endfor %}</tbody>
+            <tfoot><tr><td>Total Output</td><td class="r">{{ fmt(d.output, 2) }}</td><td class="r">100%</td></tr></tfoot></table></div>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="ph"><h3>Trend Produksi <small>(t)</small></h3>
+        <span class="seg-btns badge-r" id="trendMode" style="border:1px solid #cbd5e1;border-radius:6px;overflow:hidden">
+          {% for m, label in [('daily', 'Daily'), ('weekly', 'Weekly'), ('mtd', 'MTD')] %}
+          <button type="button" data-mode="{{ m }}" class="pill-b" style="border:0;border-radius:0;cursor:pointer">{{ label }}</button>{% endfor %}
+        </span></div>
+      <div class="cc-legend"><span><i style="background:#2563eb"></i>Input</span><span><i style="background:#22c55e"></i>Output</span>
+        <span><i class="ln" style="background:#a855f7"></i>Net Movement</span></div>
+      <div class="cc" id="chTrend"></div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <div class="ph"><h3>Insight &amp; Rekomendasi</h3></div>
+    <div class="insights">
+      <div class="ins"><span class="pk-ic ic-blue">{{ picon('in') }}</span><div><b>Input Tertinggi</b>
+        {% if top_in %}{{ top_in.name }} menyumbang {{ fmt(top_in.in_pct, 2) }}% dari total input.{% else %}-{% endif %}</div></div>
+      <div class="ins"><span class="pk-ic ic-green">{{ picon('out') }}</span><div><b>Output Tertinggi</b>
+        {% if top_out %}{{ top_out.name }} berkontribusi {{ fmt(top_out.out_pct, 2) }}% dari total output.{% else %}Belum ada output pada periode ini.{% endif %}</div></div>
+      <div class="ins"><span class="pk-ic ic-purple">{{ picon('scale') }}</span><div><b>Net Movement {{ 'Negatif' if d.net < 0 else 'Positif' }}</b>
+        {% if d.net < 0 %}Input lebih besar dari output: inventori stockpile bertambah {{ fmt(-d.net, 2) }} t.
+        {% else %}Output lebih besar dari input: inventori stockpile berkurang {{ fmt(d.net, 2) }} t.{% endif %}</div></div>
+      <div class="ins"><span class="pk-ic ic-orange">{{ picon('percent') }}</span><div><b>Performa PA%</b>
+        {% if avg_pa is not none %}Rata-rata PA% equipment {{ fmt(avg_pa, 2) }}% pada periode yang sama.{% else %}Data PA% equipment belum tersedia untuk periode ini.{% endif %}</div></div>
+      <div class="ins"><span class="pk-ic ic-teal">{{ picon('bulb') }}</span><div><b>Rekomendasi</b>
+        {% if d.output_pct is not none and d.output_pct < 50 and stock_in %}Output baru {{ fmt(d.output_pct, 1) }}% dari input. Optimalkan pengambilan dari {{ stock_in|map(attribute='name')|join(' & ') }} untuk menyeimbangkan inventori.
+        {% else %}Keseimbangan input dan output terjaga; pertahankan pola pengambilan saat ini.{% endif %}</div></div>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ scripts() }}
+<script>
+(function () {
+    var d = Pani.P.data, mode = 'daily', btns = document.querySelectorAll('#trendMode [data-mode]');
+    function draw() {
+        var t = d.trend[mode];
+        btns.forEach(function (b) { b.style.background = b.dataset.mode === mode ? '#2563eb' : '#fff'; b.style.color = b.dataset.mode === mode ? '#fff' : '#334155'; });
+        Pani.combo(document.getElementById('chTrend'), {
+            labels: t.map(function (p) { return p.label; }), dec: 2, minBand: 54,
+            bars: [{ name: 'Input', values: t.map(function (p) { return p.input; }), color: '#2563eb' },
+                   { name: 'Output', values: t.map(function (p) { return p.output; }), color: '#22c55e' }],
+            lines: [{ name: 'Net Movement', color: '#a855f7', values: t.map(function (p) { return p.net; }) }]
+        });
+    }
+    btns.forEach(function (b) { b.addEventListener('click', function () { mode = b.dataset.mode; draw(); }); });
+    Pani.onResize(draw);
+})();
+</script>
+{% endblock %}
