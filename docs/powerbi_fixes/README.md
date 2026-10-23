@@ -5,7 +5,7 @@ beberapa measure report. File `.dax` di folder ini adalah versi yang sudah diper
 ditandai komentar `PERBAIKAN`. Tampilan HTML/CSS tidak diubah.
 
 Semua file sudah diuji langsung ke semantic model (lewat `DEFINE MEASURE`, report tidak berubah) dengan
-`python scripts\compare_pani_report.py --fixed`. Hasilnya **339/339 sama dengan MANTRA** di keempat halaman dan
+`python scripts\compare_pani_report.py --fixed`. Hasilnya **348/348 sama dengan MANTRA** (19 measure) di keempat halaman dan
 14 skenario filter.
 
 ## Daftar perbaikan
@@ -21,6 +21,7 @@ Semua file sudah diuji langsung ke semantic model (lewat `DEFINE MEASURE`, repor
 | `Bottom_Dashboard_HTML` | Net = Input - Output (tandanya berlawanan dengan kartu Net Movement), Tonnes x 1.6, % Loss/Gain dibagi output | Net = Output - Input, Tonnes memakai 2.19 / 1.93, % terhadap input |
 | `Trend_Produksi_Dynamic_HTML` | Daily: setiap batang berisi total yang sama dan berlanjut sampai hari ini. Weekly/MTD: mengabaikan filter tanggal. Garis Net = Input - Output | Data diambil per tanggal yang ada di filter, lalu Weekly/MTD dijumlahkan dari data itu. Garis Net = Output - Input |
 | `Insight_Rekomendasi_HTML` | Semua teks ditulis tetap ("Stockpile WD4 42.53%", "FOB 25.85%", "PA% 85.15%", dst.) | Semua teks dihitung dari filter: lokasi input/output tertinggi, net movement, PA% equipment hari terakhir rentang, rekomendasi |
+| `Flow_Dashboard_HTML` | Bar di bawah Crushing/Screening/Stockpile lebarnya tetap (biru 20%, oranye 80%) | Lebar bar = porsi tiap tahapan dari total ketiganya (biru Crushing, hijau Screening, oranye Stockpile) |
 
 ### Halaman Equipment Performance (tabel `mpx_dmr_view`)
 
@@ -44,6 +45,7 @@ Tidak ada bug. Semua angka sama dengan MANTRA.
 | `Card_KeyHighlights_HTML` | leaf_key salah ketik `"total_output_movement"`, akibatnya Total MTD Movement = Total Mined dan Out-Pit kosong ("above plan by  t"). Satuan "bcm". Weather Loss angka tetap 0.0 dan disembunyikan | leaf_key `"total_outpit_movement"`. Satuan "t". Selisih memakai tanda +/-, persen hanya kalau plan ada. Weather Loss dihitung (lihat catatan) dan ditampilkan |
 | `Card_TotalMovement_HTML` | Label "bcm" untuk nilai ton | Label "t" |
 | `Card_TotalWasteMined_HTML` | Sama | Label "t" |
+| `All_In_One_TotalMined_Card_RealChart`, `All_In_One_TotalMovement_Card_RealChart` | Titik legend "Cumm Plan" hijau, padahal garisnya merah | Titik legend merah |
 
 Catatan Weather Loss: dihitung dari `mpx_dmr_gainloss_view`, kategori Hujan, Jalan Licin, Kabut, Petir, Debu, dari awal
 bulan sampai tanggal terakhir filter. Rumus ini sama dengan MANTRA. Kalau kategori cuacanya berbeda, ubah daftar di

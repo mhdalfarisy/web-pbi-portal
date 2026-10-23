@@ -23,7 +23,7 @@ File `instance/mantra.db` hanya berisi Favorites dan History per user.
 | Dashboard | Slug | App role | Status |
 |---|---|---|---|
 | Material Readiness | `material-readiness` | `Report.MaterialReadiness` | Siap. Angka identik dengan project lama (66 perbandingan) dan 8 pertanyaan acuan AI agent lulus |
-| PANI Processing | `pani-processing` | `Report.PaniProcessing` | Siap. 4 halaman (Processing, Equipment, Mining, Production) dari model "PANI - PRCS - Processing". Angka dibandingkan langsung dengan measure HTML report: `python scripts\compare_pani_report.py` (272 sama, 67 beda karena bug di report). DAX perbaikan untuk report ada di [docs/powerbi_fixes](docs/powerbi_fixes/README.md); dengan `--fixed` hasilnya 339/339 sama |
+| PANI Processing | `pani-processing` | `Report.PaniProcessing` | Siap. 4 halaman (Processing, Equipment, Mining, Production) dari model "PANI - PRCS - Processing". Angka dibandingkan langsung dengan measure HTML report: `python scripts\compare_pani_report.py` (272 sama, 76 beda karena bug di report). DAX perbaikan untuk report ada di [docs/powerbi_fixes](docs/powerbi_fixes/README.md); dengan `--fixed` (19 measure) hasilnya 348/348 sama |
 
 ## Struktur folder
 

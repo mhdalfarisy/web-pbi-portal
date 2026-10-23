@@ -230,6 +230,8 @@ def mining(start, end, label):
           " ".join(q.fmt_num(p['pct'], 1) for p in sorted(d["donut"], key=lambda p: ["Waste Mined", "Ore Mined", "Out-Pit Movement"].index(p["label"]))))
     for key, m in (("mined", "All_In_One_TotalMined_Card_RealChart"), ("movement", "All_In_One_TotalMovement_Card_RealChart")):
         check(f"achievement {key}", find(r"Achievement (\d+)%", r[m]), n0(d["charts"][key]["achv"]) if d["charts"][key]["achv"] else None)
+        check(f"legend Cumm Plan {key} sewarna garisnya", "hijau" if "background:#84CC16" in RAW[m] else "merah", "merah",
+              bug(m, "report: titik legend Cumm Plan hijau, garisnya merah"))
     check("weather loss MTD (hrs)", find(r"Weather Loss reached ([\d.]+) hrs", r["Card_KeyHighlights_HTML"]), q.fmt_num(d['weather_loss'], 1),
           bug("Card_KeyHighlights_HTML", "report: Weather Loss angka tetap 0.0 dan disembunyikan (komentar HTML)"))
 
@@ -308,6 +310,11 @@ def _production_rest(r, d):
     for stage in ("Crushing", "Screening", "Stockpile"):
         check(f"alur {stage}", find(stage + r" ([\d,.]+) BCM", t), n2(d["stages"][stage]))
     check("output % dari input", find(r"→ ([\d.]+)% Output", t), q.fmt_num(d['output_pct'], 2) if d["output_pct"] is not None else "-")
+    stages, tot = ("Crushing", "Screening", "Stockpile"), sum(d["stages"].values())
+    widths = re.findall(r"title='(\w+)' style='width: ([\d.]+)%", RAW["Flow_Dashboard_HTML"])
+    check("alur: lebar bar tahapan (% porsi)", " ".join(f"{a}={b}" for a, b in widths) or "tetap 20/80",
+          " ".join(f"{s}={q.fmt_num(d['stages'][s] / tot * 100 if tot else 0, 2)}" for s in stages),
+          bug("Flow_Dashboard_HTML", "report: lebar bar tahapan tetap 20%/80%"))
     t = r["Table_TopInputOutput_HTML"]
     for side, key, pct in (("INPUT", "top_input", "in_pct"), ("OUTPUT", "top_output", "out_pct")):
         seg = t.split(f"TOP {side} (BCM)", 1)[-1].split("BCM %", 1)[-1].split(f"Total {side.title()}", 1)[0]
