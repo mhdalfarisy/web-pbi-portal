@@ -1,0 +1,155 @@
+Bottom_Dashboard_HTML =
+-- ============================================================
+-- 1. DAX CALCULATIONS (ERROR-FREE SUMMARIZE)
+-- ============================================================
+-- A. Main Aggregations
+VAR _TotalAdditionBCM = CALCULATE(SUM('mpx_stockpile_summary_view'[tonnes_addition]))
+VAR _TotalDepletionBCM = CALCULATE(SUM('mpx_stockpile_summary_view'[tonnes_depletion]))
+
+-- PERBAIKAN: Net = Output - Input, sama dengan kartu Card_NetMovement_HTML (versi lama Input - Output,
+-- sehingga tandanya berlawanan dengan kartu di halaman yang sama).
+VAR _NetMovementBCM = _TotalDepletionBCM - _TotalAdditionBCM
+-- PERBAIKAN: Tonnes memakai faktor yang sama dengan Flow_Dashboard_HTML (input 2.19, output 1.93), bukan 1.6.
+VAR _NetMovementTon = COALESCE(_TotalDepletionBCM, 0) * 1.93 - COALESCE(_TotalAdditionBCM, 0) * 2.19
+
+VAR _GrandTotalBCM = _TotalAdditionBCM + _TotalDepletionBCM
+VAR _GrandTotalTon = COALESCE(_TotalAdditionBCM, 0) * 2.19 + COALESCE(_TotalDepletionBCM, 0) * 1.93
+
+-- B. Loss / Gain
+-- PERBAIKAN: persentase terhadap total input (versi lama dibagi output).
+VAR _LossGainBCM = _NetMovementBCM
+VAR _LossGainPctVal = DIVIDE(_NetMovementBCM, _TotalAdditionBCM, 0)
+VAR _LossGainPct = FORMAT(_LossGainPctVal, "+0.0%;-0.0%;0.0%")
+
+-- C. Top Input Location
+VAR _InputSummary =
+    ADDCOLUMNS(
+        SUMMARIZE('mpx_stockpile_summary_view', 'mpx_stockpile_summary_view'[dump_location]),
+        "@TotalIn", CALCULATE(SUM('mpx_stockpile_summary_view'[tonnes_addition]))
+    )
+VAR _TopInputTable = TOPN(1, _InputSummary, [@TotalIn], DESC)
+VAR _TopInputLoc = MAXX(_TopInputTable, 'mpx_stockpile_summary_view'[dump_location])
+VAR _TopInputValRaw = MAXX(_TopInputTable, [@TotalIn])
+VAR _TopInputVal = FORMAT(COALESCE(_TopInputValRaw, 0), "#,##0.00") & " BCM"
+
+-- D. Top Output Location
+VAR _OutputSummary =
+    ADDCOLUMNS(
+        SUMMARIZE('mpx_stockpile_summary_view', 'mpx_stockpile_summary_view'[dump_location]),
+        "@TotalOut", CALCULATE(SUM('mpx_stockpile_summary_view'[tonnes_depletion]))
+    )
+VAR _TopOutputTable = TOPN(1, _OutputSummary, [@TotalOut], DESC)
+VAR _TopOutputLoc = MAXX(_TopOutputTable, 'mpx_stockpile_summary_view'[dump_location])
+VAR _TopOutputValRaw = MAXX(_TopOutputTable, [@TotalOut])
+VAR _TopOutputVal = FORMAT(COALESCE(_TopOutputValRaw, 0), "#,##0.00") & " BCM"
+
+-- E. Dynamic Insight Text
+VAR _OutVsInPct = DIVIDE(_TotalDepletionBCM, IF(_TotalAdditionBCM = 0, 1, _TotalAdditionBCM), 0)
+VAR _InsightText = "Output reaches " & FORMAT(_OutVsInPct, "0.0%") & " of total input, with the primary input location at " & COALESCE(_TopInputLoc, "N/A") & " (" & _TopInputVal & ")."
+
+-- ============================================================
+-- 2. TEXT FORMATTING
+-- ============================================================
+VAR _Fmt_NetMove = FORMAT(_NetMovementBCM, "#,##0.00") & " BCM | " & FORMAT(_NetMovementTon, "#,##0.00") & " Tonnes"
+VAR _Fmt_GrandTotal = FORMAT(_GrandTotalBCM, "#,##0.00") & " BCM | " & FORMAT(_GrandTotalTon, "#,##0.00") & " Tonnes"
+VAR _Fmt_LossGain = FORMAT(_LossGainBCM, "+#,##0.00;-#,##0.00;0.00") & " BCM (" & _LossGainPct & ")"
+
+-- ============================================================
+-- 3. SVG ICONS & HTML
+-- ============================================================
+VAR _IconInfo = "<svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='#6B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'></circle><line x1='12' y1='16' x2='12' y2='12'></line><line x1='12' y1='8' x2='12.01' y2='8'></line></svg>"
+VAR _IconBulb = "<svg class='bulb-icon' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='#6B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M9 18h6'></path><path d='M10 22h4'></path><path d='M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1.53.76 2.85 1.5 3.5.76.76 1.23 1.52 1.41 2.5'></path></svg>"
+
+RETURN
+"<style>
+    @keyframes fadeInUp {
+        0% { opacity: 0; transform: translateY(15px); }
+        100% { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulseGlow {
+        0% { transform: scale(1); stroke: #6B7280; }
+        50% { transform: scale(1.15); stroke: #EAB308; }
+        100% { transform: scale(1); stroke: #6B7280; }
+    }
+
+    .bottom-container {
+        font-family: 'Segoe UI', sans-serif; background: #fff;
+        display: flex; flex-direction: column; gap: 16px; padding: 10px;
+        width: 100%; box-sizing: border-box;
+        animation: fadeInUp 0.6s ease-out forwards;
+    }
+
+    .info-banner {
+        display: flex; align-items: center; gap: 10px;
+        background-color: #F8FAFC; padding: 12px 16px; border-radius: 8px;
+        font-size: 13px; color: #4B5563; border: 1px solid #E2E8F0;
+        transition: all 0.3s ease;
+    }
+    .info-banner:hover {
+        background-color: #F1F5F9; border-color: #CBD5E1;
+        transform: scale(1.005); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+    .bold-text { font-weight: 700; color: #111827; }
+
+    .text-row {
+        display: flex; justify-content: space-between; font-size: 13px;
+        color: #6B7280; padding: 0 4px; transition: color 0.3s ease;
+    }
+    .text-row:hover { color: #111827; }
+    .green-text { color: " & IF(_LossGainBCM < 0, "#EF4444", "#10B981") & "; font-weight: 600; }
+
+    .cards-row { display: flex; justify-content: space-between; gap: 16px; }
+    .loc-card {
+        flex: 1; border: 1px solid #E5E7EB; border-radius: 8px;
+        padding: 12px 16px; display: flex; flex-direction: column; gap: 4px;
+        background: #fff; cursor: default;
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease, border-color 0.3s;
+    }
+    .loc-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+        border-color: #CBD5E1;
+    }
+    .loc-title { font-size: 11px; text-transform: uppercase; color: #6B7280; font-weight: 600; letter-spacing: 0.5px; }
+    .loc-value { font-size: 14px; font-weight: 700; color: #111827; }
+
+    .insight-row {
+        display: flex; align-items: flex-start; gap: 10px; padding: 8px 4px;
+        font-size: 13px; color: #6B7280; font-style: italic;
+        transition: transform 0.3s ease, color 0.3s ease;
+    }
+    .insight-row:hover {
+        transform: translateX(4px); color: #374151;
+    }
+    .insight-row:hover .bulb-icon {
+        animation: pulseGlow 1s infinite ease-in-out;
+    }
+</style>
+
+<div class='bottom-container'>
+    <div class='info-banner'>
+        " & _IconInfo & "
+        <span>Net Movement <span class='bold-text'>" & _Fmt_NetMove & "</span></span>
+    </div>
+
+    <div class='text-row'>
+        <div>Grand Total &nbsp;&nbsp;&nbsp;&nbsp; <span class='bold-text'>" & _Fmt_GrandTotal & "</span></div>
+        <div>Loss / Gain &nbsp;&nbsp;&nbsp;&nbsp; <span class='green-text'>" & _Fmt_LossGain & "</span></div>
+    </div>
+
+    <div class='cards-row'>
+        <div class='loc-card'>
+            <div class='loc-title'>Top Input Location</div>
+            <div class='loc-value'>" & COALESCE(_TopInputLoc, "N/A") & " (" & _TopInputVal & ")</div>
+        </div>
+        <div class='loc-card'>
+            <div class='loc-title'>Top Output Location</div>
+            <div class='loc-value'>" & COALESCE(_TopOutputLoc, "N/A") & " (" & _TopOutputVal & ")</div>
+        </div>
+    </div>
+
+    <div class='insight-row'>
+        " & _IconBulb & "
+        <div>" & _InsightText & "</div>
+    </div>
+</div>"

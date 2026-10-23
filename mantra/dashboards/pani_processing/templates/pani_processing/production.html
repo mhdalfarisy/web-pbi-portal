@@ -16,8 +16,8 @@
   <div class="row r4">
     {% for title, val, ic, icls, sub in [('Total Input', d.input, 'in', 'ic-blue', fmt(d.input_t, 2) ~ ' Tonnes (1 BCM = ' ~ d.ton_in ~ ' t)'),
                                         ('Total Output', d.output, 'out', 'ic-green', fmt(d.output_t, 2) ~ ' Tonnes (1 BCM = ' ~ d.ton_out ~ ' t)'),
-                                        ('Net Movement', d.net, 'scale', 'ic-purple', 'Output - Input'),
-                                        ('Grand Total', d.grand, 'layers', 'ic-orange', 'Input + Output')] %}
+                                        ('Net Movement', d.net, 'scale', 'ic-purple', fmt(d.net_t, 2) ~ ' Tonnes (Output - Input)'),
+                                        ('Grand Total', d.grand, 'layers', 'ic-orange', fmt(d.grand_t, 2) ~ ' Tonnes (Input + Output)')] %}
     <div class="panel pk slate">
       <div class="pk-top"><span class="pk-ic {{ icls }}">{{ picon(ic) }}</span>
         <div><small>{{ title }} (BCM)</small><b class="{{ 'neg' if val < 0 }}">{{ fmt(val, 2) }}</b><em>{{ sub }}</em></div></div>
@@ -100,7 +100,7 @@
         {% if d.net < 0 %}Input lebih besar dari output: inventori stockpile bertambah {{ fmt(-d.net, 2) }} BCM.
         {% else %}Output lebih besar dari input: inventori stockpile berkurang {{ fmt(d.net, 2) }} BCM.{% endif %}</div></div>
       <div class="ins"><span class="pk-ic ic-orange">{{ picon('percent') }}</span><div><b>Performa PA%</b>
-        {% if avg_pa is not none %}Rata-rata PA% equipment {{ fmt(avg_pa, 2) }}% pada periode yang sama.{% else %}Data PA% equipment belum tersedia untuk periode ini.{% endif %}</div></div>
+        {% if avg_pa is not none %}Rata-rata PA% equipment {{ fmt(avg_pa, 2) }}% per {{ dfull(pa_day) }}.{% else %}Data PA% equipment belum tersedia untuk periode ini.{% endif %}</div></div>
       <div class="ins"><span class="pk-ic ic-teal">{{ picon('bulb') }}</span><div><b>Rekomendasi</b>
         {% if d.output_pct is not none and d.output_pct < 50 and stock_in %}Output baru {{ fmt(d.output_pct, 1) }}% dari input. Optimalkan pengambilan dari {{ stock_in|map(attribute='name')|join(' & ') }} untuk menyeimbangkan inventori.
         {% else %}Keseimbangan input dan output terjaga; pertahankan pola pengambilan saat ini.{% endif %}</div></div>

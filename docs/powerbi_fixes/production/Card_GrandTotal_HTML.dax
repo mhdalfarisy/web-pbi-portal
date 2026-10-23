@@ -1,0 +1,38 @@
+Card_GrandTotal_HTML =
+VAR _Input = SUM('mpx_stockpile_summary_view'[tonnes_addition])
+VAR _Output = SUM('mpx_stockpile_summary_view'[tonnes_depletion])
+VAR _Value = _Input + _Output
+VAR _ValueText = FORMAT(COALESCE(_Value, 0), "#,##0.00")
+
+// PERBAIKAN: Tonnes = Input x 2.19 + Output x 1.93 (tiap sisi memakai faktornya sendiri, seperti Flow_Dashboard_HTML).
+// Versi lama menampilkan angka BCM yang sama dengan label "Tonnes".
+VAR _Tonnes = COALESCE(_Input, 0) * 2.19 + COALESCE(_Output, 0) * 1.93
+VAR _SubText = FORMAT(_Tonnes, "#,##0.00") & " Tonnes"
+
+// Warna Tema (Oranye)
+VAR _IconBg = "#FFEDD5"
+VAR _IconBorder = "#FED7AA"
+VAR _IconColor = "#EA580C"
+VAR _Title = "Grand Total (BCM)"
+
+// Icon Tumpukan Layer
+VAR _SvgIcon = "<svg width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='" & _IconColor & "' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polygon points='12 2 2 7 12 12 22 7 12 2'/><polyline points='2 12 12 17 22 12'/><polyline points='2 17 12 22 22 17'/></svg>"
+
+RETURN
+"<style>
+    .kpi-card { font-family: 'Segoe UI', sans-serif; background-color: #FFFFFF; border-radius: 12px; padding: 20px; border: 1px solid #EAEAEA; box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.03); display: flex; align-items: center; height: 100%; box-sizing: border-box; transition: transform 0.2s ease; }
+    .kpi-card:hover { transform: translateY(-2px); box-shadow: 0px 6px 14px rgba(0, 0, 0, 0.06); }
+    .kpi-icon { width: 54px; height: 54px; border-radius: 14px; display: flex; align-items: center; justify-content: center; margin-right: 18px; flex-shrink: 0; background-color: " & _IconBg & "; border: 1px solid " & _IconBorder & "; }
+    .kpi-content { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; }
+    .kpi-title { font-size: 13px; color: #374151; margin-bottom: 6px; font-weight: 500; }
+    .kpi-value { font-size: 24px; font-weight: 700; color: #111827; line-height: 1; margin-bottom: 6px;}
+    .kpi-footer { font-size: 12px; color: #6B7280; }
+</style>
+<div class='kpi-card'>
+    <div class='kpi-icon'>" & _SvgIcon & "</div>
+    <div class='kpi-content'>
+        <div class='kpi-title'>" & _Title & "</div>
+        <div class='kpi-value'>" & _ValueText & "</div>
+        <div class='kpi-footer'>" & _SubText & "</div>
+    </div>
+</div>"

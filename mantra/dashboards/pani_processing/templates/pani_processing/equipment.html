@@ -86,14 +86,15 @@
     </section>
     <section class="panel">
       <div class="ph"><h3>Gain &amp; Loss <small>(Operational Hours)</small></h3>
-        <span class="pill-b badge-r {{ 'green' if d.net_gainloss > 0 else 'red' if d.net_gainloss < 0 }}">Net: {{ fmt(d.net_gainloss, 1) }} h</span></div>
+        <span class="pill-b badge-r">Net: {{ fmt(d.net_gainloss, 1) }} h</span></div>
       {% set maxgl = (d.gainloss|map(attribute='dur')|map('abs')|max) if d.gainloss else 0 %}
       {% if not maxgl %}<p class="note" style="margin-bottom:8px">Tidak ada jam gain/loss tercatat pada periode ini.</p>{% endif %}
       <div class="glbars">
         {% for g in d.gainloss %}
         <div class="glrow"><span>{{ g.name }}</span>
-          <div class="bar"><span class="{{ 'gain' if g.dur > 0 else 'loss' }}" style="width: {{ (g.dur|abs) / maxgl * 100 if maxgl else 0 }}%"></span></div>
-          <b class="{{ tone(g.dur) }}" style="text-align:right">{{ fmt(g.dur, 1) }} h</b></div>
+          {# Semua kode 300-321 adalah jam hilang (istirahat, hujan, dst.), jadi selalu merah seperti report #}
+          <div class="bar"><span class="loss" style="width: {{ (g.dur|abs) / maxgl * 100 if maxgl else 0 }}%"></span></div>
+          <b class="{{ 'neg' if g.dur else 'flat' }}" style="text-align:right">{{ fmt(g.dur, 1) }} h</b></div>
         {% endfor %}
       </div>
     </section>

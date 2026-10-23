@@ -382,8 +382,9 @@ def equipment(start, end, status=""):
                 "pa_target": PA_TARGET, "ua_target": UA_TARGET}
     data, fetched = _cache.get(("equipment", start, end), load)
     pool = [u for u in data["units"] if not status or u["active"] == (status == "active")]
-    top = sorted(pool, key=lambda u: -u["dur"])[:5]
-    return {**data, "status": status, "top": sorted(top, key=lambda u: u["dur"]),
+    # Urutan & tie-break (kode unit) sama dengan measure Top_5_Inactive_HTML yang sudah diperbaiki
+    top = sorted(pool, key=lambda u: (-u["dur"], u["unit"]))[:5]
+    return {**data, "status": status, "top": sorted(top, key=lambda u: (u["dur"], u["unit"])),
             "top_avg_pa": _avg([u["pa"] for u in top])}, fetched
 
 
@@ -520,7 +521,7 @@ def production(start, end):
         total_out = sum(v["output"] for v in loc.values())
         locations = sorted(({"name": k, **v, "in_pct": v["input"] / total_in * 100 if total_in else 0,
                              "out_pct": v["output"] / total_out * 100 if total_out else 0} for k, v in loc.items()),
-                           key=lambda x: (-x["input"], -x["output"]))
+                           key=lambda x: (-x["input"], -x["output"], x["name"]))
         stages = {s: sum(v["input"] for k, v in loc.items() if flow_stage(k) == s)
                   for s in ("Crushing", "Screening", "Stockpile")}
 
@@ -533,11 +534,13 @@ def production(start, end):
             return [{"label": label_fn(k), "input": v["input"], "output": v["output"],
                      "net": v["output"] - v["input"]} for k, v in sorted(groups.items(), reverse=True)]
         top_in = [x for x in locations if x["input"] > 0][:TOP_LOCATIONS]
-        top_out = sorted((x for x in locations if x["output"] > 0), key=lambda x: -x["output"])[:TOP_LOCATIONS]
+        top_out = sorted((x for x in locations if x["output"] > 0), key=lambda x: (-x["output"], x["name"]))[:TOP_LOCATIONS]
         return {"company": "MMI", "start": start.isoformat(), "end": end.isoformat(),
                 "input": total_in, "output": total_out, "net": total_out - total_in, "grand": total_in + total_out,
                 "input_t": total_in * BCM_TO_TON_INPUT, "output_t": total_out * BCM_TO_TON_OUTPUT,
                 "ton_in": BCM_TO_TON_INPUT, "ton_out": BCM_TO_TON_OUTPUT,
+                "net_t": total_out * BCM_TO_TON_OUTPUT - total_in * BCM_TO_TON_INPUT,
+                "grand_t": total_in * BCM_TO_TON_INPUT + total_out * BCM_TO_TON_OUTPUT,
                 "output_pct": total_out / total_in * 100 if total_in else None,
                 "net_pct": (total_out - total_in) / total_in * 100 if total_in else None,
                 "stages": stages, "locations": locations, "top_input": top_in, "top_output": top_out,

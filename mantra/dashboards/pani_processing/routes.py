@@ -37,7 +37,12 @@ def helpers():
     def dlabel(value):
         return datetime.fromisoformat(str(value)[:10]).strftime("%d-%b-%y").upper() if value else "-"
 
-    return {"fmt": fmt, "sgn": sgn, "tone": tone, "arrow": arrow, "ring": ring, "ring_mtd": ring_mtd, "dlabel": dlabel}
+    def dfull(value):
+        """Tanggal seperti FORMAT(..., "dd MMM yyyy") di DAX, mis. 22 Oct 2026."""
+        return datetime.fromisoformat(str(value)[:10]).strftime("%d %b %Y") if value else "-"
+
+    return {"fmt": fmt, "sgn": sgn, "tone": tone, "arrow": arrow, "ring": ring, "ring_mtd": ring_mtd, "dlabel": dlabel,
+            "dfull": dfull}
 
 
 def _range(default_start, default_end):
@@ -99,10 +104,11 @@ def production():
         b = queries.production_bounds()
         start, end = _range(date(b["max"].year, b["max"].month, 1), b["max"])
         data, fetched = queries.production(start, end)
-        try:  # PA% untuk kartu insight (data equipment bisa belum ada untuk rentang ini)
-            pa = queries.equipment(start, end)[0]["avg_pa"]
+        try:  # PA% hari terakhir rentang ini untuk kartu insight (data equipment bisa belum ada)
+            eq = queries.equipment(start, end)[0]
+            pa, pa_day = eq["avg_pa"], eq["last_day"]
         except queries.DATA_ERRORS:
-            pa = None
-        return _page("production.html", data, fetched, b, avg_pa=pa)
+            pa = pa_day = None
+        return _page("production.html", data, fetched, b, avg_pa=pa, pa_day=pa_day)
     except queries.DATA_ERRORS as exc:
         return _error(exc)

@@ -23,7 +23,7 @@ File `instance/mantra.db` hanya berisi Favorites dan History per user.
 | Dashboard | Slug | App role | Status |
 |---|---|---|---|
 | Material Readiness | `material-readiness` | `Report.MaterialReadiness` | Siap. Angka identik dengan project lama (66 perbandingan) dan 8 pertanyaan acuan AI agent lulus |
-| PANI Processing | `pani-processing` | `Report.PaniProcessing` | Siap. 4 halaman (Processing, Equipment, Mining, Production) dari model "PANI - PRCS - Processing". Angka dibandingkan langsung dengan measure HTML report: `python scripts\compare_pani_report.py` (269 sama, 7 beda karena bug di report) |
+| PANI Processing | `pani-processing` | `Report.PaniProcessing` | Siap. 4 halaman (Processing, Equipment, Mining, Production) dari model "PANI - PRCS - Processing". Angka dibandingkan langsung dengan measure HTML report: `python scripts\compare_pani_report.py` (272 sama, 67 beda karena bug di report). DAX perbaikan untuk report ada di [docs/powerbi_fixes](docs/powerbi_fixes/README.md); dengan `--fixed` hasilnya 339/339 sama |
 
 ## Struktur folder
 
@@ -46,11 +46,14 @@ mantra/
     _template/             kerangka dashboard baru (dipakai scripts/new_dashboard.py)
     material_readiness/    __init__.py (manifest), queries.py, routes.py, tools.py, prompts/, templates/, static/,
                            chat_cases.py (pertanyaan acuan AI agent)
-    pani_processing/       manifest (coming soon)
+    pani_processing/       4 halaman PANI (Processing, Equipment, Mining, Production) + AI agent
+docs/
+  powerbi_fixes/           DAX perbaikan bug di report Power BI PANI + cara memasangnya
 scripts/
   check_setup.py           cek .env, Entra, akses tiap semantic model, AI
   test_chatbot.py          tes AI agent (statis + pertanyaan acuan)
-  compare_pani_report.py   bandingkan angka dashboard PANI dengan measure report Power BI (14 skenario filter)
+  compare_pani_report.py   bandingkan angka dashboard PANI dengan measure report Power BI (14 skenario filter);
+                           --fixed menguji DAX di docs/powerbi_fixes sebelum ditempel ke report
   new_dashboard.py         buat dashboard baru dari _template
 ```
 

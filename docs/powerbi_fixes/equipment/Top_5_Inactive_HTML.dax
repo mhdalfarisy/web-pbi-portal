@@ -1,0 +1,156 @@
+Top_5_Inactive_HTML =
+// PERBAIKAN: daftar unit mengikuti status yang DIPILIH (sesuai judul "Based on Selected Status").
+// Versi lama selalu memakai status "active", sehingga saat status Inactive dipilih tabelnya kosong,
+// dan unit yang sempat inactive di sebagian rentang tanggal tidak pernah ikut dihitung.
+//   - tidak ada status dipilih : semua unit
+//   - "active"                 : unit yang aktif minimal 1 hari pada rentang tanggal
+//   - "inactive"               : unit yang tidak pernah aktif pada rentang tanggal
+// Durasi & PA% dihitung dari semua hari pada rentang tanggal (filter status tidak memotong angkanya).
+VAR _SelectedStatus =
+    IF(
+        ISFILTERED(mpx_dmr_view[status]) && HASONEVALUE(mpx_dmr_view[status]),
+        VALUES(mpx_dmr_view[status])
+    )
+
+VAR _UnitPool =
+    FILTER(
+        CALCULATETABLE(
+            SUMMARIZE(mpx_dmr_view, mpx_dmr_view[unit], mpx_dmr_view[model]),
+            REMOVEFILTERS(mpx_dmr_view[status], mpx_dmr_view[unit], mpx_dmr_view[model])
+        ),
+        VAR _ActiveDays =
+            CALCULATE(COUNTROWS(mpx_dmr_view), REMOVEFILTERS(mpx_dmr_view[status]), mpx_dmr_view[status] = "active")
+        RETURN
+            SWITCH(
+                _SelectedStatus,
+                "active", _ActiveDays > 0,
+                "inactive", ISBLANK(_ActiveDays),
+                TRUE()
+            )
+    )
+
+VAR _UnitStats =
+    ADDCOLUMNS(
+        _UnitPool,
+        "@Dur", COALESCE(CALCULATE(SUM(mpx_dmr_view[duration_sum]), REMOVEFILTERS(mpx_dmr_view[status])), 0),
+        "@PA", COALESCE(CALCULATE(AVERAGE(mpx_dmr_view[pa_avg]), REMOVEFILTERS(mpx_dmr_view[status])), 0)
+    )
+
+// Tie-break nama unit supaya hasilnya tepat 5 baris (TOPN mengembalikan semua baris yang seri)
+VAR Top5Table =
+    TOPN(5, _UnitStats, [@Dur], DESC, mpx_dmr_view[unit], ASC)
+
+VAR MaxDuration =
+    MAXX(Top5Table, [@Dur])
+
+VAR AvgPA =
+    FORMAT(
+        AVERAGEX(Top5Table, [@PA]),
+        "0.00"
+    ) & "%"
+
+VAR RowsHTML =
+    CONCATENATEX(
+        Top5Table,
+        VAR UnitName = mpx_dmr_view[unit]
+        VAR ModelName = IF(ISBLANK(mpx_dmr_view[model]), "-", mpx_dmr_view[model])
+        VAR DurationVal = [@Dur]
+        VAR PaVal = FORMAT([@PA], "0.00") & "%"
+        VAR BarWidth = IF(MaxDuration > 0, (DurationVal / MaxDuration) * 100, 0)
+        RETURN
+            "<tr class='row-hover' style='border-bottom: 1px solid #F0F0F0;'>" &
+                "<td style='padding: 10px 0; font-weight: 600; color: #333333; width: 10%;'>" & UnitName & "</td>" &
+                "<td style='padding: 10px 0; color: #666666; width: 15%;'>" & ModelName & "</td>" &
+                "<td style='padding: 10px 15px; width: 65%;'>" &
+                    "<div style='background-color: #E9ECEF; height: 12px; border-radius: 6px; width: 100%; overflow: hidden;'>" &
+                        "<div class='bar-animate' style='width: " & BarWidth & "%; background-color: #2F80ED; height: 100%; border-radius: 6px;'></div>" &
+                    "</div>" &
+                "</td>" &
+                "<td style='padding: 10px 0; text-align: right; font-weight: 600; color: #2F80ED; width: 10%;'>" & PaVal & "</td>" &
+            "</tr>",
+        "",
+        [@Dur], ASC,
+        mpx_dmr_view[unit], ASC
+    )
+
+VAR CSS_Style =
+    "<style>
+        /* Animasi masuk untuk keseluruhan container */
+        .container-animate {
+            animation: fadeIn 0.8s ease-out forwards;
+        }
+
+        /* Animasi bar memanjang dari kiri ke kanan */
+        .bar-animate {
+            transform-origin: left;
+            animation: growBar 1s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+            transition: background-color 0.3s ease;
+        }
+
+        /* Efek Hover pada bar chart */
+        .bar-animate:hover {
+            background-color: #1A73E8 !important;
+            cursor: pointer;
+        }
+
+        /* Efek Hover pada baris tabel */
+        .row-hover {
+            transition: all 0.3s ease;
+        }
+        .row-hover:hover {
+            background-color: #F8F9FA;
+            transform: translateX(4px);
+        }
+
+        /* Hover pada Badge Average PA% */
+        .pa-badge {
+            background-color: #E8F0FE;
+            color: #1A73E8;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: transform 0.3s ease;
+            cursor: default;
+        }
+        .pa-badge:hover {
+            transform: scale(1.05);
+        }
+
+        /* Keyframes Animasi */
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(15px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes growBar {
+            0% { transform: scaleX(0); }
+            100% { transform: scaleX(1); }
+        }
+    </style>"
+
+RETURN
+CSS_Style &
+"<div class='container-animate' style='background-color: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 10px; padding: 20px; font-family: Segoe UI, sans-serif; width: 100%; box-sizing: border-box;'>" &
+    "<div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #F0F0F0; padding-bottom: 12px;'>" &
+        "<div>" &
+            "<div style='font-size: 16px; font-weight: 700; color: #111111;'>Top 5 Duration Breakdown</div>" &
+            "<div style='font-size: 12px; color: #888888; margin-top: 2px;'>(Based on Selected Status)</div>" &
+        "</div>" &
+        "<div class='pa-badge'>" &
+            "Average PA%: " & AvgPA &
+        "</div>" &
+    "</div>" &
+    "<table style='width: 100%; border-collapse: collapse; font-size: 13px;'>" &
+        "<thead>" &
+            "<tr style='border-bottom: 1px solid #EEEEEE; color: #555555; text-align: left; font-size: 12px;'>" &
+                "<th style='padding-bottom: 8px;'>Unit</th>" &
+                "<th style='padding-bottom: 8px;'>Model</th>" &
+                "<th style='padding-bottom: 8px; padding-left: 15px;'>Duration</th>" &
+                "<th style='padding-bottom: 8px; text-align: right;'>PA%</th>" &
+            "</tr>" &
+        "</thead>" &
+        "<tbody>" &
+            RowsHTML &
+        "</tbody>" &
+    "</table>" &
+"</div>"

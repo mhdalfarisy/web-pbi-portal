@@ -1,0 +1,264 @@
+Card_KeyHighlights_HTML =
+
+// PERBAIKAN (ringkas):
+//  - leaf_key "total_output_movement" salah ketik -> "total_outpit_movement". Akibat salah ketik ini Total MTD Movement
+//    sama dengan Total Mined, dan Out-Pit Movement kosong ("above plan by  t").
+//  - satuan Total MTD Movement "bcm" -> "t" (nilainya ton).
+//  - selisih ditulis dengan tanda (+/-), persen hanya ditampilkan kalau plan ada (sama dengan tabel Performance Summary).
+//  - Weather Loss dihitung dari jam gain/loss kategori cuaca (sebelumnya angka tetap 0.0 dan disembunyikan).
+
+// ==========================================
+// 1. MTD Production Calculation (Total Mined)
+// ==========================================
+VAR _Act1 = CALCULATE(
+    SUM('mpx_daily_pondok_view'[Actual]),
+    'mpx_daily_pondok_view'[leaf_key] IN {"waste", "hl_ore_stockpile", "hl_ore_rom", "cil_ore_stockpile", "mw"},
+    'mpx_daily_pondok_view'[Unit] = "Ton"
+)
+
+VAR _Plan1 = CALCULATE(
+    SUM('mpx_daily_pondok_view'[lomp]),
+    'mpx_daily_pondok_view'[leaf_key] IN {"waste", "hl_ore_stockpile", "hl_ore_rom", "cil_ore_stockpile", "mw"},
+    'mpx_daily_pondok_view'[Unit] = "Ton"
+)
+
+VAR _Diff1 = COALESCE(_Act1, 0) - COALESCE(_Plan1, 0)
+VAR _Pct1 = DIVIDE(_Diff1, _Plan1, 0)
+
+VAR _Color1 = IF(_Diff1 < 0, "#DC2626", "#16A34A") -- Red if below target, Green if above target
+VAR _Bg1 = IF(_Diff1 < 0, "#FEF2F2", "#DCFCE7")
+VAR _Border1 = IF(_Diff1 < 0, "#FECACA", "#BBF7D0")
+VAR _StatusText1 = IF(_Diff1 < 0, "below", "above")
+
+VAR _Desc1 =
+    "MTD Production is " & _StatusText1 &
+    " plan by <span style='color:" & _Color1 & "; font-weight:600;'>" &
+    FORMAT(_Diff1, "+#,##0;-#,##0;0") & " t" &
+    IF(COALESCE(_Plan1, 0) = 0, "", " (" & FORMAT(_Pct1, "+0%;-0%;0%") & ")") &
+    "</span>."
+
+// ==========================================
+// 2. MTD Total Movement Calculation (Total Mined + Out-Pit)
+// ==========================================
+VAR _Act2 = CALCULATE(
+    SUM('mpx_daily_pondok_view'[Actual]),
+    'mpx_daily_pondok_view'[leaf_key] IN {
+        "waste",
+        "hl_ore_stockpile",
+        "hl_ore_rom",
+        "total_outpit_movement",
+        "cil_ore_stockpile",
+        "mw"
+    },
+    'mpx_daily_pondok_view'[Unit] = "Ton"
+)
+
+VAR _Plan2 = CALCULATE(
+    SUM('mpx_daily_pondok_view'[lomp]),
+    'mpx_daily_pondok_view'[leaf_key] IN {
+        "waste",
+        "hl_ore_stockpile",
+        "hl_ore_rom",
+        "total_outpit_movement",
+        "cil_ore_stockpile",
+        "mw"
+    },
+    'mpx_daily_pondok_view'[Unit] = "Ton"
+)
+
+VAR _Diff2 = COALESCE(_Act2, 0) - COALESCE(_Plan2, 0)
+VAR _Pct2 = DIVIDE(_Diff2, _Plan2, 0)
+
+VAR _Color2 = IF(_Diff2 < 0, "#DC2626", "#16A34A")
+VAR _Bg2 = IF(_Diff2 < 0, "#FEF2F2", "#DCFCE7")
+VAR _Border2 = IF(_Diff2 < 0, "#FECACA", "#BBF7D0")
+VAR _StatusText2 = IF(_Diff2 < 0, "below", "above")
+
+VAR _Desc2 =
+    "Total MTD Movement is " & _StatusText2 &
+    " plan by <span style='color:" & _Color2 & "; font-weight:600;'>" &
+    FORMAT(_Diff2, "+#,##0;-#,##0;0") & " t" &
+    IF(COALESCE(_Plan2, 0) = 0, "", " (" & FORMAT(_Pct2, "+0%;-0%;0%") & ")") &
+    "</span>."
+
+// ==========================================
+// 3. Out-Pit Movement Calculation
+// ==========================================
+VAR _Act3 = CALCULATE(
+    SUM('mpx_daily_pondok_view'[Actual]),
+    'mpx_daily_pondok_view'[leaf_key] = "total_outpit_movement",
+    'mpx_daily_pondok_view'[Unit] = "Ton"
+)
+
+VAR _Plan3 = CALCULATE(
+    SUM('mpx_daily_pondok_view'[lomp]),
+    'mpx_daily_pondok_view'[leaf_key] = "total_outpit_movement",
+    'mpx_daily_pondok_view'[Unit] = "Ton"
+)
+
+VAR _Diff3 = COALESCE(_Act3, 0) - COALESCE(_Plan3, 0)
+VAR _Pct3 = DIVIDE(_Diff3, _Plan3, 0)
+
+VAR _Color3 = IF(_Diff3 < 0, "#DC2626", "#16A34A")
+VAR _Bg3 = IF(_Diff3 < 0, "#FEF2F2", "#DCFCE7")
+VAR _Border3 = IF(_Diff3 < 0, "#FECACA", "#BBF7D0")
+VAR _StatusText3 = IF(_Diff3 < 0, "below", "above")
+
+VAR _Desc3 =
+    "Out-Pit Movement is " & _StatusText3 &
+    " plan by <span style='color:" & _Color3 & "; font-weight:600;'>" &
+    FORMAT(_Diff3, "+#,##0;-#,##0;0") & " t" &
+    IF(COALESCE(_Plan3, 0) = 0, "", " (" & FORMAT(_Pct3, "+0%;-0%;0%") & ")") &
+    "</span>."
+
+// ==========================================
+// 4. Weather Loss Calculation
+// ==========================================
+// Jam gain/loss equipment kategori cuaca, dari awal bulan s/d tanggal terakhir filter.
+// Tabel gain/loss punya tanggal sendiri, jadi rentangnya diteruskan secara eksplisit.
+VAR _WEndDate = MAX('mpx_daily_pondok_view'[report_date])
+VAR _WMonthStart = DATE(YEAR(_WEndDate), MONTH(_WEndDate), 1)
+VAR _WeatherLossVal =
+    COALESCE(
+        CALCULATE(
+            SUM('mpx_dmr_gainloss_view'[duration]),
+            REMOVEFILTERS('mpx_daily_pondok_view'),
+            'mpx_dmr_gainloss_view'[name] IN {"Hujan", "Jalan Licin", "Kabut", "Petir", "Debu"},
+            FILTER(
+                ALL('mpx_dmr_gainloss_view'[machine_date]),
+                'mpx_dmr_gainloss_view'[machine_date] >= _WMonthStart && 'mpx_dmr_gainloss_view'[machine_date] <= _WEndDate
+            )
+        ),
+        0
+    )
+
+VAR _Color4 = "#EA580C" // Orange
+VAR _Bg4 = "#FFF7ED"
+VAR _Border4 = "#FED7AA"
+
+VAR _Desc4 =
+    "MTD Weather Loss reached <span style='color:" &
+    _Color4 & "; font-weight:600;'>" &
+    FORMAT(_WeatherLossVal, "0.0") &
+    " hrs</span>."
+
+// ==========================================
+// SVG Icons
+// ==========================================
+VAR _Icon1 = "<svg width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='23 18 13.5 8.5 8.5 13.5 1 6'/><polyline points='17 18 23 18 23 12'/></svg>"
+
+VAR _Icon2 = "<svg width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='5 9 2 12 5 15'/><polyline points='9 5 12 2 15 5'/><polyline points='19 9 22 12 19 15'/><polyline points='9 19 12 22 15 19'/><line x1='2' y1='12' x2='22' y2='12'/><line x1='12' y1='2' x2='12' y2='22'/></svg>"
+
+VAR _Icon3 = "<svg width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='3' width='12' height='12' rx='1'/><path d='M15 6h4a2 2 0 0 1 2 2v6h-6V6z'/><circle cx='7' cy='18' r='2'/><circle cx='17' cy='18' r='2'/></svg>"
+
+VAR _Icon4 = "<svg width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M20 16.2A4.5 4.5 0 0 0 17.5 8h-1.8A7 7 0 1 0 4 14.9'/><path d='M16 14v6'/><path d='M8 14v6'/><path d='M12 16v6'/></svg>"
+
+RETURN
+"<style>
+    .hl-container {
+        font-family: 'Segoe UI', sans-serif;
+        background: #FFFFFF;
+        border: 1px solid #EAEAEA;
+        border-radius: 10px;
+        box-shadow: 0px 2px 8px rgba(0,0,0,0.03);
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .hl-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid #EAEAEA;
+        font-size: 16px;
+        font-weight: 600;
+        color: #111827;
+    }
+
+    .hl-body {
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .hl-item {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .hl-icon-box {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .hl-text-box {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .hl-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1F2937;
+        margin-bottom: 2px;
+    }
+
+    .hl-desc {
+        font-size: 10px;
+        color: #6B7280;
+        line-height: 1.4;
+    }
+</style>
+
+<div class='hl-container'>
+    <div class='hl-header'>Key Highlights</div>
+
+    <div class='hl-body'>
+
+        <!-- Item 1 -->
+        <div class='hl-item'>
+            <div class='hl-icon-box' style='background:" & _Bg1 & "; border: 1px solid " & _Border1 & "; color:" & _Color1 & ";'>" & _Icon1 & "</div>
+
+            <div class='hl-text-box'>
+                <div class='hl-title'>MTD Production</div>
+                <div class='hl-desc'>" & _Desc1 & "</div>
+            </div>
+        </div>
+
+        <!-- Item 2 -->
+        <div class='hl-item'>
+            <div class='hl-icon-box' style='background:" & _Bg2 & "; border: 1px solid " & _Border2 & "; color:" & _Color2 & ";'>" & _Icon2 & "</div>
+
+            <div class='hl-text-box'>
+                <div class='hl-title'>Total MTD Movement</div>
+                <div class='hl-desc'>" & _Desc2 & "</div>
+            </div>
+        </div>
+
+        <!-- Item 3 -->
+        <div class='hl-item'>
+            <div class='hl-icon-box' style='background:" & _Bg3 & "; border: 1px solid " & _Border3 & "; color:" & _Color3 & ";'>" & _Icon3 & "</div>
+
+            <div class='hl-text-box'>
+                <div class='hl-title'>Out-Pit Movement</div>
+                <div class='hl-desc'>" & _Desc3 & "</div>
+            </div>
+        </div>
+
+        <!-- Item 4 - Weather Loss -->
+        <div class='hl-item'>
+            <div class='hl-icon-box' style='background:" & _Bg4 & "; border: 1px solid " & _Border4 & "; color:" & _Color4 & ";'>" & _Icon4 & "</div>
+
+            <div class='hl-text-box'>
+                <div class='hl-title'>Weather Loss</div>
+                <div class='hl-desc'>" & _Desc4 & "</div>
+            </div>
+        </div>
+
+    </div>
+</div>"

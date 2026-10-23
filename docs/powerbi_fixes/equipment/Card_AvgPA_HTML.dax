@@ -1,0 +1,263 @@
+Card_AvgPA_HTML =
+
+// =============================================================
+// 1. DATE & PA% CALCULATION
+// =============================================================
+VAR _MaxDate = MAX('mpx_dmr_view'[machine_date])
+VAR _YesterdayDate = _MaxDate - 1
+
+-- PA Hari Ini (Max Date)
+VAR _ValueCurrent =
+    CALCULATE(
+        AVERAGE('mpx_dmr_view'[pa_avg]) / 100,
+        'mpx_dmr_view'[machine_date] = _MaxDate
+    )
+
+-- PA Kemarin (Max Date - 1)
+VAR _ValueYesterday =
+    CALCULATE(
+        AVERAGE('mpx_dmr_view'[pa_avg]) / 100,
+        'mpx_dmr_view'[machine_date] = _YesterdayDate
+    )
+
+-- Selisih PA (Gap)
+VAR _Diff = _ValueCurrent - _ValueYesterday
+VAR _FormattedValue = FORMAT(COALESCE(_ValueCurrent, 0), "0.00%")
+
+-- Text & Indikator Warna vs Yesterday
+VAR _VsText =
+    SWITCH(
+        TRUE(),
+        ISBLANK(_ValueYesterday), "vs yesterday -",
+        _Diff > 0, "vs yesterday ▲ " & FORMAT(_Diff, "+0.00%"),
+        _Diff < 0, "vs yesterday ▼ " & FORMAT(_Diff, "0.00%"),
+        "vs yesterday ➔ 0.00%"
+    )
+
+VAR _VsColor =
+    SWITCH(
+        TRUE(),
+        ISBLANK(_ValueYesterday), "#9CA3AF",
+        _Diff > 0, "#16A34A", /* Hijau jika naik */
+        _Diff < 0, "#DC2626", /* Merah jika turun */
+        "#9CA3AF"
+    )
+
+// =============================================================
+// 2. DYNAMIC DATE NODES FOR SPARKLINE CHART
+// =============================================================
+VAR _DatesTable = SUMMARIZE('mpx_dmr_view', 'mpx_dmr_view'[machine_date])
+VAR _TotalDates = COUNTROWS(_DatesTable)
+
+VAR _DatesWithValues =
+    ADDCOLUMNS(
+        _DatesTable,
+        "@DateText", FORMAT('mpx_dmr_view'[machine_date], "dd MMM yyyy"),
+        "@ValOnDate", CALCULATE(AVERAGE('mpx_dmr_view'[pa_avg]) / 100),
+        "@Index", ROWNUMBER(_DatesTable, ORDERBY('mpx_dmr_view'[machine_date], ASC))
+    )
+
+// PERBAIKAN: garis sparkline dihitung dari PA% harian (logika yang sama dengan Card_InactiveUnit_HTML).
+// Versi lama memakai path tetap 'M 0 0 Q 30 20 80 22 L 260 22' yang tidak berhubungan dengan data.
+VAR _MinVal = MINX(_DatesWithValues, [@ValOnDate])
+VAR _MaxVal = MAXX(_DatesWithValues, [@ValOnDate])
+VAR _ValRange = IF(_MaxVal - _MinVal > 0, _MaxVal - _MinVal, 1)
+
+VAR _PathPoints =
+    CONCATENATEX(
+        _DatesWithValues,
+        VAR _Idx = [@Index]
+        VAR _Val = [@ValOnDate]
+        VAR _StepX = DIVIDE(260, MAX(1, _TotalDates - 1), 0)
+        VAR _X = (_Idx - 1) * _StepX
+        VAR _Y = 18 - (DIVIDE(_Val - _MinVal, _ValRange, 0) * 14)
+        RETURN IF(_Idx = 1, "M " & _X & " " & _Y, " L " & _X & " " & _Y),
+        "",
+        [@Index], ASC
+    )
+
+VAR _LinePath = IF(ISBLANK(_PathPoints), "M 0 20 L 260 20", _PathPoints)
+VAR _AreaPath = _LinePath & " L 260 24 L 0 24 Z"
+
+VAR _SparklineDateNodes =
+    CONCATENATEX(
+        _DatesWithValues,
+        VAR _CurrentIndex = [@Index]
+        VAR _DateStr = [@DateText]
+        VAR _ValStr = FORMAT([@ValOnDate], "0.00%")
+
+        VAR _StepX = DIVIDE(100, MAX(1, _TotalDates - 1), 0)
+        VAR _X = (_CurrentIndex - 1) * _StepX
+        VAR _RectWidth = MAX(4, _StepX)
+        RETURN
+        "<g class='date-hover-node'>
+            <rect x='" & (_X - (_RectWidth / 2)) & "%' y='0' width='" & _RectWidth & "%' height='100%' fill='transparent' style='cursor: pointer;' />
+            <foreignObject x='calc(" & _X & "% - 55px)' y='-36' width='110' height='32' class='date-tooltip-container'>
+                <div xmlns='http://www.w3.org/1999/xhtml' class='date-tooltip-content'>
+                    " & _DateStr & "<br/><strong>" & _ValStr & " PA</strong>
+                </div>
+            </foreignObject>
+        </g>",
+        ""
+    )
+
+// =============================================================
+// 3. HTML OUTPUT & RESPONSIVE STYLING
+// =============================================================
+RETURN
+"<style>
+    .pa-card-container {
+        font-family: 'Segoe UI', sans-serif;
+        background-color: #FFFFFF;
+        border-radius: 12px;
+        padding: 5% 6% 4% 6%;
+        box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.05);
+        border: 1px solid #EAEAEA;
+        width: 100%;
+        height: 100%;
+        min-width: 180px;
+        min-height: 110px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative;
+        overflow: visible;
+        cursor: pointer;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                    border-color 0.3s ease;
+    }
+    .pa-card-container:hover {
+        transform: translateY(-4px);
+        box-shadow: 0px 10px 20px rgba(34, 197, 94, 0.15);
+        border-color: #86EFAC;
+    }
+
+    .kpi-top-content {
+        display: flex;
+        align-items: center;
+        width: 100%;
+    }
+
+    .icon-box-green {
+        width: clamp(38px, 18%, 48px);
+        height: clamp(38px, 18%, 48px);
+        border-radius: 25%;
+        background-color: #F0FDF4;
+        border: 1px solid #86EFAC;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 5%;
+        flex-shrink: 0;
+        font-size: clamp(16px, 3.5vw, 20px);
+        font-weight: 700;
+        color: #16A34A;
+        transition: transform 0.3s ease, background-color 0.3s ease;
+    }
+    .pa-card-container:hover .icon-box-green {
+        transform: scale(1.08) rotate(-3deg);
+        background-color: #DCFCE7;
+    }
+
+    .kpi-text-block {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .kpi-title-text {
+        font-size: clamp(11px, 2.5vw, 13px);
+        color: #4B5563;
+        font-weight: 500;
+        margin-bottom: 2px;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+    .kpi-value-text {
+        font-size: clamp(20px, 5vw, 28px);
+        font-weight: 700;
+        color: #111827;
+        line-height: 1.1;
+    }
+    .kpi-sub-text {
+        font-size: clamp(10px, 2vw, 11px);
+        font-weight: 600;
+        margin-top: 5px;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+
+    .responsive-chart-area {
+        height: clamp(20px, 25%, 40px);
+        width: 100%;
+        position: relative;
+        margin-top: 8px;
+    }
+
+    .date-hover-node .date-tooltip-container {
+        visibility: hidden;
+        opacity: 0;
+        transition: opacity 0.2s ease, transform 0.2s ease;
+        pointer-events: none;
+        z-index: 99;
+    }
+    .date-tooltip-content {
+        background-color: #1E293B;
+        color: #FFFFFF;
+        font-size: 10px;
+        padding: 4px 6px;
+        border-radius: 5px;
+        text-align: center;
+        line-height: 1.25;
+        box-shadow: 0px 3px 10px rgba(0,0,0,0.25);
+    }
+    .date-hover-node:hover .date-tooltip-container {
+        visibility: visible;
+        opacity: 1;
+        transform: translateY(-2px);
+    }
+
+    @keyframes drawLine {
+        from { stroke-dashoffset: 300; }
+        to { stroke-dashoffset: 0; }
+    }
+    .sparkline-line-path {
+        stroke-dasharray: 300;
+        stroke-dashoffset: 300;
+        animation: drawLine 1.4s ease-in-out forwards;
+        transition: stroke-width 0.2s ease;
+    }
+    .pa-card-container:hover .sparkline-line-path {
+        stroke-width: 2.5px;
+    }
+</style>
+
+<div class='pa-card-container'>
+    <div class='kpi-top-content'>
+        <div class='icon-box-green'>%</div>
+        <div class='kpi-text-block'>
+            <div class='kpi-title-text'>Average PA%</div>
+            <div class='kpi-value-text'>" & _FormattedValue & "</div>
+            <div class='kpi-sub-text' style='color: " & _VsColor & ";'>" & _VsText & "</div>
+        </div>
+    </div>
+
+    <div class='responsive-chart-area'>
+        <svg viewBox='0 0 260 24' preserveAspectRatio='none' style='width: 100%; height: 100%; display: block; overflow: visible;'>
+            <defs>
+                <linearGradient id='gradPA' x1='0%' y1='0%' x2='0%' y2='100%'>
+                    <stop offset='0%' stop-color='#22C55E' stop-opacity='0.35' />
+                    <stop offset='100%' stop-color='#22C55E' stop-opacity='0.0' />
+                </linearGradient>
+            </defs>
+            <path d='" & _AreaPath & "' fill='url(#gradPA)' />
+            <path class='sparkline-line-path' d='" & _LinePath & "' fill='none' stroke='#22C55E' stroke-width='2' />
+            " & _SparklineDateNodes & "
+        </svg>
+    </div>
+</div>"

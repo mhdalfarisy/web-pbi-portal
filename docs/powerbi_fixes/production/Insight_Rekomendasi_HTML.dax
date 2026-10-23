@@ -1,0 +1,261 @@
+Insight_Rekomendasi_HTML =
+-- ============================================================
+-- 1. KALKULASI DAX DINAMIS
+--
+-- PERBAIKAN: semua teks dihitung dari filter yang aktif. Versi lama menulis teks tetap
+-- ("Stockpile WD4 42.53%", "FOB 25.85%", "PA% 85.15%", "Optimalkan Stockpile WD4 & WD1"),
+-- sehingga tidak berubah walaupun tanggal diganti.
+-- ============================================================
+VAR _TotalIn = CALCULATE(SUM('mpx_stockpile_summary_view'[tonnes_addition]))
+VAR _TotalOut = CALCULATE(SUM('mpx_stockpile_summary_view'[tonnes_depletion]))
+VAR _NetVal = COALESCE(_TotalOut, 0) - COALESCE(_TotalIn, 0)   -- Output - Input, sama dengan kartu Net Movement
+VAR _OutputPct = DIVIDE(_TotalOut, _TotalIn) * 100
+
+-- Input / output per lokasi
+VAR _Loc =
+    ADDCOLUMNS(
+        VALUES('mpx_stockpile_summary_view'[dump_location]),
+        "@In", COALESCE(CALCULATE(SUM('mpx_stockpile_summary_view'[tonnes_addition])), 0),
+        "@Out", COALESCE(CALCULATE(SUM('mpx_stockpile_summary_view'[tonnes_depletion])), 0)
+    )
+
+-- A. Input tertinggi
+VAR _TopIn = TOPN(1, FILTER(_Loc, [@In] > 0), [@In], DESC, [@Out], DESC, 'mpx_stockpile_summary_view'[dump_location], ASC)
+VAR _TopInName = MAXX(_TopIn, 'mpx_stockpile_summary_view'[dump_location])
+VAR _TopInPct = DIVIDE(MAXX(_TopIn, [@In]), _TotalIn) * 100
+VAR _InputPctText =
+    IF(
+        ISBLANK(_TopInName),
+        "-",
+        _TopInName & " menyumbang " & FORMAT(_TopInPct, "#,##0.00") & "% dari total input."
+    )
+
+-- B. Output tertinggi
+VAR _TopOut = TOPN(1, FILTER(_Loc, [@Out] > 0), [@Out], DESC, 'mpx_stockpile_summary_view'[dump_location], ASC)
+VAR _TopOutName = MAXX(_TopOut, 'mpx_stockpile_summary_view'[dump_location])
+VAR _TopOutPct = DIVIDE(MAXX(_TopOut, [@Out]), _TotalOut) * 100
+VAR _OutputPctText =
+    IF(
+        ISBLANK(_TopOutName),
+        "Belum ada output pada periode ini.",
+        _TopOutName & " berkontribusi " & FORMAT(_TopOutPct, "#,##0.00") & "% dari total output."
+    )
+
+-- C. Net movement
+VAR _NetTitle = IF(_NetVal < 0, "Net Movement Negatif", "Net Movement Positif")
+VAR _NetText =
+    IF(
+        _NetVal < 0,
+        "Input lebih besar dari output: inventori stockpile bertambah " & FORMAT(ABS(_NetVal), "#,##0.00") & " BCM.",
+        "Output lebih besar dari input: inventori stockpile berkurang " & FORMAT(_NetVal, "#,##0.00") & " BCM."
+    )
+
+-- D. PA% equipment pada hari terakhir rentang tanggal yang dipilih
+--    (tabel equipment punya tanggal sendiri, jadi rentangnya diteruskan secara eksplisit)
+VAR _StartDate = MIN('mpx_stockpile_summary_view'[ritase_date])
+VAR _EndDate = MAX('mpx_stockpile_summary_view'[ritase_date])
+VAR _PADay =
+    CALCULATE(
+        MAX('mpx_dmr_view'[machine_date]),
+        REMOVEFILTERS('mpx_stockpile_summary_view'),
+        FILTER(
+            ALL('mpx_dmr_view'[machine_date]),
+            'mpx_dmr_view'[machine_date] >= _StartDate && 'mpx_dmr_view'[machine_date] <= _EndDate
+        )
+    )
+VAR _PAValue =
+    CALCULATE(
+        AVERAGE('mpx_dmr_view'[pa_avg]),
+        REMOVEFILTERS('mpx_stockpile_summary_view'),
+        REMOVEFILTERS('mpx_dmr_view'[machine_date]),
+        'mpx_dmr_view'[machine_date] = _PADay
+    )
+VAR _PAText =
+    IF(
+        ISBLANK(_PAValue),
+        "Data PA% equipment belum tersedia untuk periode ini.",
+        "Rata-rata PA% equipment " & FORMAT(_PAValue, "#,##0.00") & "% per " & FORMAT(_PADay, "dd MMM yyyy") & "."
+    )
+
+-- E. Rekomendasi: lokasi stockpile dengan input terbesar (dari 4 lokasi input teratas)
+VAR _TopIn4 = TOPN(4, FILTER(_Loc, [@In] > 0), [@In], DESC, [@Out], DESC, 'mpx_stockpile_summary_view'[dump_location], ASC)
+VAR _HasStockpile = COUNTROWS(FILTER(_TopIn4, CONTAINSSTRING('mpx_stockpile_summary_view'[dump_location], "stockpile"))) > 0
+VAR _Pick =
+    TOPN(
+        2,
+        FILTER(_TopIn4, NOT _HasStockpile || CONTAINSSTRING('mpx_stockpile_summary_view'[dump_location], "stockpile")),
+        [@In], DESC, [@Out], DESC, 'mpx_stockpile_summary_view'[dump_location], ASC
+    )
+VAR _PickNames = CONCATENATEX(_Pick, 'mpx_stockpile_summary_view'[dump_location], " & ", [@In], DESC, [@Out], DESC)
+VAR _RekomendasiText =
+    IF(
+        NOT ISBLANK(_OutputPct) && _OutputPct < 50 && COUNTROWS(_Pick) > 0,
+        "Output baru " & FORMAT(_OutputPct, "#,##0.0") & "% dari input. Optimalkan pengambilan dari " & _PickNames & " untuk menyeimbangkan inventori.",
+        "Keseimbangan input dan output terjaga; pertahankan pola pengambilan saat ini."
+    )
+
+-- ============================================================
+-- 2. HTML & CSS LAYOUT (DIRAPIKAN & PADDING BAZAR BAWAH)
+-- ============================================================
+RETURN
+"<!DOCTYPE html>
+<html>
+<head>
+<meta charset='UTF-8'>
+<style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { width:100%; height:100%; background:transparent; overflow:hidden; font-family:'Segoe UI', sans-serif; }
+
+    .card-container {
+        background: #ffffff;
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        width: 100%;
+        height: 100%;
+        padding: 16px 20px 24px 20px; /* Padding bawah diperbesar dari 12px jadi 24px */
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start; /* Dipatok dari atas agar bagian bawah longgar */
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
+    }
+
+    .card-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 16px; /* Jarak judul ke kartu sedikit diperlebar */
+    }
+
+    .insight-grid {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        width: 100%;
+    }
+
+    .insight-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+        min-width: 0;
+    }
+
+    /* Icon Box Badges */
+    .icon-box {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    /* Variasi Warna Icon */
+    .bg-blue { background: #EFF6FF; border: 1px solid #BFDBFE; color: #2563EB; }
+    .bg-green { background: #ECFDF5; border: 1px solid #A7F3D0; color: #10B981; }
+    .bg-purple { background: #F3E8FF; border: 1px solid #E9D5FF; color: #A855F7; }
+    .bg-orange { background: #FFF7ED; border: 1px solid #FED7AA; color: #F97316; }
+    .bg-lime { background: #F7FEE7; border: 1px solid #D9F99D; color: #84CC16; }
+
+    .text-container {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+    }
+
+    .item-title {
+        font-size: 11.5px;
+        font-weight: 700;
+        color: #1F2937;
+        white-space: nowrap;
+    }
+
+    .item-desc {
+        font-size: 10px;
+        color: #6B7280;
+        line-height: 1.3;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    /* SVG Icon Inline */
+    .icon-box svg {
+        width: 20px;
+        height: 20px;
+        stroke-width: 2;
+    }
+</style>
+</head>
+<body>
+
+<div class='card-container'>
+    <div class='card-title'>Insight & Rekomendasi</div>
+
+    <div class='insight-grid'>
+
+        <!-- 1. Input Tertinggi -->
+        <div class='insight-item'>
+            <div class='icon-box bg-blue'>
+                <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-linecap='round' stroke-linejoin='round'><line x1='12' y1='5' x2='12' y2='19'></line><polyline points='19 12 12 19 5 12'></polyline></svg>
+            </div>
+            <div class='text-container'>
+                <div class='item-title'>Input Tertinggi</div>
+                <div class='item-desc'>" & _InputPctText & "</div>
+            </div>
+        </div>
+
+        <!-- 2. Output Tertinggi -->
+        <div class='insight-item'>
+            <div class='icon-box bg-green'>
+                <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-linecap='round' stroke-linejoin='round'><line x1='12' y1='19' x2='12' y2='5'></line><polyline points='5 12 12 5 19 12'></polyline></svg>
+            </div>
+            <div class='text-container'>
+                <div class='item-title'>Output Tertinggi</div>
+                <div class='item-desc'>" & _OutputPctText & "</div>
+            </div>
+        </div>
+
+        <!-- 3. Net Movement -->
+        <div class='insight-item'>
+            <div class='icon-box bg-purple'>
+                <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3v18M3 6l9-3 9 3M3 18l9 3 9-3M3 6l9 6 9-6M3 18l9-6 9 6'></path></svg>
+            </div>
+            <div class='text-container'>
+                <div class='item-title'>" & _NetTitle & "</div>
+                <div class='item-desc'>" & _NetText & "</div>
+            </div>
+        </div>
+
+        <!-- 4. Performa PA% -->
+        <div class='insight-item'>
+            <div class='icon-box bg-orange'>
+                <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='3' width='7' height='7'></rect><rect x='14' y='3' width='7' height='7'></rect><rect x='14' y='14' width='7' height='7'></rect><rect x='3' y='14' width='7' height='7'></rect></svg>
+            </div>
+            <div class='text-container'>
+                <div class='item-title'>Performa PA%</div>
+                <div class='item-desc'>" & _PAText & "</div>
+            </div>
+        </div>
+
+        <!-- 5. Rekomendasi -->
+        <div class='insight-item'>
+            <div class='icon-box bg-lime'>
+                <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-linecap='round' stroke-linejoin='round'><path d='M9 18h6M10 22h4M15 14.5A7 7 0 1 0 9 14.5L10 18h4l1-3.5z'></path></svg>
+            </div>
+            <div class='text-container'>
+                <div class='item-title'>Rekomendasi</div>
+                <div class='item-desc'>" & _RekomendasiText & "</div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+</body>
+</html>"
