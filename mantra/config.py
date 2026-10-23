@@ -18,6 +18,8 @@ def _list(value):
 
 
 class Config:
+    # Port lokal. Redirect URI di Entra harus ikut: http://localhost:<PORT>/auth/callback
+    PORT = int(os.environ.get("PORT") or 5001)
     SECRET_KEY = os.environ.get("FLASK_SECRET_KEY")
     SESSION_COOKIE_SAMESITE = "Lax"
     SESSION_COOKIE_HTTPONLY = True

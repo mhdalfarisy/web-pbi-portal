@@ -78,7 +78,7 @@ otomatis.
 ### 2. Microsoft Entra: login user (app registration `MANTRA Portal`)
 
 1. entra.microsoft.com > App registrations > New registration: name `MANTRA Portal`, Single tenant,
-   Redirect URI **Web** `http://localhost:5000/auth/callback`.
+   Redirect URI **Web** `http://localhost:5001/auth/callback` (port = `PORT` di `.env`, default 5001).
 2. Catat Application (client) ID dan Directory (tenant) ID > `ENTRA_CLIENT_ID`, `ENTRA_TENANT_ID`.
 3. Certificates & secrets > New client secret > salin **Value** > `ENTRA_CLIENT_SECRET`.
 4. App roles > Create app role (Allowed member types: Users/Groups), Value harus persis:
@@ -103,7 +103,7 @@ otomatis.
 ```powershell
 python scripts\check_setup.py                 # semua harus OK (PANI menunggu akses workspace)
 python scripts\test_chatbot.py --static       # cek prompt semua AI agent (gratis)
-python run.py                                 # buka http://localhost:5000 (bukan 127.0.0.1)
+python run.py                                 # buka http://localhost:5001 (bukan 127.0.0.1)
 ```
 
 **Mode development tanpa login**: `AUTH_DISABLED=1` di `.env`. Role user development diatur lewat `DEV_ROLES`
@@ -151,7 +151,8 @@ di `.env`. Dashboard dan tools tidak perlu diubah.
 |---|---|
 | "Akun Anda belum diberi akses ke MANTRA" | User belum di-assign di Enterprise applications > MANTRA Portal > Users and groups |
 | Login berhasil tapi tidak ada dashboard | User belum punya app role `Report.*`. Assign role, lalu logout & login ulang |
-| `AADSTS50011` redirect URI mismatch | Buka lewat `http://localhost:5000`, dan pastikan redirect URI di app registration persis `http://localhost:5000/auth/callback` |
+| `AADSTS50011` redirect URI mismatch | Buka lewat `http://localhost:5001`, dan pastikan redirect URI di app registration persis `http://localhost:5001/auth/callback` (port sama dengan `PORT` di `.env`) |
+| Port 5001 sudah dipakai | Ganti `PORT` di `.env` (mis. 5002), lalu ubah juga redirect URI di Entra ke port yang sama |
 | Dashboard "Gagal mengambil data dari Power BI" | `python scripts\check_setup.py`. Pesan error disertai petunjuk |
 | "Layanan AI sedang sibuk" | Kuota Gemini habis atau model penuh. Coba lagi, atau pakai API key khusus MANTRA |
 | Perubahan prompt tidak terbaca | Restart `python run.py` |

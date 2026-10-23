@@ -61,8 +61,8 @@ def check_entra():
            ["AADSTS7000215: yang disalin 'Secret ID', bukan 'Value'.",
             "AADSTS700016: ENTRA_CLIENT_ID salah atau app ada di tenant lain.",
             "AADSTS7000222: client secret kedaluwarsa, buat yang baru."])
-    print("        Catatan: redirect URI http://localhost:5000/auth/callback, app roles, dan assignment user")
-    print("        hanya bisa dicek dengan login langsung di http://localhost:5000")
+    print(f"        Catatan: redirect URI http://localhost:{Config.PORT}/auth/callback, app roles, dan assignment user")
+    print(f"        hanya bisa dicek dengan login langsung di http://localhost:{Config.PORT}")
 
 
 def check_powerbi(dashboards):
