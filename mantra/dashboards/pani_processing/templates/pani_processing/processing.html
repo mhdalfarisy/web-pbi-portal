@@ -7,6 +7,7 @@
 {% block desc %}Executive overview of production performance against target{% endblock %}
 {% block stat_note %} &middot; Model refresh {{ refresh or '-' }}{% endblock %}
 {% block content %}
+{% set ptag = 'YTD' if d.mode == 'YTD' else 'Selected Period • ' ~ d.period_range %}
 {% set STAGE_ICON = {'Crushing': 'hammer', 'Heap Leach': 'layers', 'Adsorption': 'filter', 'Elution - Smelting': 'flame'} %}
 <div class="pg">
   {{ filters(d, bounds) }}
@@ -18,7 +19,7 @@
     <div class="panel pk {{ tone_cls }}">
       <div class="pk-top">
         <span class="pk-ic {{ ic }}">{{ picon('coins') }}</span>
-        <div><small>{{ title }} <span class="tag">YTD</span></small>
+        <div><small>{{ title }} <span class="tag">{{ ptag }}</span></small>
           <b>{{ fmt(m.actual, 2) }} <i>{{ m.unit }}</i></b><em>Target {{ fmt(m.target, 2) }} {{ m.unit }}</em></div>
       </div>
       <div class="pk-foot"><span class="{{ tone(m.var) }}">{{ arrow(m.var) }} {{ sgn(m.var) }} vs Target</span><div class="spark" id="sp-{{ k }}"></div></div>
@@ -27,7 +28,7 @@
     <div class="panel pk red">
       <div class="pk-top">
         <span class="pk-ic ic-red">{{ picon('chart') }}</span>
-        <div><small>Gold Variance <span class="tag red">YTD</span></small>
+        <div><small>Gold Variance <span class="tag red">{{ ptag }}</span></small>
           <b class="{{ tone(d.gold_variance.var) }}">{{ sgn(d.gold_variance.var) }}</b>
           <em>Actual {{ fmt(d.gold_variance.actual, 2) }} vs Target {{ fmt(d.gold_variance.target, 2) }}</em></div>
       </div>
@@ -36,7 +37,7 @@
     <div class="panel pk amber">
       <div class="pk-top">
         <span class="pk-ic ic-amber">{{ picon('trophy') }}</span>
-        <div><small>Overall Achievement <span class="tag amber">YTD</span></small>
+        <div><small>Overall Achievement <span class="tag amber">{{ ptag }}</span></small>
           <b>{{ fmt(d.overall.achv, 0) }}%</b><em class="{{ tone(d.overall.var) }}">{{ sgn(d.overall.var) }} vs Target</em>
           <em>Actual {{ fmt(d.overall.actual, 2) }} vs Target {{ fmt(d.overall.target, 2) }}</em></div>
       </div>
@@ -55,7 +56,7 @@
       <div class="cc" id="chartProd"></div>
     </section>
     <section class="panel">
-      <div class="ph"><h3>Production Summary by Stage <small>(YTD)</small></h3></div>
+      <div class="ph"><h3>Production Summary by Stage <small>({{ ptag }})</small></h3></div>
       <div class="stage head"><span></span><span>Stage</span><span>Actual</span><span>vs Target</span><span>Achv.</span></div>
       {% for s in d.stages %}
       <div class="stage">
@@ -71,7 +72,7 @@
 
   <div class="row r3">
     <section class="panel">
-      <div class="ph"><h3>Metallurgical Performance <small>(YTD)</small></h3></div>
+      <div class="ph"><h3>Metallurgical Performance <small>({{ ptag }})</small></h3></div>
       <div class="rings3">
         {% for m in d.metallurgy %}
         <div><b>{{ m.label }} (%)</b>
@@ -81,7 +82,7 @@
       </div>
     </section>
     <section class="panel">
-      <div class="ph"><h3>Grade Overview <small>(YTD)</small></h3></div>
+      <div class="ph"><h3>Grade Overview <small>({{ ptag }})</small></h3></div>
       <div class="grades">
         {% for g in d.grades %}
         {% set top = [g.actual or 0, g.target or 0]|max or 1 %}
@@ -100,7 +101,7 @@
           {% for s in d.snapshot %}
           <tr><td><b>{{ s.label }}</b><small>({{ s.unit }})</small></td>
             {% for p in [s.daily, s.mtd, s.ytd] %}
-            <td><b>{{ fmt(p.actual, 2) }}</b><small>{{ fmt(p.target, 2) }}</small><em class="{{ tone(p.var) }}">{{ sgn(p.var) }}</em></td>
+            <td><b>{{ fmt(p.actual or 0, 2) }}</b><small>{{ fmt(p.target, 2) }}</small><em class="{{ tone(p.var) if p.actual is not none else 'flat' }}">{{ sgn(p.var) if p.actual is not none else '0.0%' }}</em></td>
             {% endfor %}</tr>
           {% endfor %}
         </tbody>
@@ -110,7 +111,7 @@
   </div>
 
   <section class="panel">
-    <div class="ph"><h3>Top 5 Negative Variance Drivers <small>(YTD)</small></h3></div>
+    <div class="ph"><h3>Top 5 Negative Variance Drivers <small>({{ d.driver_period }})</small></h3></div>
     {% if d.drivers %}
     <div class="drivers">
       {% for m in d.drivers %}
@@ -122,7 +123,7 @@
       </div>
       {% endfor %}
     </div>
-    {% else %}<p class="note">Tidak ada metrik di bawah target pada {{ dlabel(d.end) }}.</p>{% endif %}
+    {% else %}<p class="note"><b>No valid {{ d.driver_period }} driver data.</b> No valid variance data is available within the selected period.</p>{% endif %}
   </section>
 </div>
 {% endblock %}

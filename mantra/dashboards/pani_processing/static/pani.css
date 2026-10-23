@@ -183,3 +183,5 @@ details.more summary { cursor: pointer; font-size: 11.5px; font-weight: 700; col
   .mchart { grid-template-columns: 1fr; }
   .hd-nav { grid-template-columns: repeat(2, 1fr); }
 }
+
+.pk .spark.wide { width: 100%; height: 26px; margin-top: 2px; }

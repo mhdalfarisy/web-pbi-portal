@@ -14,11 +14,13 @@
   {{ filters(d, bounds) }}
 
   <div class="row r4">
-    {% for title, val, ic, icls in [('Total Input', d.input, 'in', 'ic-blue'), ('Total Output', d.output, 'out', 'ic-green'),
-                                   ('Net Movement', d.net, 'scale', 'ic-purple'), ('Grand Total', d.grand, 'layers', 'ic-orange')] %}
+    {% for title, val, ic, icls, sub in [('Total Input', d.input, 'in', 'ic-blue', fmt(d.input_t, 2) ~ ' Tonnes (1 BCM = ' ~ d.ton_in ~ ' t)'),
+                                        ('Total Output', d.output, 'out', 'ic-green', fmt(d.output_t, 2) ~ ' Tonnes (1 BCM = ' ~ d.ton_out ~ ' t)'),
+                                        ('Net Movement', d.net, 'scale', 'ic-purple', 'Output - Input'),
+                                        ('Grand Total', d.grand, 'layers', 'ic-orange', 'Input + Output')] %}
     <div class="panel pk slate">
       <div class="pk-top"><span class="pk-ic {{ icls }}">{{ picon(ic) }}</span>
-        <div><small>{{ title }} (t)</small><b class="{{ 'neg' if val < 0 }}">{{ fmt(val, 2) }}</b><em>{{ fmt(val, 2) }} tonnes</em></div></div>
+        <div><small>{{ title }} (BCM)</small><b class="{{ 'neg' if val < 0 }}">{{ fmt(val, 2) }}</b><em>{{ sub }}</em></div></div>
     </div>
     {% endfor %}
   </div>
@@ -26,28 +28,28 @@
   <div class="row r-6-4">
     <section class="panel">
       <div class="flow">
-        <div class="fbox in">INPUT<b>{{ fmt(d.input, 2) }} t</b>
+        <div class="fbox in">INPUT<b>{{ fmt(d.input, 2) }} BCM</b>{{ fmt(d.input_t, 2) }} Tonnes<br><span class="note">1 BCM = {{ d.ton_in }} Ton</span>
           <div class="ring lg" style="--v: 100; --c: #2563eb"><span>100%</span></div></div>
         <div class="fstages">
           {% for s, ic in [('Crushing', 'hammer'), ('Screening', 'filter'), ('Stockpile', 'mountain')] %}
-          <div class="fstage"><span>{{ s }}</span><b>{{ fmt(d.stages[s], 2) }} t</b></div>
+          <div class="fstage"><span>{{ s }}</span><b>{{ fmt(d.stages[s], 2) }} BCM</b></div>
           {% endfor %}
           <div class="note" style="text-align:center">Output {{ fmt(d.output_pct, 2) }}% dari input &rarr;</div>
         </div>
-        <div class="fbox out">OUTPUT<b>{{ fmt(d.output, 2) }} t</b>
+        <div class="fbox out">OUTPUT<b>{{ fmt(d.output, 2) }} BCM</b>{{ fmt(d.output_t, 2) }} Tonnes<br><span class="note">1 BCM = {{ d.ton_out }} Ton</span>
           <div class="ring lg" style="--v: {{ [d.output_pct or 0, 100]|min }}; --c: #16a34a"><span>{{ fmt(d.output_pct, 0) }}%</span></div></div>
       </div>
       <div class="fsum">
-        <div><small>Net Movement</small><b class="{{ tone(d.net) }}">{{ fmt(d.net, 2) }} t</b>
+        <div><small>Net Movement</small><b class="{{ tone(d.net) }}">{{ fmt(d.net, 2) }} BCM</b>
           <span class="note">({{ sgn(d.net_pct, 1) }} dari input)</span></div>
-        <div><small>Grand Total</small><b>{{ fmt(d.grand, 2) }} t</b></div>
-        <div><small>Top Input Location</small><b>{% if top_in %}{{ top_in.name }} ({{ fmt(top_in.input, 2) }} t){% else %}-{% endif %}</b></div>
-        <div><small>Top Output Location</small><b>{% if top_out %}{{ top_out.name }} ({{ fmt(top_out.output, 2) }} t){% else %}-{% endif %}</b></div>
+        <div><small>Grand Total</small><b>{{ fmt(d.grand, 2) }} BCM</b></div>
+        <div><small>Top Input Location</small><b>{% if top_in %}{{ top_in.name }} ({{ fmt(top_in.input, 2) }} BCM){% else %}-{% endif %}</b></div>
+        <div><small>Top Output Location</small><b>{% if top_out %}{{ top_out.name }} ({{ fmt(top_out.output, 2) }} BCM){% else %}-{% endif %}</b></div>
       </div>
-      {% if top_in %}<p class="note" style="margin-top:8px">&#128161; Output mencapai {{ fmt(d.output_pct, 1) }}% dari total input, dengan input utama dari {{ top_in.name }} ({{ fmt(top_in.input, 2) }} t).</p>{% endif %}
+      {% if top_in %}<p class="note" style="margin-top:8px">&#128161; Output mencapai {{ fmt(d.output_pct, 1) }}% dari total input, dengan input utama dari {{ top_in.name }} ({{ fmt(top_in.input, 2) }} BCM).</p>{% endif %}
     </section>
     <section class="panel">
-      <div class="ph"><h3>Input &amp; Output by Location <small>(t)</small></h3></div>
+      <div class="ph"><h3>Input &amp; Output by Location <small>(BCM)</small></h3></div>
       <div class="cc-legend" style="justify-content:flex-start"><span><i style="background:#2563eb"></i>Input</span><span><i style="background:#22c55e"></i>Output</span></div>
       {% set maxv = [(d.locations|map(attribute='input')|max) if d.locations else 0, (d.locations|map(attribute='output')|max) if d.locations else 0]|max %}
       <div class="locs">
@@ -63,20 +65,20 @@
 
   <div class="row r-4-6">
     <section class="panel">
-      <div class="ph"><h3>Top Input &amp; Output Detail <small>(t)</small></h3></div>
+      <div class="ph"><h3>Top Input &amp; Output Detail <small>(BCM)</small></h3></div>
       <div class="tsplit">
-        <div><h4>TOP INPUT</h4>
-          <table class="ttab"><thead><tr><th>Source Loc ID</th><th class="r">t</th><th class="r">%</th></tr></thead>
+        <div><h4>TOP INPUT (BCM)</h4>
+          <table class="ttab"><thead><tr><th>Source Loc ID</th><th class="r">BCM</th><th class="r">%</th></tr></thead>
             <tbody>{% for l in d.top_input %}<tr><td>{{ l.name }}</td><td class="r">{{ fmt(l.input, 2) }}</td><td class="r">{{ fmt(l.in_pct, 2) }}%</td></tr>{% endfor %}</tbody>
             <tfoot><tr><td>Total Input</td><td class="r">{{ fmt(d.input, 2) }}</td><td class="r">100%</td></tr></tfoot></table></div>
-        <div><h4 class="o">TOP OUTPUT</h4>
-          <table class="ttab"><thead><tr><th>Dump Loc ID</th><th class="r">t</th><th class="r">%</th></tr></thead>
+        <div><h4 class="o">TOP OUTPUT (BCM)</h4>
+          <table class="ttab"><thead><tr><th>Dump Loc ID</th><th class="r">BCM</th><th class="r">%</th></tr></thead>
             <tbody>{% for l in d.top_output %}<tr><td>{{ l.name }}</td><td class="r">{{ fmt(l.output, 2) }}</td><td class="r">{{ fmt(l.out_pct, 2) }}%</td></tr>{% endfor %}</tbody>
             <tfoot><tr><td>Total Output</td><td class="r">{{ fmt(d.output, 2) }}</td><td class="r">100%</td></tr></tfoot></table></div>
       </div>
     </section>
     <section class="panel">
-      <div class="ph"><h3>Trend Produksi <small>(t)</small></h3>
+      <div class="ph"><h3>Trend Produksi <small>(BCM)</small></h3>
         <span class="seg-btns badge-r" id="trendMode" style="border:1px solid #cbd5e1;border-radius:6px;overflow:hidden">
           {% for m, label in [('daily', 'Daily'), ('weekly', 'Weekly'), ('mtd', 'MTD')] %}
           <button type="button" data-mode="{{ m }}" class="pill-b" style="border:0;border-radius:0;cursor:pointer">{{ label }}</button>{% endfor %}
@@ -95,8 +97,8 @@
       <div class="ins"><span class="pk-ic ic-green">{{ picon('out') }}</span><div><b>Output Tertinggi</b>
         {% if top_out %}{{ top_out.name }} berkontribusi {{ fmt(top_out.out_pct, 2) }}% dari total output.{% else %}Belum ada output pada periode ini.{% endif %}</div></div>
       <div class="ins"><span class="pk-ic ic-purple">{{ picon('scale') }}</span><div><b>Net Movement {{ 'Negatif' if d.net < 0 else 'Positif' }}</b>
-        {% if d.net < 0 %}Input lebih besar dari output: inventori stockpile bertambah {{ fmt(-d.net, 2) }} t.
-        {% else %}Output lebih besar dari input: inventori stockpile berkurang {{ fmt(d.net, 2) }} t.{% endif %}</div></div>
+        {% if d.net < 0 %}Input lebih besar dari output: inventori stockpile bertambah {{ fmt(-d.net, 2) }} BCM.
+        {% else %}Output lebih besar dari input: inventori stockpile berkurang {{ fmt(d.net, 2) }} BCM.{% endif %}</div></div>
       <div class="ins"><span class="pk-ic ic-orange">{{ picon('percent') }}</span><div><b>Performa PA%</b>
         {% if avg_pa is not none %}Rata-rata PA% equipment {{ fmt(avg_pa, 2) }}% pada periode yang sama.{% else %}Data PA% equipment belum tersedia untuk periode ini.{% endif %}</div></div>
       <div class="ins"><span class="pk-ic ic-teal">{{ picon('bulb') }}</span><div><b>Rekomendasi</b>

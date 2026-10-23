@@ -7,7 +7,8 @@
 {% block desc %}Production, Movement &amp; Performance Summary{% endblock %}
 {% block stat_note %} &middot; Model refresh {{ refresh or '-' }}{% endblock %}
 {% block content %}
-{% set mtd = d.periods.mtd %}
+{# Seperti report: kartu "(MTD)" dan Key Highlights memakai rentang filter (kolom DAILY tabel) #}
+{% set mtd = d.periods.daily %}
 <div class="pg">
   {{ filters(d, bounds) }}
 
@@ -32,6 +33,8 @@
         <div><b>{{ title }}</b>{{ title }} is {{ 'above' if r.var >= 0 else 'below' }} plan by
           <span class="{{ tone(r.var) }}">{{ sgn(r.var, 0, ' t') }}{% if r.plan %} ({{ sgn(r.pct, 0) }}){% endif %}</span></div></div>
       {% endfor %}
+      <div class="hl"><span class="pk-ic ic-teal">{{ picon('activity') }}</span>
+        <div><b>Weather Loss</b>MTD Weather Loss reached <span class="{{ 'neg' if d.weather_loss else 'flat' }}">{{ fmt(d.weather_loss, 1) }} hrs</span></div></div>
     </section>
     <section class="panel">
       <div class="ph"><h3>Performance Summary <small>(ton)</small></h3></div>
@@ -70,13 +73,13 @@
     {% for key, title, bar_color in [('mined', 'Total Mined (MTD)', '#f59e0b'), ('movement', 'Total Movement (MTD)', '#10b981')] %}
     {% set c = d.charts[key] %}
     <section class="panel">
-      <div class="ph"><h3>{{ title }}</h3><span class="pill-b badge-r {{ 'green' if (c.achv or 0) >= 90 else 'red' }}">Achievement {{ fmt(c.achv) }}%</span></div>
-      <div class="cc-legend"><span><i style="background:{{ bar_color }}"></i>Daily Act</span><span><i style="background:#cbd5e1"></i>Daily Plan</span>
-        <span><i class="ln" style="background:#3b82f6"></i>Cumm Actual</span><span><i class="dsh" style="border-color:#ef4444"></i>Cumm Plan</span></div>
+      <div class="ph"><h3>{{ title }}</h3><span class="pill-b badge-r {{ 'green' if (c.achv or 0) >= 90 else '' }}">Achievement {{ fmt(c.achv) }}%</span></div>
+      <div class="cc-legend"><span><i style="background:{{ bar_color }}"></i>Daily Act (Right Axis, kt/d)</span><span><i style="background:#cbd5e1"></i>Daily Plan</span>
+        <span><i class="ln" style="background:#3b82f6"></i>Cumm Actual (Left Axis, kt)</span><span><i class="dsh" style="border-color:#ef4444"></i>Cumm Plan</span></div>
       <div class="mchart">
         <div class="cc" id="ch-{{ key }}"></div>
         <div class="side">MTD Plan<b>{{ fmt((c.plan or 0) / 1000, 0) }} kt</b>MTD Actual<b>{{ fmt((c.actual or 0) / 1000, 0) }} kt</b>
-          <div class="ring lg" style="margin:0 auto; --v: {{ [c.achv or 0, 100]|min }}; --c: {{ ring(c.achv) }}"><span>{{ fmt(c.achv) }}%</span></div></div>
+          <div class="ring lg" style="margin:0 auto; --v: {{ [c.achv or 0, 100]|min }}; --c: {{ ring_mtd(c.achv) }}"><span>{{ fmt(c.achv) }}%</span></div></div>
       </div>
     </section>
     {% endfor %}
@@ -91,16 +94,17 @@
 (function () {
     var d = Pani.P.data, MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     function lbl(iso) { return iso.slice(8, 10) + ' ' + MON[+iso.slice(5, 7) - 1]; }
+    function kt(v) { return v === null || v === undefined ? null : v / 1000; }
     Pani.onResize(function () {
         [['mined', '#f59e0b'], ['movement', '#10b981']].forEach(function (k) {
             var pts = d.charts[k[0]].points;
             Pani.combo(document.getElementById('ch-' + k[0]), {
                 labels: pts.map(function (p) { return lbl(p.date); }),
-                bars: [{ name: 'Daily Act', values: pts.map(function (p) { return p.actual; }), color: k[1] },
-                       { name: 'Daily Plan', values: pts.map(function (p) { return p.plan; }), color: '#cbd5e1' }],
-                lines: [{ name: 'Cumm Actual', axis: 'right', color: '#3b82f6', values: pts.map(function (p) { return p.cum_actual; }) },
-                        { name: 'Cumm Plan', axis: 'right', color: '#ef4444', dash: true, values: pts.map(function (p) { return p.cum_plan; }) }],
-                minBand: 40, scrollEnd: true
+                bars: [{ name: 'Daily Act (kt)', axis: 'right', values: pts.map(function (p) { return kt(p.actual); }), color: k[1] },
+                       { name: 'Daily Plan (kt)', axis: 'right', values: pts.map(function (p) { return kt(p.plan); }), color: '#cbd5e1' }],
+                lines: [{ name: 'Cumm Actual (kt)', color: '#3b82f6', values: pts.map(function (p) { return kt(p.cum_actual); }) },
+                        { name: 'Cumm Plan (kt)', color: '#ef4444', dash: true, values: pts.map(function (p) { return kt(p.cum_plan); }) }],
+                dec: 1, minBand: 40, scrollEnd: true
             });
         });
     });

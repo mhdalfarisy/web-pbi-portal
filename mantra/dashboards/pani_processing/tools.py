@@ -38,12 +38,12 @@ def _dates(args, dash, default_start, default_end):
 # ---------------------------------------------------------------- Processing
 
 def _processing_date(args, dash, b):
-    """Tanggal Processing; tanggal setelah data actual terakhir dimundurkan (sama dengan default dashboard)."""
-    at = queries.parse_date(args.get("date") or dash.get("end"), b["last"])
+    """Tanggal Processing; tanggal setelah data terakhir dimundurkan ke tanggal data terakhir (default dashboard)."""
+    at = queries.parse_date(args.get("date") or dash.get("end"), b["max"])
     note = None
-    if at > b["last"]:
-        note = f"Data actual terakhir {b['last'].isoformat()}, jadi tanggal {at.isoformat()} diganti ke tanggal itu."
-        at = b["last"]
+    if at > b["max"]:
+        note = f"Data terakhir {b['max'].isoformat()}, jadi tanggal {at.isoformat()} diganti ke tanggal itu."
+        at = b["max"]
     return at, note
 
 
@@ -58,7 +58,8 @@ def tool_processing_metrics(args, dash):
         rows = [r for r in rows if defs.get(r["code"], {}).get("group") == group]
     rows = [{**r, "section": defs.get(r["code"], {}).get("section")} for r in rows if r["actual"] is not None or r["target"] is not None]
     result = {"date": at.isoformat(), "period": period, "metrics": rows,
-              "data_range": {"first": b["min"].isoformat(), "last_actual": b["last"].isoformat()}}
+              "data_range": {"first": b["min"].isoformat(), "last": b["max"].isoformat(),
+                             "last_crushing_actual": b["last"].isoformat()}}
     notes = [n for n in (date_note, "Sebagian angka masih provisional (bisa berubah setelah data final masuk)."
                          if any(r["provisional"] for r in rows) else None) if n]
     if notes:
@@ -82,8 +83,9 @@ def tool_processing_trend(args, dash):
 def tool_variance_drivers(args, dash):
     b = queries.processing_bounds()
     end, date_note = _processing_date(args, dash, b)
-    data, _ = queries.processing(date(end.year, 1, 1), end)
-    result = {"date": end.isoformat(), "period": "YTD", "top_negative_drivers": data["drivers"],
+    # Sama seperti halaman: tanggal akhir = data terakhir -> YTD; tanggal lebih awal -> drivers DAILY pada tanggal itu
+    data, _ = queries.processing(b["min"], end)
+    result = {"date": end.isoformat(), "period": data["driver_period"], "top_negative_drivers": data["drivers"],
               "overall_achievement": data["overall"], "stages": data["stages"]}
     if date_note:
         result["note"] = date_note

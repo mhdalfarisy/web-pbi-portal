@@ -16,10 +16,10 @@ bp = Blueprint("pani_processing", __name__, url_prefix="/d/pani-processing",
 @bp.context_processor
 def helpers():
     def fmt(value, decimals=0):
-        return "-" if value is None else f"{value:,.{decimals}f}"
+        return queries.fmt_num(value, decimals)
 
     def sgn(value, decimals=1, suffix="%"):
-        return "-" if value is None else f"{value:+,.{decimals}f}{suffix}"
+        return "-" if value is None else queries.fmt_num(value, decimals, sign=True) + suffix
 
     def tone(value, flat=0.05):
         return "flat" if value is None or abs(value) < flat else ("pos" if value > 0 else "neg")
@@ -30,10 +30,14 @@ def helpers():
     def ring(achv):
         return "#16a34a" if achv is not None and achv >= 99.95 else "#f59e0b" if achv is not None and achv >= 90 else "#dc2626"
 
+    def ring_mtd(achv):
+        """Warna ring achievement Mining seperti report: >= 90% hijau, >= 70% oranye, di bawahnya merah."""
+        return "#10b981" if achv is not None and achv >= 90 else "#f59e0b" if achv is not None and achv >= 70 else "#dc2626"
+
     def dlabel(value):
         return datetime.fromisoformat(str(value)[:10]).strftime("%d-%b-%y").upper() if value else "-"
 
-    return {"fmt": fmt, "sgn": sgn, "tone": tone, "arrow": arrow, "ring": ring, "dlabel": dlabel}
+    return {"fmt": fmt, "sgn": sgn, "tone": tone, "arrow": arrow, "ring": ring, "ring_mtd": ring_mtd, "dlabel": dlabel}
 
 
 def _range(default_start, default_end):
@@ -58,7 +62,8 @@ def _error(exc):
 def processing():
     try:
         b = queries.processing_bounds()
-        start, end = _range(date(b["last"].year, 1, 1), b["last"])
+        # Default = seluruh rentang data -> mode YTD, sama seperti report tanpa filter
+        start, end = _range(b["min"], b["max"])
         data, fetched = queries.processing(start, end)
         return _page("processing.html", data, fetched, b)
     except queries.DATA_ERRORS as exc:

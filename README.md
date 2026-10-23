@@ -23,7 +23,7 @@ File `instance/mantra.db` hanya berisi Favorites dan History per user.
 | Dashboard | Slug | App role | Status |
 |---|---|---|---|
 | Material Readiness | `material-readiness` | `Report.MaterialReadiness` | Siap. Angka identik dengan project lama (66 perbandingan) dan 8 pertanyaan acuan AI agent lulus |
-| PANI Processing | `pani-processing` | `Report.PaniProcessing` | Siap. 4 halaman (Processing, Equipment, Mining, Production) dari model "PANI - PRCS - Processing". Rumus direkonstruksi dari tabel model dan divalidasi terhadap screenshot report |
+| PANI Processing | `pani-processing` | `Report.PaniProcessing` | Siap. 4 halaman (Processing, Equipment, Mining, Production) dari model "PANI - PRCS - Processing". Angka dibandingkan langsung dengan measure HTML report: `python scripts\compare_pani_report.py` (269 sama, 7 beda karena bug di report) |
 
 ## Struktur folder
 
@@ -50,6 +50,7 @@ mantra/
 scripts/
   check_setup.py           cek .env, Entra, akses tiap semantic model, AI
   test_chatbot.py          tes AI agent (statis + pertanyaan acuan)
+  compare_pani_report.py   bandingkan angka dashboard PANI dengan measure report Power BI (14 skenario filter)
   new_dashboard.py         buat dashboard baru dari _template
 ```
 

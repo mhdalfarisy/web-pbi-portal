@@ -56,11 +56,13 @@ window.Pani = (function () {
         var labels = cfg.labels, n = labels.length;
         if (!n) { el.innerHTML = '<div class="note" style="margin:auto">No data</div>'; return; }
         var H = el.clientHeight || 260, mT = 10, mB = 24, ph = H - mT - mB;
-        var hasRight = (cfg.lines || []).some(function (l) { return l.axis === 'right'; }) || (cfg.refs || []).length;
+        var hasRight = (cfg.lines || []).concat(cfg.bars || []).some(function (l) { return l.axis === 'right'; }) || (cfg.refs || []).length;
         var axisW = 46, availW = Math.max(60, el.clientWidth - axisW - (hasRight ? axisW : 0));
         var band = Math.max(cfg.minBand || 40, availW / n), W = band * n;
         var leftVals = [], rightVals = [];
-        (cfg.bars || []).forEach(function (b) { leftVals = leftVals.concat(b.values); });
+        (cfg.bars || []).forEach(function (b) {
+            if (b.axis === 'right') { rightVals = rightVals.concat(b.values); } else { leftVals = leftVals.concat(b.values); }
+        });
         (cfg.lines || []).forEach(function (l) { (l.axis === 'right' ? rightVals : leftVals).push.apply(l.axis === 'right' ? rightVals : leftVals, l.values); });
         (cfg.refs || []).forEach(function (r) { rightVals.push(r.value); });
         function maxOf(a) { return Math.max.apply(null, a.filter(function (v) { return v !== null && v !== undefined && !isNaN(v); }).concat([0])); }
@@ -82,9 +84,9 @@ window.Pani = (function () {
         for (i = 0; i < n; i++) {
             var x0 = band * i + (band - bw * nb) / 2, tip = esc(labels[i]);
             bars.forEach(function (b, j) {
-                var v = b.values[i];
+                var v = b.values[i], yb = b.axis === 'right' ? yR : yL;
                 if (v === null || v === undefined) { return; }
-                var y1 = yL(Math.max(v, 0)), y0 = yL(Math.min(v, 0));
+                var y1 = yb(Math.max(v, 0)), y0 = yb(Math.min(v, 0));
                 s += '<rect x="' + (x0 + j * bw).toFixed(1) + '" y="' + y1.toFixed(1) + '" width="' + (bw - 1).toFixed(1) + '" height="'
                     + Math.max(1, y0 - y1).toFixed(1) + '" rx="2" fill="' + b.color + '"><title>' + tip + ' · ' + esc(b.name) + ': ' + fmtN(v, cfg.dec || 0) + '</title></rect>';
             });

@@ -12,10 +12,10 @@
 {% block content %}
 {% macro model_card(m) %}
 <div class="panel mcard">
-  <div class="ph"><h3>{{ m.model }}</h3><span class="pill-b badge-r">{{ m.units|length }} unit{{ 's' if m.units|length > 1 }}</span></div>
+  <div class="ph"><h3>{{ m.model or "(tanpa nama model)" }}</h3><span class="pill-b badge-r">{{ m.units|length }} unit{{ 's' if m.units|length > 1 }}</span></div>
   <div class="mstat">
-    <div>PA<b class="{{ 'pos' if m.pa >= d.pa_target else 'neg' }}">{{ fmt(m.pa, 2) }}%</b><span class="note">Target PA &ge; {{ fmt(d.pa_target) }}%</span></div>
-    <div>UA<b class="{{ 'pos' if m.ua >= d.ua_target else 'neg' }}">{{ fmt(m.ua, 2) }}%</b><span class="note">Target UA &ge; {{ fmt(d.ua_target) }}%</span></div>
+    <div>PA<b class="{{ 'pos' if m.pa >= d.pa_target else 'neg' }}">{{ fmt(m.pa, 2) }}%</b><span class="note {{ 'pos' if m.pa >= d.pa_target else 'neg' }}">Target PA &ge; {{ fmt(d.pa_target) }}%</span></div>
+    <div>UA<b class="{{ 'pos' if m.ua >= d.ua_target else 'neg' }}">{{ fmt(m.ua, 2) }}%</b><span class="note {{ 'pos' if m.ua >= d.ua_target else 'neg' }}">Target UA &ge; {{ fmt(d.ua_target) }}%</span></div>
   </div>
   <div class="cc-legend"><span><i style="background:#3b82f6"></i>PA</span><span><i style="background:#1e3a8a"></i>UA</span>
     <span><i class="dsh" style="border-color:#ef4444"></i>Target PA</span><span><i class="dsh" style="border-color:#eab308"></i>Target UA</span></div>
@@ -50,16 +50,20 @@
     <a class="panel pk {{ 'sel' if d.status == 'active' }}" href="{{ url_for('pani_processing.equipment', status='active', **qs) }}" title="Tampilkan Top 5 unit aktif">
       <div class="pk-top"><span class="pk-ic ic-blue">{{ picon('check') }}</span>
         <div><small>Total Active Unit</small><b class="slate">{{ fmt(d.active) }}</b>
-          <em>{{ fmt(d.active / d.total * 100 if d.total else 0, 2) }}% dari total unit</em></div></div></a>
+          <em>{{ fmt(d.active / d.total * 100 if d.total else 0, 2) }}% dari total unit</em></div></div>
+      <div class="spark wide" id="sp-active"></div></a>
     <a class="panel pk {{ 'sel' if d.status == 'inactive' }}" href="{{ url_for('pani_processing.equipment', status='inactive', **qs) }}" title="Tampilkan Top 5 unit nonaktif">
       <div class="pk-top"><span class="pk-ic ic-red">{{ picon('x') }}</span>
         <div><small>Total Inactive Unit</small><b class="slate">{{ fmt(d.inactive) }}</b>
-          <em>{{ fmt(d.inactive / d.total * 100 if d.total else 0, 2) }}% dari total unit</em></div></div></a>
-    {% for label, val, delta, ic in [('Average PA%', d.avg_pa, d.delta_pa, 'percent'), ('Average UA%', d.avg_ua, d.delta_ua, 'chart')] %}
+          <em>{{ fmt(d.inactive / d.total * 100 if d.total else 0, 2) }}% dari total unit</em></div></div>
+      <div class="spark wide" id="sp-inactive"></div></a>
+    {% for label, val, delta, ic, key in [('Average PA%', d.avg_pa, d.delta_pa, 'percent', 'pa'), ('Average UA%', d.avg_ua, d.delta_ua, 'chart', 'ua')] %}
     <div class="panel pk green">
       <div class="pk-top"><span class="pk-ic ic-green">{{ picon(ic) }}</span>
         <div><small>{{ label }}</small><b>{{ fmt(val, 2) }}%</b>
-          <em>vs periode sebelumnya <span class="{{ tone(delta) }}">{{ sgn(delta, 2, ' pt') if delta is not none else '-' }}</span></em></div></div>
+          <em>vs yesterday <span class="{{ tone(delta) }}">{{ ('▲ ' if delta > 0 else '▼ ' if delta < 0 else '') ~ sgn(delta, 2) if delta is not none else '-' }}</span>
+            {% if d.last_day and d.last_day != d.start %}<span class="muted">({{ dlabel(d.last_day) }})</span>{% endif %}</em></div></div>
+      <div class="spark wide" id="sp-{{ key }}"></div>
     </div>
     {% endfor %}
   </div>
@@ -108,4 +112,17 @@
 </div>
 {% endblock %}
 
-{% block scripts %}{{ scripts() }}{% endblock %}
+{% block scripts %}
+{{ scripts() }}
+<script>
+(function () {
+    var s = Pani.P.data.spark;
+    Pani.onResize(function () {
+        Pani.spark(document.getElementById('sp-active'), s.active, '#2563eb');
+        Pani.spark(document.getElementById('sp-inactive'), s.inactive, '#f87171');
+        Pani.spark(document.getElementById('sp-pa'), s.pa, '#22c55e');
+        Pani.spark(document.getElementById('sp-ua'), s.ua, '#84cc16');
+    });
+})();
+</script>
+{% endblock %}

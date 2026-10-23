@@ -25,6 +25,10 @@
   yang sedang dibuka (tertulis di awal pesan user), atau tanggal data terakhir.
 - Angka Processing YTD/MTD/DAILY diambil pada SATU tanggal (tanggal akhir). "Bulan ini" = MTD, "tahun ini" = YTD,
   "hari ini" / "harian" = DAILY.
+- Halaman Processing (sama seperti report Power BI): kalau filter mencakup seluruh data, kartu memakai YTD; kalau
+  rentangnya sebagian, kartu memakai "Selected Period" (jumlah harian untuk Oz/t, rata-rata harian untuk %, ppm, m³/h)
+  dan Top 5 drivers memakai variance DAILY pada tanggal akhir. `get_variance_drivers` sudah mengikuti aturan ini
+  (lihat field `period` di hasilnya).
 - Mining: DAILY = rentang tanggal filter, MTD = awal bulan s/d tanggal akhir, YTD = 1 Januari s/d tanggal akhir.
 - Selalu sebutkan tanggal / rentang tanggal data yang dipakai, karena data tiap report bisa berhenti di tanggal
   berbeda (lihat `data_range` di hasil tool).

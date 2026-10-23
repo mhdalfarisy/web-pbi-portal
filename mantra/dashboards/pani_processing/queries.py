@@ -9,6 +9,7 @@ Rumus setiap angka direkonstruksi dari data & divalidasi terhadap screenshot rep
 """
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
+from decimal import ROUND_HALF_UP, Decimal
 
 from ...config import Config
 from ...core.cache import Cache
@@ -73,6 +74,15 @@ def _num(value):
     return float(value) if value is not None else None
 
 
+def fmt_num(value, decimals=0, sign=False):
+    """Format angka dengan pembulatan setengah ke atas seperti FORMAT di DAX (88.125 -> 88.13), bukan banker's rounding."""
+    if value is None:
+        return "-"
+    # round(.., 9) dulu: buang noise floating point (88.12499999999999 dari JSON = 88.125 di DAX)
+    d = Decimal(repr(round(value, 9))).quantize(Decimal(1).scaleb(-decimals), rounding=ROUND_HALF_UP)
+    return f"{d:+,.{decimals}f}" if sign else f"{d:,.{decimals}f}"
+
+
 def achievement(actual, target):
     return actual / target * 100 if actual is not None and target else None
 
@@ -120,28 +130,39 @@ def model_refresh():
 
 # ---------------------------------------------------------------- Processing
 
-# Label & keterangan "Top 5 Negative Variance Drivers" seperti di report
-DRIVER_LABEL = {"total_crushed_ore": "Throughput (Crushed Ore)", "opp_availability": "Availability (OPP)",
-                "cr72_availability": "Availability (CR72)"}
 GRADE_ORDER = ["gold_grade_crushed", "silver_grade_crushed", "feed_gold_grade", "feed_silver_grade"]
 SNAPSHOT = [("total_gold_produced_ads", "Gold Produced (Ads)"), ("total_silver_produced_ads", "Silver Produced (Ads)")]
 CHART_CODE = "total_crushed_ore"  # "Actual vs Forecast Production (Ton Dry)"
 
 
-def driver_note(code):
-    if "grade" in code:
-        return "Lower grade feed impacts metal production."
-    if "leached" in code:
-        return "Leach output trailing plan."
-    if "crushed" in code:
-        return "Lower throughput against target capacity."
-    if "availability" in code:
-        return "Available operating time below target."
-    if "uoa" in code:
-        return "Utilisation of available time below target."
-    if "efficiency" in code:
-        return "Recovery efficiency below target."
-    return "Below target."
+# Label & keterangan driver persis seperti measure html_top5_negative_variance_drivers. Urutan dict = prioritas
+# saat variance sama (mis. beberapa metrik -100%), juga diambil dari perilaku measure.
+DRIVERS = {
+    "total_crushed_ore": ("Throughput (Crushed Ore)", "Lower throughput against target capacity."),
+    "gold_stripping_efficiency": ("Recovery (Gold Stripping)", "Below target stripping efficiency."),
+    "silver_stripping_efficiency": ("Recovery (Silver Stripping)", "Below target stripping efficiency."),
+    "opp_availability": ("Availability (OPP)", "Available operating time below target."),
+    "opp_uoa": ("Utilisation of Availability (OPP)", "Available hours not fully utilised."),
+    "cr72_availability": ("Crusher Availability (CR72)", "Equipment downtime reducing throughput."),
+    "feed_flowrate": ("Feed Flowrate", "Feed rate below target processing rate."),
+    "feed_gold_grade": ("Gold Grade Feed", "Lower grade feed impact metal production."),
+    "feed_silver_grade": ("Silver Grade Feed", "Lower grade feed impact metal production."),
+    "gold_leached": ("Gold Leached", "Leach output trailing plan."),
+    "gold_grade_crushed": ("Gold Grade Crushed", "Crushed ore gold grade below target."),
+    "silver_grade_crushed": ("Silver Grade Crushed", "Crushed ore silver grade below target."),
+    "gold_adsorption_efficiency": ("Recovery (Gold Adsorption)", "Below target recovery rate."),
+    "silver_adsorption_efficiency": ("Recovery (Silver Adsorption)", "Below target recovery rate."),
+}
+SUM_UNITS = ("Oz", "t")  # mode Selected Period: metrik jumlah di-SUM, metrik rasio (%, ppm, m³/h) di-AVERAGE
+
+
+def period_label(start, end):
+    """Format label periode seperti report: '01 Jan–14 Oct', '01–23 Oct', '14 Oct'."""
+    if start == end:
+        return end.strftime("%d %b")
+    if (start.year, start.month) == (end.year, end.month):
+        return f"{start.strftime('%d')}–{end.strftime('%d %b')}"
+    return f"{start.strftime('%d %b')}–{end.strftime('%d %b')}"
 
 
 def metrics():
@@ -168,24 +189,46 @@ def _metric_row(code, row, defs):
     d = defs.get(code, {})
     actual, target = (_num(row.get("actual")), _num(row.get("target"))) if row else (None, None)
     return {"code": code, "label": d.get("label", code), "unit": d.get("unit") or "", "decimals": d.get("decimals", 2),
-            "actual": actual, "target": target, "var": _num(row.get("var")) if row else None,
+            "actual": actual, "target": target, "var": pct_var(actual, target),
             "achv": achievement(actual, target), "provisional": bool(row and row.get("prov"))}
 
 
+def _selected_rows(start, end, defs):
+    """Mode Selected Period: agregasi baris DAILY dalam rentang (SUM untuk Oz/t, AVERAGE untuk metrik rasio)."""
+    rows = _query(f"""EVALUATE SUMMARIZECOLUMNS({P}[code], FILTER(ALL({P}[period_type]), [period_type] = "DAILY"),
+        FILTER(ALL({P}[date_key]), [date_key] >= {dax_date(start)} && [date_key] <= {dax_date(end)}),
+        "sumA", SUM({P}[actual_value]), "sumT", SUM({P}[target_value]), "avgA", AVERAGE({P}[actual_value]),
+        "avgT", AVERAGE({P}[target_value]), "prov", MAX({P}[is_provisional]))""")
+    out = {}
+    for r in rows:
+        add = defs.get(r["code"], {}).get("unit") in SUM_UNITS
+        out[r["code"]] = {"actual": r["sumA" if add else "avgA"], "target": r["sumT" if add else "avgT"], "prov": r["prov"]}
+    return out
+
+
 def processing(start, end):
-    """Semua isi halaman Processing untuk rentang start..end (angka YTD/MTD/Daily diambil pada tanggal end)."""
+    """Isi halaman Processing, mengikuti logika measure report:
+    - mode YTD kalau rentang mencakup seluruh data (tanggal pertama s/d terakhir): baris YTD pada tanggal akhir;
+    - selain itu mode "Selected Period": agregasi baris DAILY dalam rentang;
+    - Snapshot selalu baris DAILY/MTD/YTD pada tanggal akhir; Top 5 drivers memakai YTD (mode YTD) atau DAILY
+      pada tanggal akhir (mode Selected Period)."""
     def load():
         defs = metrics()
+        b = processing_bounds()
+        mode = "YTD" if start <= b["min"] and end >= b["max"] else "SELECTED"
         at_end = _query(f"""EVALUATE SELECTCOLUMNS(FILTER({P}, [date_key] = {dax_date(end)}), "period", [period_type],
             "code", [code], "actual", [actual_value], "target", [target_value], "var", [variance_pct], "prov", [is_provisional])""")
         by = defaultdict(dict)
         for r in at_end:
             by[r["period"]][r["code"]] = r
         ytd, mtd, daily = by["YTD"], by["MTD"], by["DAILY"]
+        main = ytd if mode == "YTD" else _selected_rows(start, end, defs)
+        driver_rows = ytd if mode == "YTD" else daily
 
-        drivers = sorted((_metric_row(c, ytd.get(c), defs) for c, d in defs.items() if d["driver"]),
-                         key=lambda m: m["var"] if m["var"] is not None else 0)
-        drivers = [m for m in drivers if m["var"] is not None and m["var"] < 0][:5]
+        priority = list(DRIVERS)
+        drivers = [_metric_row(c, driver_rows.get(c), defs) for c, d in defs.items() if d["driver"]]
+        drivers = sorted((m for m in drivers if m["var"] is not None and m["var"] < 0),
+                         key=lambda m: (round(m["var"], 6), priority.index(m["code"]) if m["code"] in priority else 99))[:5]
         series_codes = {CHART_CODE, "total_gold_produced_ads", "total_silver_produced_ads"} | {m["code"] for m in drivers}
         series_rows = _query(f"""EVALUATE SELECTCOLUMNS(FILTER({P}, [period_type] = "DAILY" && [date_key] >= {dax_date(start)}
             && [date_key] <= {dax_date(end)} && [code] IN {{{", ".join(dax_str(c) for c in sorted(series_codes))}}}),
@@ -195,11 +238,16 @@ def processing(start, end):
             series[r["code"]][str(r["date"])[:10]] = r
         days = sorted({d for s in series.values() for d in s})
 
-        def spark(code, field):
-            return [_num(series[code].get(d, {}).get(field)) for d in days]
+        def spark(code, field, cumulative=False):
+            values, total = [], 0.0
+            for d in days:
+                v = _num(series[code].get(d, {}).get(field))
+                total += v or 0
+                values.append(total if cumulative else v)
+            return values
 
-        gold, silver = _metric_row("total_gold_produced_ads", ytd.get("total_gold_produced_ads"), defs), \
-            _metric_row("total_silver_produced_ads", ytd.get("total_silver_produced_ads"), defs)
+        gold, silver = _metric_row("total_gold_produced_ads", main.get("total_gold_produced_ads"), defs), \
+            _metric_row("total_silver_produced_ads", main.get("total_silver_produced_ads"), defs)
         overall_actual = (gold["actual"] or 0) + (silver["actual"] or 0)
         overall_target = (gold["target"] or 0) + (silver["target"] or 0)
         stages = sorted((d for d in defs.values() if d["group"] == "STAGE"), key=lambda d: d["stage_order"] or 99)
@@ -208,24 +256,29 @@ def processing(start, end):
                   "target": _num(series[CHART_CODE].get(d, {}).get("target"))} for d in reversed(days)]
         for point in chart:
             point["achv"] = achievement(point["actual"], point["target"])
+        cumulative = mode == "YTD"  # sparkline mode YTD = nilai kumulatif, mode Selected Period = nilai harian
         return {
             "company": "BSI",
-            "start": start.isoformat(), "end": end.isoformat(),
-            "gold": {**gold, "spark": spark("total_gold_produced_ads", "actual")},
-            "silver": {**silver, "spark": spark("total_silver_produced_ads", "actual")},
+            "start": start.isoformat(), "end": end.isoformat(), "mode": mode,
+            "period": "YTD" if mode == "YTD" else "Selected Period",
+            "period_range": period_label(start, end), "driver_period": "YTD" if mode == "YTD" else "DAILY",
+            "gold": {**gold, "spark": spark("total_gold_produced_ads", "actual", cumulative)},
+            "silver": {**silver, "spark": spark("total_silver_produced_ads", "actual", cumulative)},
             "gold_variance": {"var": gold["var"], "actual": gold["actual"], "target": gold["target"],
                               "spark": spark("total_gold_produced_ads", "var")},
             "overall": {"actual": overall_actual, "target": overall_target,
                         "achv": achievement(overall_actual, overall_target),
-                        "var": pct_var(overall_actual, overall_target)},
-            "stages": [{**_metric_row(d["code"], ytd.get(d["code"]), defs), "stage": d["stage"]} for d in stages],
-            "metallurgy": [_metric_row(c, ytd.get(c), defs) for c, d in defs.items() if d["group"] == "METALLURGY"],
-            "grades": [_metric_row(c, ytd.get(c), defs) for c in GRADE_ORDER],
+                        "var": pct_var(overall_actual, overall_target),
+                        "gold_achv": gold["achv"], "silver_achv": silver["achv"]},
+            "stages": [{**_metric_row(d["code"], main.get(d["code"]), defs), "stage": d["stage"]} for d in stages],
+            "metallurgy": [_metric_row(c, main.get(c), defs) for c, d in defs.items() if d["group"] == "METALLURGY"],
+            "grades": [_metric_row(c, main.get(c), defs) for c in GRADE_ORDER],
             "snapshot": [{"label": label, "unit": defs.get(code, {}).get("unit", ""),
                           "daily": _metric_row(code, daily.get(code), defs), "mtd": _metric_row(code, mtd.get(code), defs),
                           "ytd": _metric_row(code, ytd.get(code), defs)} for code, label in SNAPSHOT],
-            "drivers": [{**m, "label": DRIVER_LABEL.get(m["code"], m["label"]), "note": driver_note(m["code"]),
-                         "spark": spark(m["code"], "var")} for m in drivers],
+            "drivers": [{**m, "label": DRIVERS.get(m["code"], (m["label"], ""))[0],
+                         "note": DRIVERS.get(m["code"], ("", "Below target."))[1], "spark": spark(m["code"], "var")}
+                        for m in drivers],
             "chart": chart,
             "provisional": any(r.get("prov") for r in at_end),
         }
@@ -275,18 +328,28 @@ def _avg(values):
 def equipment(start, end, status=""):
     """Halaman Equipment Performance. status = '' (semua) / 'active' / 'inactive' untuk Top 5 Duration Breakdown."""
     def load():
-        units = [{"unit": r["unit"], "model": r["model"], "dur": _num(r["dur"]) or 0, "bd": _num(r["bd"]) or 0,
+        units = [{"unit": r["unit"], "model": r["model"] or "", "dur": _num(r["dur"]) or 0, "bd": _num(r["bd"]) or 0,
                   "pa": _num(r["pa"]) or 0, "ua": _num(r["ua"]) or 0, "active": bool(r["active_days"]),
-                  "days": int(r["days"] or 0)} for r in _equipment_units(start, end)]
-        # Rata-rata PA/UA dihitung dari SEMUA baris (unit nonaktif bernilai 0), sama seperti report
-        weight = sum(u["days"] for u in units)
-        avg_pa = sum(u["pa"] * u["days"] for u in units) / weight if weight else None
-        avg_ua = sum(u["ua"] * u["days"] for u in units) / weight if weight else None
-        span = (end - start).days + 1
-        prev = _equipment_units(start - timedelta(days=span), start - timedelta(days=1))
-        prev_w = sum(int(r["days"] or 0) for r in prev)
-        prev_pa = sum((_num(r["pa"]) or 0) * int(r["days"] or 0) for r in prev) / prev_w if prev_w else None
-        prev_ua = sum((_num(r["ua"]) or 0) * int(r["days"] or 0) for r in prev) / prev_w if prev_w else None
+                  "active_days": int(r["active_days"] or 0), "days": int(r["days"] or 0)} for r in _equipment_units(start, end)]
+        # Seperti report: Total Active/Inactive Unit = jumlah baris unit-hari, persen terhadap semua baris
+        total_rows = sum(u["days"] for u in units)
+        active_rows = sum(u["active_days"] for u in units)
+        # Average PA%/UA% = rata-rata semua unit pada HARI TERAKHIR rentang (unit nonaktif bernilai 0);
+        # "vs yesterday" = selisih dengan hari sebelumnya (kosong kalau hari sebelumnya tidak ada data)
+        per_day = _query(f"""EVALUATE SUMMARIZECOLUMNS({EQ}[machine_date],
+            FILTER(ALL({EQ}[machine_date]), [machine_date] >= {dax_date(start - timedelta(days=1))} && [machine_date] <= {dax_date(end)}),
+            "pa", AVERAGE({EQ}[pa_avg]), "ua", AVERAGE({EQ}[ua_avg]),
+            "active", CALCULATE(COUNTROWS({EQ}), {EQ}[status] = "active") + 0, "n", COUNTROWS({EQ}))""")
+        per_day = {to_date(r["machine_date"]): r for r in per_day}
+        days_in_range = sorted(d for d in per_day if start <= d <= end)
+        # Sparkline kartu KPI (tren harian dalam rentang), seperti kartu di report
+        spark = {"active": [per_day[d]["active"] for d in days_in_range],
+                 "inactive": [per_day[d]["n"] - per_day[d]["active"] for d in days_in_range],
+                 "pa": [_num(per_day[d]["pa"]) for d in days_in_range], "ua": [_num(per_day[d]["ua"]) for d in days_in_range]}
+        last_day = max(days_in_range) if days_in_range else None
+        today = per_day.get(last_day) or {}
+        yesterday = per_day.get(last_day - timedelta(days=1)) if last_day else None
+        avg_pa, avg_ua = _num(today.get("pa")), _num(today.get("ua"))
 
         gainloss = _query(f"""EVALUATE SUMMARIZECOLUMNS({GL}[code], {GL}[name],
             FILTER(ALL({GL}[machine_date]), [machine_date] >= {dax_date(start)} && [machine_date] <= {dax_date(end)}),
@@ -294,24 +357,27 @@ def equipment(start, end, status=""):
         gainloss = sorted(({"code": r["code"], "name": r["name"], "dur": _num(r["dur"]) or 0} for r in gainloss),
                           key=lambda r: str(r["code"]))
 
+        # PA/UA model = AVERAGE semua baris unit-hari model itu (sama dengan measure report)
+        model_avg = {r["model"] or "": r for r in _query(f"""EVALUATE SUMMARIZECOLUMNS({EQ}[model],
+            FILTER(ALL({EQ}[machine_date]), [machine_date] >= {dax_date(start)} && [machine_date] <= {dax_date(end)}),
+            "pa", AVERAGE({EQ}[pa_avg]), "ua", AVERAGE({EQ}[ua_avg]))""")}
         models = defaultdict(list)
         for u in units:
             models[u["model"]].append(u)
         cards = []
         for model, items in models.items():
             items.sort(key=lambda u: u["unit"])
-            pa, ua = _avg([u["pa"] for u in items]), _avg([u["ua"] for u in items])
+            pa, ua = _num(model_avg.get(model, {}).get("pa")) or 0, _num(model_avg.get(model, {}).get("ua")) or 0
             ok = all(u["pa"] >= PA_TARGET and u["ua"] >= UA_TARGET for u in items)
             cards.append({"model": model, "units": items, "pa": pa, "ua": ua, "ok": ok,
                           "active": any(u["active"] for u in items), "first": items[0]["unit"]})
         # Seperti report: model yang punya unit aktif dulu, urut kode unit terkecil
         cards.sort(key=lambda c: (not c["active"], c["first"]))
-        active = sum(u["active"] for u in units)
         return {"company": "MMI", "start": start.isoformat(), "end": end.isoformat(), "units": units,
-                "total": len(units), "active": active, "inactive": len(units) - active,
-                "avg_pa": avg_pa, "avg_ua": avg_ua,
-                "delta_pa": avg_pa - prev_pa if avg_pa is not None and prev_pa is not None else None,
-                "delta_ua": avg_ua - prev_ua if avg_ua is not None and prev_ua is not None else None,
+                "unit_count": len(units), "total": total_rows, "active": active_rows, "inactive": total_rows - active_rows,
+                "last_day": last_day.isoformat() if last_day else None, "avg_pa": avg_pa, "avg_ua": avg_ua, "spark": spark,
+                "delta_pa": avg_pa - _num(yesterday["pa"]) if yesterday and avg_pa is not None else None,
+                "delta_ua": avg_ua - _num(yesterday["ua"]) if yesterday and avg_ua is not None else None,
                 "gainloss": gainloss, "net_gainloss": sum(r["dur"] for r in gainloss), "models": cards,
                 "pa_target": PA_TARGET, "ua_target": UA_TARGET}
     data, fetched = _cache.get(("equipment", start, end), load)
@@ -331,6 +397,10 @@ MINING_ROWS = [
     ("outpit", "Total Out-Pit Movement", ("total_outpit_movement",), ()),
     ("movement", "Total Mining Movement", None, None),  # mined + out-pit
 ]
+
+
+# Kode gain/loss yang dihitung sebagai "Weather Loss" di Key Highlights (asumsi: kategori cuaca di mpx_dmr_gainloss_view)
+WEATHER_LOSS = ("Hujan", "Jalan Licin", "Kabut", "Petir", "Debu")
 
 
 def mining_bounds():
@@ -388,19 +458,31 @@ def mining(start, end):
                                "cum_actual": cum_a, "cum_plan": cum_p})
             charts[key] = {"points": points, "achv": achievement(mtd[key]["actual"], mtd[key]["plan"]),
                            "actual": mtd[key]["actual"], "plan": mtd[key]["plan"]}
-        donut_total = (mtd["waste"]["actual"] or 0) + (mtd["ore"]["actual"] or 0) + (mtd["outpit"]["actual"] or 0)
-        donut = [{"label": "Waste Mined", "value": mtd["waste"]["actual"] or 0, "color": "#14b8a6"},
-                 {"label": "Ore Mined", "value": mtd["ore"]["actual"] or 0, "color": "#3b82f6"},
-                 {"label": "Out-Pit Movement", "value": mtd["outpit"]["actual"] or 0, "color": "#f97316"}]
+        # Seperti report: kartu "(MTD)", Key Highlights, dan donut memakai RENTANG FILTER (kolom DAILY tabel);
+        # chart Total Mined/Movement (MTD) memakai awal bulan s/d tanggal akhir
+        rng = periods["daily"]
+        donut_total = (rng["waste"]["actual"] or 0) + (rng["ore"]["actual"] or 0) + (rng["outpit"]["actual"] or 0)
+        donut = [{"label": "Waste Mined", "value": rng["waste"]["actual"] or 0, "color": "#14b8a6"},
+                 {"label": "Ore Mined", "value": rng["ore"]["actual"] or 0, "color": "#3b82f6"},
+                 {"label": "Out-Pit Movement", "value": rng["outpit"]["actual"] or 0, "color": "#f97316"}]
         for part in donut:
             part["pct"] = part["value"] / donut_total * 100 if donut_total else 0
+        weather = _query(f"""EVALUATE ROW("h", CALCULATE(SUM({GL}[duration]),
+            FILTER(ALL({GL}[machine_date]), [machine_date] >= {dax_date(month_start)} && [machine_date] <= {dax_date(end)}),
+            TREATAS({{{", ".join(dax_str(n) for n in WEATHER_LOSS)}}}, {GL}[name])))""")[0]["h"]
         return {"company": "MMI", "start": start.isoformat(), "end": end.isoformat(),
                 "month_start": month_start.isoformat(), "year_start": year_start.isoformat(),
-                "periods": periods, "charts": charts, "donut": donut, "donut_total": donut_total}
+                "periods": periods, "charts": charts, "donut": donut, "donut_total": donut_total,
+                "weather_loss": _num(weather) or 0.0}
     return _cache.get(("mining", start, end), load)
 
 
 # ---------------------------------------------------------------- Production (stockpile)
+
+# Report Production memakai satuan BCM, dan alur Input/Output mengonversi ke ton dengan faktor tetap ini
+BCM_TO_TON_INPUT, BCM_TO_TON_OUTPUT = 2.19, 1.93
+TOP_LOCATIONS = 4  # tabel Top Input & Output Detail di report menampilkan 4 lokasi teratas
+
 
 def production_bounds():
     def load():
@@ -450,10 +532,12 @@ def production(start, end):
                 g["output"] += v["output"]
             return [{"label": label_fn(k), "input": v["input"], "output": v["output"],
                      "net": v["output"] - v["input"]} for k, v in sorted(groups.items(), reverse=True)]
-        top_in = [x for x in locations if x["input"] > 0]
-        top_out = sorted((x for x in locations if x["output"] > 0), key=lambda x: -x["output"])
+        top_in = [x for x in locations if x["input"] > 0][:TOP_LOCATIONS]
+        top_out = sorted((x for x in locations if x["output"] > 0), key=lambda x: -x["output"])[:TOP_LOCATIONS]
         return {"company": "MMI", "start": start.isoformat(), "end": end.isoformat(),
                 "input": total_in, "output": total_out, "net": total_out - total_in, "grand": total_in + total_out,
+                "input_t": total_in * BCM_TO_TON_INPUT, "output_t": total_out * BCM_TO_TON_OUTPUT,
+                "ton_in": BCM_TO_TON_INPUT, "ton_out": BCM_TO_TON_OUTPUT,
                 "output_pct": total_out / total_in * 100 if total_in else None,
                 "net_pct": (total_out - total_in) / total_in * 100 if total_in else None,
                 "stages": stages, "locations": locations, "top_input": top_in, "top_output": top_out,
