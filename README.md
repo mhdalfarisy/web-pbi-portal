@@ -106,6 +106,10 @@ python scripts\test_chatbot.py --static       # cek prompt semua AI agent (grati
 python run.py                                 # buka http://localhost:5001 (bukan 127.0.0.1)
 ```
 
+Atau **double-click `run_mantra.bat`** dari File Explorer. Server berjalan di jendela sendiri, jadi tidak ikut
+berhenti kalau terminal VS Code ditutup, dan jendelanya tetap terbuka kalau server berhenti supaya pesannya bisa
+dibaca. Saat server berhenti, `run.py` selalu mencetak penyebabnya (Ctrl+C / terminal ditutup, atau crash).
+
 **Mode development tanpa login**: `AUTH_DISABLED=1` di `.env`. Role user development diatur lewat `DEV_ROLES`
 (mis. `Report.MaterialReadiness` untuk mencoba tampilan user biasa). Jangan dipakai di production.
 
