@@ -90,7 +90,7 @@ scripts/                   perintah manual (python scripts\<nama>.py), lihat scr
 
 ```powershell
 cd "D:\Training SSIS + Python + Streamlit"
-git clone https://github.com/mhdalfarisy/Web-App-MANTRA.git "Web App MANTRA"
+git clone https://github.com/mhdalfarisy/web-pbi-portal.git "Web App MANTRA"
 cd "Web App MANTRA"
 python -m venv .venv
 .venv\Scripts\Activate.ps1          # kalau diblokir: Set-ExecutionPolicy -Scope CurrentUser RemoteSigned

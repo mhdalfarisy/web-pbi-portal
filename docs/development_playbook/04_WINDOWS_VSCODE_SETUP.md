@@ -23,7 +23,7 @@ server bisa juga dijalankan di jendela sendiri lewat `run_mantra.bat`.
 3. Clone:
    ```powershell
    cd "D:\Training SSIS + Python + Streamlit"
-   git clone https://github.com/mhdalfarisy/Web-App-MANTRA.git "Web App MANTRA"
+   git clone https://github.com/mhdalfarisy/web-pbi-portal.git "Web App MANTRA"
    cd "Web App MANTRA"
    ```
 4. Buat & aktifkan `.venv`, install dependency (detail [05](05_PYTHON_ENVIRONMENT_AND_DEPENDENCIES.md)).

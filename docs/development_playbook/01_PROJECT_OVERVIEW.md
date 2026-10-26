@@ -8,7 +8,7 @@
 | Nama yang tampil di website | **Power BI Portal** (seluruh UI berbahasa Inggris) |
 | Pemilik data | Grup PT Merdeka Copper Gold |
 | Lokasi | `D:\Training SSIS + Python + Streamlit\Web App MANTRA` |
-| Repository | `https://github.com/mhdalfarisy/Web-App-MANTRA.git` (sesuai README), branch `main` |
+| Repository | `https://github.com/mhdalfarisy/web-pbi-portal.git`, branch `main` |
 | Framework | Flask 3.1 (bukan Streamlit; nama folder induk hanya nama folder training) |
 | Target development | Windows 11, VS Code, Python 3.13.3, `.venv`, `http://localhost:5001` |
 
