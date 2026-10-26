@@ -11,7 +11,7 @@
 {% set STAGE_ICON = {'Crushing': 'hammer', 'Heap Leach': 'layers', 'Adsorption': 'filter', 'Elution - Smelting': 'flame'} %}
 <div class="pg">
   {{ filters(d, bounds) }}
-  {% if d.provisional %}<div class="note">Sebagian angka pada tanggal akhir masih <b>provisional</b> (dapat berubah setelah data final masuk).</div>{% endif %}
+  {% if d.provisional %}<div class="note">Some numbers on the end date are still <b>provisional</b> (they may change once final data arrives).</div>{% endif %}
 
   <div class="row r4">
     {% for k, tone_cls, ic, title in [('gold', '', 'ic-blue', 'Gold Produced (Ads)'), ('silver', 'green', 'ic-green', 'Silver Produced (Ads)')] %}

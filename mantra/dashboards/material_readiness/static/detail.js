@@ -58,9 +58,9 @@ async function load() {
     } catch (e) {
         if (seq !== SEQ) { return; }
         el('tblWrap').classList.remove('loading');
-        el('pageInfo').textContent = 'Gagal mengambil data dari Power BI';
-        el('tbl').tBodies[0].innerHTML = '<tr><td class="none err" colspan="99">Gagal mengambil data dari Power BI: '
-            + esc(e.message) + '<button type="button" class="detail-btn" id="retryBtn">Coba lagi</button></td></tr>';
+        el('pageInfo').textContent = 'Could not load data from Power BI';
+        el('tbl').tBodies[0].innerHTML = '<tr><td class="none err" colspan="99">' + esc(e.message)
+            + '<button type="button" class="detail-btn" id="retryBtn">Try again</button></td></tr>';
         el('retryBtn').addEventListener('click', load);
         return;
     }
@@ -125,7 +125,7 @@ function render(d) {
     const wk = el('fWeek');
     wk.hidden = !S.week;
     wk.innerHTML = S.week ? '<span>Week ' + esc(S.week) + '</span><span aria-hidden="true">&times;</span>' : '';
-    wk.title = 'Hapus filter week';
+    wk.title = 'Remove week filter';
 
     const period = S.tm ? 'This Month (' + moName(f.month) + ' ' + f.year + ')'
         : (f.month !== null ? moName(f.month) + ' ' : '') + (f.year !== null ? (f.year === 0 ? 'No Start Date' : f.year) : (f.month !== null ? '(All Years)' : 'All Years'));
@@ -247,35 +247,44 @@ el('size').addEventListener('change', (e) => set({ size: +e.target.value }));
 el('prev').addEventListener('click', () => set({ page: S.page - 1 }, true));
 el('next').addEventListener('click', () => set({ page: S.page + 1 }, true));
 
-/* Copy to Excel: semua baris sesuai filter (bukan hanya halaman ini), format tab-separated */
+/* Copy to Excel: semua baris yang dimuat untuk filter ini (bukan hanya halaman ini, maks 15.000), tab-separated */
 el('copyBtn').addEventListener('click', async () => {
     const btn = el('copyBtn'), label = btn.querySelector('span');
     label.textContent = 'Copying...';
+    let ms = 2500;
     try {
         const r = await fetch(P.exportUrl + '?' + toParams());
+        /* Error Power BI (502) atau sesi habis (halaman login) tidak boleh ikut tersalin sebagai data */
+        if (!r.ok || !(r.headers.get('content-type') || '').includes('tab-separated')) {
+            throw new Error(r.ok ? 'session' : 'HTTP ' + r.status);
+        }
         const text = await r.text();
         const n = Math.max(0, text.split('\n').length - 2);
+        /* Baris yang dimuat dibatasi di server; beri tahu kalau hasil filter lebih banyak dari itu */
+        const cut = LAST && LAST.matched > n ? ' of ' + fmt(LAST.matched) + ' (limit reached)' : '';
+        if (cut) { ms = 6000; }
         try {
             await navigator.clipboard.writeText(text);
-            label.textContent = 'Copied ' + fmt(n) + ' rows ✓';
+            label.textContent = 'Copied ' + fmt(n) + cut + ' rows ✓';
         } catch (e) {
             /* Clipboard butuh HTTPS; kalau ditolak, unduh sebagai file */
             const a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob(['﻿' + text], { type: 'text/tab-separated-values' }));
             a.download = 'material_readiness_' + S.type.toLowerCase() + '.tsv';
             a.click();
-            label.textContent = 'Downloaded ' + fmt(n) + ' rows';
+            label.textContent = 'Downloaded ' + fmt(n) + cut + ' rows';
         }
     } catch (e) {
-        label.textContent = 'Copy failed';
+        if (e.message === 'session') { location.reload(); return; }
+        label.textContent = 'Copy failed (' + e.message + ')';
     }
-    setTimeout(() => { label.textContent = 'Copy to Excel'; }, 2500);
+    setTimeout(() => { label.textContent = 'Copy to Excel'; }, ms);
 });
 
 /* Filter aktif untuk chatbot */
 window.DashContext = () => {
     const f = LAST ? LAST.filters : {};
-    const parts = ['Halaman Detail ' + S.type, 'year=' + (f.year ?? 'semua'), 'month=' + (f.month ?? 'semua')];
+    const parts = ['Detail page ' + S.type, 'year=' + (f.year ?? 'all'), 'month=' + (f.month ?? 'all')];
     ['company', 'plant', 'warehouse', 'status', 'doc', 'week', 'q'].forEach((k) => { if (S[k]) { parts.push(k + '=' + S[k]); } });
     return parts.join('; ');
 };

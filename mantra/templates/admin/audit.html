@@ -5,12 +5,12 @@
 <div class="page-head">
   <div>
     <h1>Audit Log</h1>
-    <p class="muted">Login, perubahan akun, hak akses, dan percobaan akses yang ditolak (300 terakhir)</p>
+    <p class="muted">Sign-ins, account changes, access rights, password reset requests, and denied access attempts (latest 300)</p>
   </div>
   <form class="page-tools" method="get">
     <label class="field-select">{{ icon('filter') }}
-      <select name="action" aria-label="Jenis aktivitas" onchange="this.form.submit()">
-        <option value="">Semua aktivitas</option>
+      <select name="action" aria-label="Activity type" onchange="this.form.submit()">
+        <option value="">All activities</option>
         {% for code, label in actions %}<option value="{{ code }}" {{ 'selected' if code == action }}>{{ label }}</option>{% endfor %}
       </select>
     </label>

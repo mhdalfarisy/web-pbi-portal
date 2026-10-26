@@ -14,7 +14,7 @@
       <input class="sb-select is-active" type="date" name="end" value="{{ d.end }}" min="{{ bounds.min }}" max="{{ bounds.max }}" onchange="this.form.submit()"></div>
   </div>
   {% if caller %}{{ caller() }}{% endif %}
-  <span class="sb-info">Data tersedia {{ dlabel(bounds.min) }} s/d {{ dlabel(bounds.max) }}</span>
+  <span class="sb-info">Data available {{ dlabel(bounds.min) }} to {{ dlabel(bounds.max) }}</span>
   <a class="sb-reset" href="{{ url_for(request.endpoint) }}">{{ icon('reset') }} Reset</a>
 </form>
 {%- endmacro %}

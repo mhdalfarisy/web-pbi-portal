@@ -85,7 +85,7 @@ code { font-family: Consolas, ui-monospace, monospace; font-size: .92em; backgro
 }
 .hero-text { position: relative; z-index: 1; padding: 30px 32px; }
 .hero-brand { display: flex; align-items: center; gap: 16px; }
-.hero-brand h1 { font-size: 40px; font-weight: 800; letter-spacing: 1px; color: var(--navy); }
+.hero-brand h1 { font-size: 40px; font-weight: 800; letter-spacing: 0; color: var(--navy); }
 .hero-sub { margin: 2px 0 0; font-size: 15px; color: var(--navy); }
 .hero-desc { margin: 18px 0 20px; max-width: 520px; color: #334155; }
 .hero-features { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 14px 22px; }
@@ -193,7 +193,8 @@ code { font-family: Consolas, ui-monospace, monospace; font-size: .92em; backgro
 .login-page { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(380px, 1fr); min-height: 100vh; background: var(--navy-2); }
 .login-visual {
   position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; padding: 36px 44px;
-  background-image: linear-gradient(180deg, rgba(10, 24, 56, .25) 0%, rgba(10, 24, 56, .85) 100%), var(--login-bg),
+  /* --login-bg hanya diisi kalau static/img/login-bg.jpg ada; tanpa fallback none seluruh deklarasi ini tidak berlaku */
+  background-image: linear-gradient(180deg, rgba(10, 24, 56, .25) 0%, rgba(10, 24, 56, .85) 100%), var(--login-bg, none),
     radial-gradient(circle at 25% 30%, #c98a3a 0%, #6b4a2b 30%, #1f2f55 70%, #0a1838 100%);
   background-size: cover; background-position: center;
 }
@@ -205,7 +206,7 @@ code { font-family: Consolas, ui-monospace, monospace; font-size: .92em; backgro
 .login-panel { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 24px; background: var(--bg); }
 .login-card { width: 100%; max-width: 420px; background: var(--surface); border-radius: 18px; padding: 36px 34px; box-shadow: 0 20px 50px rgba(10, 24, 56, .18); }
 .login-brand { display: flex; align-items: center; gap: 14px; margin-bottom: 30px; }
-.login-brand h1 { font-size: 38px; font-weight: 800; color: var(--navy); letter-spacing: 1px; }
+.login-brand h1 { font-size: 30px; font-weight: 800; color: var(--navy); letter-spacing: 0; }
 .login-brand p { margin: 2px 0 0; color: var(--navy); font-size: 13.5px; }
 .login-card h2 { font-size: 18px; }
 .login-card > .muted { margin: 4px 0 22px; }
@@ -222,6 +223,16 @@ code { font-family: Consolas, ui-monospace, monospace; font-size: .92em; backgro
 .login-or::before, .login-or::after { content: ""; flex: 1; border-top: 1px solid var(--border); }
 .login-note { margin: 16px 0 0; font-size: 12.5px; color: var(--muted); }
 .login-note.warn { color: #92400e; background: var(--orange-bg); padding: 10px 12px; border-radius: 10px; }
+.flash.reset-request { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.flash.reset-request .ic { width: 16px; height: 16px; vertical-align: -3px; }
+.field-label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.field-label-row > span { font-weight: 600; font-size: 13px; }
+.field-label-row a, .login-back { font-size: 12.5px; font-weight: 600; color: var(--primary); text-decoration: none; }
+.field-label-row a:hover, .login-back:hover { text-decoration: underline; }
+.login-back { display: inline-block; margin-top: 18px; }
+.login-sent { margin-top: 18px; }
+.login-sent ol { margin: 8px 0 0; padding-left: 18px; }
+.login-sent li { margin: 4px 0; }
 .bare .content { margin: 0 auto; }
 
 /* ------------------------------------------------------------------ responsive */

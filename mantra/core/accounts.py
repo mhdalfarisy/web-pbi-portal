@@ -40,19 +40,19 @@ def normalize_email(email):
 def validate_email(email):
     email = normalize_email(email)
     if not EMAIL_RE.match(email) or len(email) > 254:
-        raise AccountError("Format email tidak valid.")
+        raise AccountError("Invalid email address.")
     return email
 
 
 def password_problem(password, email=""):
     """Kebijakan password baru. Mengembalikan pesan masalah, atau None kalau password boleh dipakai."""
     if len(password or "") < PASSWORD_MIN_LENGTH:
-        return f"Password minimal {PASSWORD_MIN_LENGTH} karakter."
+        return f"Password must be at least {PASSWORD_MIN_LENGTH} characters."
     if not re.search(r"[A-Za-z]", password) or not re.search(r"\d", password):
-        return "Password harus berisi huruf dan angka."
+        return "Password must contain both letters and numbers."
     local = normalize_email(email).split("@")[0]
     if local and local in password.lower():
-        return "Password tidak boleh mengandung nama email."
+        return "Password must not contain your email name."
     return None
 
 
@@ -86,12 +86,12 @@ def create_user(email, name="", password=None, role="user", must_change_password
     """Buat user baru. Mengembalikan id. Gagal (AccountError) kalau email sudah terdaftar."""
     email = validate_email(email)
     if role not in ROLES:
-        raise AccountError("Role tidak dikenal.")
+        raise AccountError("Unknown role.")
     if not password:
-        raise AccountError("Password awal wajib diisi.")
+        raise AccountError("An initial password is required.")
     conn = get_db()
     if get_user_by_email(email):
-        raise AccountError("Email sudah terdaftar.")
+        raise AccountError("This email is already registered.")
     cur = conn.execute(
         """INSERT INTO users (email, name, password_hash, role, must_change_password)
            VALUES (?, ?, ?, ?, ?)""",
@@ -102,11 +102,13 @@ def create_user(email, name="", password=None, role="user", must_change_password
 
 
 def set_password(user_id, password, must_change=False, actor=None, action="password_changed"):
-    """Simpan password baru (hash). Menaikkan session_version, jadi sesi lain user ini otomatis logout."""
+    """Simpan password baru (hash). Menaikkan session_version, jadi sesi lain user ini otomatis logout.
+    Permintaan "Forgot password" yang menunggu dianggap selesai."""
     conn = get_db()
     conn.execute(
         """UPDATE users SET password_hash = ?, must_change_password = ?, password_changed_at = ?,
-               session_version = session_version + 1, failed_logins = 0, locked_until = NULL, updated_at = ?
+               session_version = session_version + 1, failed_logins = 0, locked_until = NULL,
+               reset_requested_at = NULL, updated_at = ?
            WHERE id = ?""",
         (generate_password_hash(password), int(must_change), _now(), _now(), user_id))
     conn.commit()
@@ -114,12 +116,48 @@ def set_password(user_id, password, must_change=False, actor=None, action="passw
     return get_user(user_id)["session_version"]
 
 
+# ------------------------------------------------------------------ lupa password
+
+def request_password_reset(email):
+    """Catat permintaan "Forgot password" untuk Super Admin. Tidak mengembalikan apa pun dan tidak membedakan email
+    terdaftar / tidak, supaya halaman tidak bisa dipakai menebak email yang terdaftar."""
+    email = normalize_email(email)
+    user = get_user_by_email(email)
+    if user is None or not user["is_active"]:
+        audit("password_reset_requested", "user", user["id"] if user else None, email=email,
+              result="inactive" if user else "not_registered")
+        return
+    conn = get_db()
+    conn.execute("UPDATE users SET reset_requested_at = ? WHERE id = ?", (_now(), user["id"]))
+    conn.commit()
+    audit("password_reset_requested", "user", user["id"], email=email, result="pending")
+
+
+def dismiss_reset_request(user_id, actor=None):
+    """Super Admin mengabaikan permintaan (mis. user sudah ingat passwordnya) tanpa mengubah password."""
+    user = get_user(user_id)
+    if user is None:
+        raise AccountError("User not found.")
+    if not user["reset_requested_at"]:
+        return False
+    conn = get_db()
+    conn.execute("UPDATE users SET reset_requested_at = NULL, updated_at = ? WHERE id = ?", (_now(), user_id))
+    conn.commit()
+    audit("password_reset_dismissed", "user", user_id, actor=actor, email=user["email"])
+    return True
+
+
+def pending_reset_count():
+    return get_db().execute(
+        "SELECT count(*) FROM users WHERE reset_requested_at IS NOT NULL AND is_active = 1").fetchone()[0]
+
+
 def set_active(user_id, active, actor=None):
     user = get_user(user_id)
     if user is None:
-        raise AccountError("User tidak ditemukan.")
+        raise AccountError("User not found.")
     if not active and user["role"] == "super_admin" and _active_admins() <= 1:
-        raise AccountError("Tidak bisa menonaktifkan satu-satunya Super Admin yang aktif.")
+        raise AccountError("You cannot deactivate the only active Super Admin.")
     conn = get_db()
     conn.execute("UPDATE users SET is_active = ?, session_version = session_version + 1, updated_at = ? WHERE id = ?",
                  (int(active), _now(), user_id))
@@ -130,12 +168,12 @@ def set_active(user_id, active, actor=None):
 def set_role(user_id, role, actor=None):
     """Ganti role. HANYA dipanggil dari scripts/manage_users.py, tidak ada route web yang memanggil ini."""
     if role not in ROLES:
-        raise AccountError("Role tidak dikenal.")
+        raise AccountError("Unknown role.")
     user = get_user(user_id)
     if user is None:
-        raise AccountError("User tidak ditemukan.")
+        raise AccountError("User not found.")
     if user["role"] == "super_admin" and role != "super_admin" and user["is_active"] and _active_admins() <= 1:
-        raise AccountError("Tidak bisa menurunkan satu-satunya Super Admin yang aktif.")
+        raise AccountError("You cannot demote the only active Super Admin.")
     conn = get_db()
     conn.execute("UPDATE users SET role = ?, session_version = session_version + 1, updated_at = ? WHERE id = ?",
                  (role, _now(), user_id))
@@ -224,7 +262,7 @@ def get_dashboard(dashboard_id):
 def set_dashboard_active(dashboard_id, active, actor=None):
     row = get_dashboard(dashboard_id)
     if row is None:
-        raise AccountError("Dashboard tidak ditemukan.")
+        raise AccountError("Dashboard not found.")
     conn = get_db()
     conn.execute("UPDATE dashboards SET is_active = ?, updated_at = ? WHERE id = ?", (int(active), _now(), dashboard_id))
     conn.commit()
@@ -255,14 +293,14 @@ def set_access(user_id, dashboard_ids, actor=None):
     """Simpan daftar dashboard yang boleh dibuka user (menggantikan daftar lama). Mengembalikan (diberi, dicabut)."""
     user = get_user(user_id)
     if user is None:
-        raise AccountError("User tidak ditemukan.")
+        raise AccountError("User not found.")
     if user["role"] == "super_admin":
-        raise AccountError("Super Admin otomatis bisa membuka semua dashboard aktif; akses per dashboard tidak dipakai.")
+        raise AccountError("Super Admins can open every active dashboard; per-dashboard access does not apply.")
     known = {r["id"]: r["slug"] for r in get_db().execute("SELECT id, slug FROM dashboards")}
     wanted = set(dashboard_ids)
     unknown = wanted - known.keys()
     if unknown:
-        raise AccountError("Dashboard tidak dikenal.")
+        raise AccountError("Unknown dashboard.")
     current = granted_ids(user_id)
     grant, revoke = wanted - current, current - wanted
     conn = get_db()
@@ -287,7 +325,7 @@ def dashboard_ids_for(slugs):
     rows = get_db().execute(f"SELECT id, slug FROM dashboards WHERE slug IN ({marks})", tuple(slugs)).fetchall()
     missing = set(slugs) - {r["slug"] for r in rows}
     if missing:
-        raise AccountError(f"Dashboard belum ada di katalog: {', '.join(sorted(missing))}")
+        raise AccountError(f"Dashboard not in the catalog yet: {', '.join(sorted(missing))}")
     return [r["id"] for r in rows]
 
 
@@ -329,18 +367,21 @@ def audit_actions():
 
 
 AUDIT_LABELS = {
-    "login_success": "Login berhasil", "login_failed": "Login gagal", "account_locked": "Akun dikunci",
-    "login_throttled": "Login dibatasi", "logout": "Logout", "password_changed": "Ganti password",
-    "password_reset": "Reset password", "user_created": "User dibuat", "user_activated": "User diaktifkan",
-    "user_deactivated": "User dinonaktifkan", "role_changed": "Role diubah", "access_granted": "Akses diberikan",
-    "access_revoked": "Akses dicabut", "dashboard_activated": "Dashboard diaktifkan",
-    "dashboard_deactivated": "Dashboard dinonaktifkan", "access_denied": "Akses ditolak",
+    "login_success": "Login succeeded", "login_failed": "Login failed", "account_locked": "Account locked",
+    "login_throttled": "Login throttled", "logout": "Logout", "password_changed": "Password changed",
+    "password_reset": "Password reset", "password_reset_requested": "Password reset requested",
+    "password_reset_dismissed": "Reset request dismissed", "user_created": "User created",
+    "user_activated": "User activated", "user_deactivated": "User deactivated", "role_changed": "Role changed",
+    "access_granted": "Access granted", "access_revoked": "Access revoked", "dashboard_activated": "Dashboard activated",
+    "dashboard_deactivated": "Dashboard deactivated", "access_denied": "Access denied",
 }
 _AUDIT_BAD = {"login_failed", "account_locked", "login_throttled", "access_denied", "user_deactivated",
               "access_revoked", "dashboard_deactivated"}
 _AUDIT_GOOD = {"login_success", "user_created", "user_activated", "access_granted", "dashboard_activated"}
-_LOGIN_REASONS = {"invalid": "email atau password salah", "locked": "akun sedang terkunci",
-                  "inactive": "akun nonaktif", "not_registered": "akun Microsoft belum terdaftar di MANTRA"}
+_LOGIN_REASONS = {"invalid": "wrong email or password", "locked": "account is locked",
+                  "inactive": "account is inactive", "not_registered": "Microsoft account is not registered in Power BI Portal"}
+_RESET_RESULTS = {"pending": "waiting for a Super Admin", "not_registered": "email is not registered, ignored",
+                  "inactive": "account is inactive, ignored"}
 
 
 def describe_audit(rows):
@@ -360,43 +401,49 @@ def describe_audit(rows):
         dash = names.get(slug, slug)
         actor = e["actor_email"] or ""
         if actor.startswith("cli:"):
-            actor = f"Script server ({actor[4:]})"
+            actor = f"Server script ({actor[4:]})"
         self_action = bool(e["actor_email"]) and e["actor_email"] == target_user
 
         if action == "login_success":
-            text = f"Login berhasil lewat {'akun Microsoft' if d.get('method') == 'entra' else 'email + password'}"
+            text = f"Signed in with {'a Microsoft account' if d.get('method') == 'entra' else 'email + password'}"
         elif action == "login_failed":
-            text = f"Login gagal untuk {target_user}: {_LOGIN_REASONS.get(d.get('reason'), d.get('reason') or '-')}"
+            text = f"Login failed for {target_user}: {_LOGIN_REASONS.get(d.get('reason'), d.get('reason') or '-')}"
             if d.get("attempt"):
-                text += f" (percobaan ke-{d['attempt']})"
+                text += f" (attempt {d['attempt']})"
             if d.get("method") == "entra":
-                text += ", lewat akun Microsoft"
+                text += ", via Microsoft account"
         elif action == "account_locked":
-            text = f"Akun {target_user} dikunci {d.get('minutes', LOCK_MINUTES)} menit karena terlalu banyak percobaan gagal"
+            text = (f"Account {target_user} locked for {d.get('minutes', LOCK_MINUTES)} minutes after too many "
+                    "failed attempts")
         elif action == "login_throttled":
-            text = f"Login dari IP {e['target_id']} dibatasi sementara karena terlalu banyak percobaan gagal"
+            text = f"Logins from IP {e['target_id']} temporarily throttled after too many failed attempts"
         elif action == "logout":
-            text = "Logout"
+            text = "Logged out"
         elif action == "password_changed":
-            text = "Mengganti password sendiri" if self_action else f"Password {target_user} diganti"
+            text = "Changed own password" if self_action else f"Password of {target_user} changed"
         elif action == "password_reset":
-            text = f"Password {target_user} di-reset; user wajib membuat password baru saat login"
+            text = f"Password of {target_user} reset; the user must create a new password at next login"
+        elif action == "password_reset_requested":
+            text = (f"{target_user} asked for a password reset from the login page "
+                    f"({_RESET_RESULTS.get(d.get('result'), d.get('result') or '-')})")
+        elif action == "password_reset_dismissed":
+            text = f"Password reset request from {target_user} dismissed (password unchanged)"
         elif action == "user_created":
-            text = f"User {target_user} dibuat sebagai {ROLES.get(d.get('role'), d.get('role') or 'User')}"
+            text = f"User {target_user} created as {ROLES.get(d.get('role'), d.get('role') or 'User')}"
         elif action in ("user_activated", "user_deactivated"):
-            text = f"Akun {target_user} {'diaktifkan' if action == 'user_activated' else 'dinonaktifkan'}"
+            text = f"Account {target_user} {'activated' if action == 'user_activated' else 'deactivated'}"
         elif action == "role_changed":
-            text = (f"Role {target_user} diubah dari {ROLES.get(d.get('old'), d.get('old'))} "
-                    f"menjadi {ROLES.get(d.get('new'), d.get('new'))}")
+            text = (f"Role of {target_user} changed from {ROLES.get(d.get('old'), d.get('old'))} "
+                    f"to {ROLES.get(d.get('new'), d.get('new'))}")
         elif action == "access_granted":
-            text = f"{target_user} diberi akses ke {dash}"
+            text = f"{target_user} granted access to {dash}"
         elif action == "access_revoked":
-            text = f"Akses {target_user} ke {dash} dicabut"
+            text = f"Access of {target_user} to {dash} revoked"
         elif action in ("dashboard_activated", "dashboard_deactivated"):
-            text = f"Dashboard {dash} {'diaktifkan' if action == 'dashboard_activated' else 'dinonaktifkan'}"
+            text = f"Dashboard {dash} {'activated' if action == 'dashboard_activated' else 'deactivated'}"
         elif action == "access_denied":
-            text = (f"Mencoba membuka {dash} tanpa izin" if e["target_type"] == "dashboard"
-                    else f"Mencoba membuka halaman khusus Super Admin ({e['target_id']})")
+            text = (f"Tried to open {dash} without permission" if e["target_type"] == "dashboard"
+                    else f"Tried to open a Super Admin page ({e['target_id']})")
         else:
             text = e["detail"] or ""
         out.append({"e": e, "label": AUDIT_LABELS.get(action, action), "text": text, "actor": actor,

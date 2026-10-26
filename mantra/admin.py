@@ -1,4 +1,4 @@
-"""Halaman Super Admin: User Management, Dashboard Access, katalog dashboard, audit log.
+"""Halaman Super Admin: User Management, Dashboard Access, permintaan lupa password, katalog dashboard, audit log.
 
 Semua route di sini hanya untuk role super_admin (cek di server, bukan sekadar menu disembunyikan) dan semua POST
 dilindungi CSRF (lihat create_app). Role super_admin TIDAK bisa diberikan dari sini; pakai scripts/manage_users.py.
@@ -16,7 +16,7 @@ def _dashboard_ids(form):
     try:
         return [int(v) for v in form.getlist("dashboard")]
     except ValueError:
-        raise accounts.AccountError("Pilihan dashboard tidak valid.") from None
+        raise accounts.AccountError("Invalid dashboard selection.") from None
 
 
 def _show_temp_password(user_id, password, created):
@@ -80,11 +80,11 @@ def user_access(user_id):
         flash(str(exc), "error")
         return redirect(url_for("admin.user_detail", user_id=user_id)), 303
     if granted or revoked:
-        parts = ([f"diberi akses: {', '.join(granted)}"] if granted else []) + \
-                ([f"dicabut: {', '.join(revoked)}"] if revoked else [])
-        flash("Hak akses disimpan (" + "; ".join(parts) + ").", "success")
+        parts = ([f"granted: {', '.join(granted)}"] if granted else []) + \
+                ([f"revoked: {', '.join(revoked)}"] if revoked else [])
+        flash("Access saved (" + "; ".join(parts) + ").", "success")
     else:
-        flash("Tidak ada perubahan hak akses.", "info")
+        flash("No access changes.", "info")
     return redirect(url_for("admin.user_detail", user_id=user_id)), 303
 
 
@@ -95,11 +95,11 @@ def user_status(user_id):
     actor = current_user()
     active = request.form.get("active") == "1"
     if not active and actor["db_id"] == user["id"]:
-        flash("Anda tidak bisa menonaktifkan akun Anda sendiri.", "error")
+        flash("You cannot deactivate your own account.", "error")
     else:
         try:
             accounts.set_active(user_id, active, actor=actor)
-            flash(f"Akun {user['email']} {'diaktifkan' if active else 'dinonaktifkan'}.", "success")
+            flash(f"Account {user['email']} {'activated' if active else 'deactivated'}.", "success")
         except accounts.AccountError as exc:
             flash(str(exc), "error")
     return redirect(url_for("admin.user_detail", user_id=user_id)), 303
@@ -111,11 +111,21 @@ def user_reset_password(user_id):
     user = _user_or_404(user_id)
     actor = current_user()
     if actor["db_id"] == user["id"]:
-        flash("Ganti password Anda sendiri lewat menu Ganti Password.", "error")
+        flash("Change your own password from the Change Password menu.", "error")
         return redirect(url_for("admin.user_detail", user_id=user_id)), 303
     password = accounts.temporary_password()
     accounts.set_password(user_id, password, must_change=True, actor=actor, action="password_reset")
     return _show_temp_password(user_id, password, created=False)
+
+
+@bp.post("/users/<int:user_id>/dismiss-reset")
+@admin_required
+def user_dismiss_reset(user_id):
+    """Abaikan permintaan "Forgot password" tanpa mengubah password (mis. user sudah ingat passwordnya)."""
+    user = _user_or_404(user_id)
+    if accounts.dismiss_reset_request(user_id, actor=current_user()):
+        flash(f"Password reset request from {user['email']} dismissed.", "success")
+    return redirect(url_for("admin.user_detail", user_id=user_id)), 303
 
 
 @bp.get("/dashboards")
@@ -130,7 +140,7 @@ def dashboards():
 def dashboard_status(dashboard_id):
     try:
         accounts.set_dashboard_active(dashboard_id, request.form.get("active") == "1", actor=current_user())
-        flash("Status dashboard disimpan.", "success")
+        flash("Dashboard status saved.", "success")
     except accounts.AccountError as exc:
         flash(str(exc), "error")
     return redirect(url_for("admin.dashboards")), 303

@@ -1,5 +1,7 @@
-Flask>=3.0
-msal>=1.28
-requests>=2.31
-python-dotenv>=1.0
-google-genai>=2.0
+# Batas atas = versi mayor yang sudah diuji (Python 3.13). Naikkan setelah dites ulang: python -m pytest
+Flask>=3.0,<4
+msal>=1.28,<2
+requests>=2.31,<3
+python-dotenv>=1.0,<2
+google-genai>=2.0,<3
+httpx>=0.27,<1  # di-import langsung oleh core/chat/providers.py (juga dependency google-genai)

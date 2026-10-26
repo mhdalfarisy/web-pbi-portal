@@ -422,8 +422,8 @@ var ro = new ResizeObserver(function () {
 /* Filter aktif untuk chatbot */
 window.DashContext = function () {
     var y = THIS_MONTH ? CUR_Y : YSEL, m = THIS_MONTH ? CUR_M : MSEL;
-    return 'Halaman Summary; periode ' + yLbl() + ' (year=' + y + ', month=' + m + '); company: '
-        + (COSEL === 'ALL' ? 'semua' : COSEL);
+    return 'Summary page; period ' + yLbl() + ' (year=' + y + ', month=' + m + '); company: '
+        + (COSEL === 'ALL' ? 'all' : COSEL);
 };
 window.DashFilters = function () {
     return {

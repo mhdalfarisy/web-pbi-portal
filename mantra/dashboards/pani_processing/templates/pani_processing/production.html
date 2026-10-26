@@ -34,19 +34,19 @@
           {% for s, ic in [('Crushing', 'hammer'), ('Screening', 'filter'), ('Stockpile', 'mountain')] %}
           <div class="fstage"><span>{{ s }}</span><b>{{ fmt(d.stages[s], 2) }} BCM</b></div>
           {% endfor %}
-          <div class="note" style="text-align:center">Output {{ fmt(d.output_pct, 2) }}% dari input &rarr;</div>
+          <div class="note" style="text-align:center">Output {{ fmt(d.output_pct, 2) }}% of input &rarr;</div>
         </div>
         <div class="fbox out">OUTPUT<b>{{ fmt(d.output, 2) }} BCM</b>{{ fmt(d.output_t, 2) }} Tonnes<br><span class="note">1 BCM = {{ d.ton_out }} Ton</span>
           <div class="ring lg" style="--v: {{ [d.output_pct or 0, 100]|min }}; --c: #16a34a"><span>{{ fmt(d.output_pct, 0) }}%</span></div></div>
       </div>
       <div class="fsum">
         <div><small>Net Movement</small><b class="{{ tone(d.net) }}">{{ fmt(d.net, 2) }} BCM</b>
-          <span class="note">({{ sgn(d.net_pct, 1) }} dari input)</span></div>
+          <span class="note">({{ sgn(d.net_pct, 1) }} of input)</span></div>
         <div><small>Grand Total</small><b>{{ fmt(d.grand, 2) }} BCM</b></div>
         <div><small>Top Input Location</small><b>{% if top_in %}{{ top_in.name }} ({{ fmt(top_in.input, 2) }} BCM){% else %}-{% endif %}</b></div>
         <div><small>Top Output Location</small><b>{% if top_out %}{{ top_out.name }} ({{ fmt(top_out.output, 2) }} BCM){% else %}-{% endif %}</b></div>
       </div>
-      {% if top_in %}<p class="note" style="margin-top:8px">&#128161; Output mencapai {{ fmt(d.output_pct, 1) }}% dari total input, dengan input utama dari {{ top_in.name }} ({{ fmt(top_in.input, 2) }} BCM).</p>{% endif %}
+      {% if top_in %}<p class="note" style="margin-top:8px">&#128161; Output reached {{ fmt(d.output_pct, 1) }}% of total input, with the main input from {{ top_in.name }} ({{ fmt(top_in.input, 2) }} BCM).</p>{% endif %}
     </section>
     <section class="panel">
       <div class="ph"><h3>Input &amp; Output by Location <small>(BCM)</small></h3></div>
@@ -58,7 +58,7 @@
           <div class="bars"><div class="bar"><span style="width: {{ l.input / maxv * 100 if maxv else 0 }}%"></span></div>
             <div class="bar"><span class="o" style="width: {{ l.output / maxv * 100 if maxv else 0 }}%"></span></div></div>
           <div class="vals"><span class="i">{{ fmt(l.input, 2) }} ({{ fmt(l.in_pct, 2) }}%)</span><br><span class="o">{{ fmt(l.output, 2) }} ({{ fmt(l.out_pct, 2) }}%)</span></div></div>
-        {% else %}<p class="note">Tidak ada data pada periode ini.</p>{% endfor %}
+        {% else %}<p class="note">No data in this period.</p>{% endfor %}
       </div>
     </section>
   </div>
@@ -78,7 +78,7 @@
       </div>
     </section>
     <section class="panel">
-      <div class="ph"><h3>Trend Produksi <small>(BCM)</small></h3>
+      <div class="ph"><h3>Production Trend <small>(BCM)</small></h3>
         <span class="seg-btns badge-r" id="trendMode" style="border:1px solid #cbd5e1;border-radius:6px;overflow:hidden">
           {% for m, label in [('daily', 'Daily'), ('weekly', 'Weekly'), ('mtd', 'MTD')] %}
           <button type="button" data-mode="{{ m }}" class="pill-b" style="border:0;border-radius:0;cursor:pointer">{{ label }}</button>{% endfor %}
@@ -90,20 +90,20 @@
   </div>
 
   <section class="panel">
-    <div class="ph"><h3>Insight &amp; Rekomendasi</h3></div>
+    <div class="ph"><h3>Insights &amp; Recommendations</h3></div>
     <div class="insights">
-      <div class="ins"><span class="pk-ic ic-blue">{{ picon('in') }}</span><div><b>Input Tertinggi</b>
-        {% if top_in %}{{ top_in.name }} menyumbang {{ fmt(top_in.in_pct, 2) }}% dari total input.{% else %}-{% endif %}</div></div>
-      <div class="ins"><span class="pk-ic ic-green">{{ picon('out') }}</span><div><b>Output Tertinggi</b>
-        {% if top_out %}{{ top_out.name }} berkontribusi {{ fmt(top_out.out_pct, 2) }}% dari total output.{% else %}Belum ada output pada periode ini.{% endif %}</div></div>
-      <div class="ins"><span class="pk-ic ic-purple">{{ picon('scale') }}</span><div><b>Net Movement {{ 'Negatif' if d.net < 0 else 'Positif' }}</b>
-        {% if d.net < 0 %}Input lebih besar dari output: inventori stockpile bertambah {{ fmt(-d.net, 2) }} BCM.
-        {% else %}Output lebih besar dari input: inventori stockpile berkurang {{ fmt(d.net, 2) }} BCM.{% endif %}</div></div>
-      <div class="ins"><span class="pk-ic ic-orange">{{ picon('percent') }}</span><div><b>Performa PA%</b>
-        {% if avg_pa is not none %}Rata-rata PA% equipment {{ fmt(avg_pa, 2) }}% per {{ dfull(pa_day) }}.{% else %}Data PA% equipment belum tersedia untuk periode ini.{% endif %}</div></div>
-      <div class="ins"><span class="pk-ic ic-teal">{{ picon('bulb') }}</span><div><b>Rekomendasi</b>
-        {% if d.output_pct is not none and d.output_pct < 50 and stock_in %}Output baru {{ fmt(d.output_pct, 1) }}% dari input. Optimalkan pengambilan dari {{ stock_in|map(attribute='name')|join(' & ') }} untuk menyeimbangkan inventori.
-        {% else %}Keseimbangan input dan output terjaga; pertahankan pola pengambilan saat ini.{% endif %}</div></div>
+      <div class="ins"><span class="pk-ic ic-blue">{{ picon('in') }}</span><div><b>Highest Input</b>
+        {% if top_in %}{{ top_in.name }} contributes {{ fmt(top_in.in_pct, 2) }}% of total input.{% else %}-{% endif %}</div></div>
+      <div class="ins"><span class="pk-ic ic-green">{{ picon('out') }}</span><div><b>Highest Output</b>
+        {% if top_out %}{{ top_out.name }} contributes {{ fmt(top_out.out_pct, 2) }}% of total output.{% else %}No output in this period yet.{% endif %}</div></div>
+      <div class="ins"><span class="pk-ic ic-purple">{{ picon('scale') }}</span><div><b>{{ 'Negative' if d.net < 0 else 'Positive' }} Net Movement</b>
+        {% if d.net < 0 %}Input is greater than output: stockpile inventory increased by {{ fmt(-d.net, 2) }} BCM.
+        {% else %}Output is greater than input: stockpile inventory decreased by {{ fmt(d.net, 2) }} BCM.{% endif %}</div></div>
+      <div class="ins"><span class="pk-ic ic-orange">{{ picon('percent') }}</span><div><b>PA% Performance</b>
+        {% if avg_pa is not none %}Average equipment PA% is {{ fmt(avg_pa, 2) }}% as of {{ dfull(pa_day) }}.{% else %}Equipment PA% data is not available for this period yet.{% endif %}</div></div>
+      <div class="ins"><span class="pk-ic ic-teal">{{ picon('bulb') }}</span><div><b>Recommendation</b>
+        {% if d.output_pct is not none and d.output_pct < 50 and stock_in %}Output is only {{ fmt(d.output_pct, 1) }}% of input. Optimise reclaiming from {{ stock_in|map(attribute='name')|join(' & ') }} to balance the inventory.
+        {% else %}Input and output are balanced; keep the current reclaiming pattern.{% endif %}</div></div>
     </div>
   </section>
 </div>

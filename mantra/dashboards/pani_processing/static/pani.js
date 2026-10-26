@@ -28,7 +28,7 @@ window.Pani = (function () {
     var page = (document.querySelector('.hd-main-title') || {}).textContent || '';
     var data = P.data || {};
     window.DashContext = function () {
-        return 'Halaman ' + page + '; rentang ' + (data.start || '-') + ' s/d ' + (data.end || '-') + '; company ' + (P.company || '-');
+        return 'Page ' + page + '; range ' + (data.start || '-') + ' to ' + (data.end || '-') + '; company ' + (P.company || '-');
     };
     window.DashFilters = function () { return { page: page, start: data.start, end: data.end }; };
 

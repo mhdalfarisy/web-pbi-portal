@@ -18,7 +18,6 @@ DASHBOARD = Dashboard(
     category="Operations",
     icon="factory",
     color="teal",
-    role="Report.PaniProcessing",
     dataset=DATASET,
     blueprint=bp,
     pages=[("Processing", "pani_processing.processing"), ("Equipment", "pani_processing.equipment"),

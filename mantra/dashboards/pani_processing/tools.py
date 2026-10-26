@@ -10,6 +10,8 @@ from ...core.registry import Tool
 from . import queries
 
 PERIODS = ("DAILY", "MTD", "YTD")
+STATUSES = ("active", "inactive")
+NO_DATA = {"error": "This page has no data in the semantic model yet. Tell the user; do not guess any numbers."}
 DATE_PROPS = {
     "start": {"type": "string", "description": "Tanggal awal YYYY-MM-DD. Kosongkan untuk mengikuti filter halaman."},
     "end": {"type": "string", "description": "Tanggal akhir YYYY-MM-DD. Kosongkan untuk mengikuti filter halaman."},
@@ -29,10 +31,11 @@ def _clean(obj, decimals=2):
     return _round(obj, decimals)
 
 
-def _dates(args, dash, default_start, default_end):
+def _dates(args, dash, bounds, default_start, default_end):
+    """Rentang dari AI / filter halaman / default, dibatasi ke tanggal data yang ada (sama seperti halaman)."""
     end = queries.parse_date(args.get("end") or dash.get("end"), default_end)
     start = queries.parse_date(args.get("start") or dash.get("start"), default_start)
-    return (end, start) if start > end else (start, end)
+    return queries.date_range(start, end, bounds)
 
 
 # ---------------------------------------------------------------- Processing
@@ -42,13 +45,18 @@ def _processing_date(args, dash, b):
     at = queries.parse_date(args.get("date") or dash.get("end"), b["max"])
     note = None
     if at > b["max"]:
-        note = f"Data terakhir {b['max'].isoformat()}, jadi tanggal {at.isoformat()} diganti ke tanggal itu."
+        note = f"Latest data is {b['max'].isoformat()}, so date {at.isoformat()} was replaced with that date."
         at = b["max"]
+    elif at < b["min"]:
+        note = f"First data is {b['min'].isoformat()}, so date {at.isoformat()} was replaced with that date."
+        at = b["min"]
     return at, note
 
 
 def tool_processing_metrics(args, dash):
     b = queries.processing_bounds()
+    if not queries.has_data(b):
+        return NO_DATA
     at, date_note = _processing_date(args, dash, b)
     period = args.get("period") or "YTD"
     rows = queries.processing_metric(args.get("metric"), period, at)
@@ -60,7 +68,7 @@ def tool_processing_metrics(args, dash):
     result = {"date": at.isoformat(), "period": period, "metrics": rows,
               "data_range": {"first": b["min"].isoformat(), "last": b["max"].isoformat(),
                              "last_crushing_actual": b["last"].isoformat()}}
-    notes = [n for n in (date_note, "Sebagian angka masih provisional (bisa berubah setelah data final masuk)."
+    notes = [n for n in (date_note, "Some numbers are still provisional (they may change once final data arrives)."
                          if any(r["provisional"] for r in rows) else None) if n]
     if notes:
         result["note"] = " ".join(notes)
@@ -68,8 +76,12 @@ def tool_processing_metrics(args, dash):
 
 
 def tool_processing_trend(args, dash):
+    if not args.get("metric"):
+        raise ToolArgError("metric", "", sorted(queries.metrics()))
     b = queries.processing_bounds()
-    start, end = _dates(args, dash, date(b["last"].year, b["last"].month, 1), b["last"])
+    if not queries.has_data(b):
+        return NO_DATA
+    start, end = _dates(args, dash, b, date(b["last"].year, b["last"].month, 1), b["last"])
     points = queries.processing_trend(args["metric"], start, end)
     actual = [p["actual"] for p in points if p["actual"] is not None]
     target = [p["target"] for p in points if p["target"] is not None]
@@ -82,6 +94,8 @@ def tool_processing_trend(args, dash):
 
 def tool_variance_drivers(args, dash):
     b = queries.processing_bounds()
+    if not queries.has_data(b):
+        return NO_DATA
     end, date_note = _processing_date(args, dash, b)
     # Sama seperti halaman: tanggal akhir = data terakhir -> YTD; tanggal lebih awal -> drivers DAILY pada tanggal itu
     data, _ = queries.processing(b["min"], end)
@@ -96,7 +110,9 @@ def tool_variance_drivers(args, dash):
 
 def tool_equipment(args, dash):
     b = queries.equipment_bounds()
-    start, end = _dates(args, dash, b["max"], b["max"])
+    if not queries.has_data(b):
+        return NO_DATA
+    start, end = _dates(args, dash, b, b["max"], b["max"])
     data, _ = queries.equipment(start, end, args.get("status") or "")
     models = data["models"]
     if args.get("model"):
@@ -120,18 +136,23 @@ def tool_equipment(args, dash):
 
 def tool_mining(args, dash):
     b = queries.mining_bounds()
-    start, end = _dates(args, dash, date(b["last"].year, b["last"].month, 1), b["last"])
+    if not queries.has_data(b):
+        return NO_DATA
+    start, end = _dates(args, dash, b, date(b["last"].year, b["last"].month, 1), b["last"])
     data, _ = queries.mining(start, end)
     return _clean({"unit": "ton", "daily_range": [start.isoformat(), end.isoformat()],
                    "mtd_range": [data["month_start"], end.isoformat()], "ytd_range": [data["year_start"], end.isoformat()],
                    "periods": data["periods"], "achievement_pct": {k: v["achv"] for k, v in data["charts"].items()},
-                   "movement_composition_mtd": data["donut"],
+                   # Donut halaman Mining dihitung dari rentang filter (daily_range), bukan MTD
+                   "movement_composition_range": data["donut"],
                    "data_range": {"first": b["min"].isoformat(), "last_actual": b["last"].isoformat()}}, 0)
 
 
 def tool_stockpile(args, dash):
     b = queries.production_bounds()
-    start, end = _dates(args, dash, date(b["max"].year, b["max"].month, 1), b["max"])
+    if not queries.has_data(b):
+        return NO_DATA
+    start, end = _dates(args, dash, b, date(b["max"].year, b["max"].month, 1), b["max"])
     data, _ = queries.production(start, end)
     return _clean({"unit": "ton", "start": start.isoformat(), "end": end.isoformat(), "total_input": data["input"],
                    "total_output": data["output"], "net_movement": data["net"], "grand_total": data["grand"],
@@ -141,7 +162,7 @@ def tool_stockpile(args, dash):
 
 
 TOOLS = [
-    Tool("get_processing_metrics", "Metrik Processing",
+    Tool("get_processing_metrics", "Processing metrics",
          "Actual, target, variance %, dan achievement % metrik Processing (gold/silver produced, crushed ore, leached, "
          "grade, efficiency, availability, dll.) pada satu tanggal untuk periode DAILY, MTD, atau YTD.",
          {"type": "object", "properties": {
@@ -152,7 +173,7 @@ TOOLS = [
                        "description": "Kelompok metrik. Kosongkan untuk semua."},
          }, "required": []},
          tool_processing_metrics),
-    Tool("get_processing_trend", "Tren harian Processing",
+    Tool("get_processing_trend", "Processing daily trend",
          "Tren harian satu metrik Processing (actual vs target) dalam rentang tanggal: total, rata-rata, jumlah hari di "
          "bawah target, dan 14 hari terakhir.",
          {"type": "object", "properties": {"metric": {"type": "string", "description": "Kode atau nama metrik."}, **DATE_PROPS},
@@ -186,12 +207,16 @@ TOOLS = [
 
 
 def clean_args(args):
-    """Normalkan period dan nama metrik dari AI ke nilai asli di data."""
+    """Normalkan period, status equipment, dan nama metrik dari AI ke nilai asli di data."""
     args = dict(args)
     if args.get("period"):
         args["period"] = str(args["period"]).strip().upper()
         if args["period"] not in PERIODS:
             raise ToolArgError("period", args["period"], PERIODS)
+    if args.get("status"):
+        args["status"] = str(args["status"]).strip().lower()
+        if args["status"] not in STATUSES:
+            raise ToolArgError("status", args["status"], STATUSES)
     if args.get("metric"):
         defs = queries.metrics()
         by_label = {d["label"]: code for code, d in defs.items()}
@@ -210,8 +235,8 @@ def parse_dash(raw):
 
 
 SUGGESTIONS = [
-    "Berapa gold produced YTD dan achievement-nya?",
-    "Apa 5 penyebab variance negatif terbesar?",
-    "Model equipment mana yang PA-nya di bawah target?",
-    "Bagaimana total mined MTD dibanding plan?",
+    "What is gold produced YTD and its achievement?",
+    "What are the top 5 negative variance drivers?",
+    "Which equipment models have PA below target?",
+    "How does total mined MTD compare to plan?",
 ]

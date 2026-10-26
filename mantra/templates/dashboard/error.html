@@ -1,16 +1,13 @@
 {% extends "dashboard/base.html" %}
 {% block content %}
 <section class="panel empty-panel">
-  <h2>Gagal mengambil data dari Power BI</h2>
-  <p>Coba muat ulang halaman ini. Kalau masih gagal, jalankan <code>python scripts\check_setup.py</code> untuk mengecek
-    koneksi service principal ke semantic model dashboard ini.</p>
+  <h2>Could not load data from Power BI</h2>
+  <p>Please reload this page. If it keeps failing, ask the administrator to run <code>python scripts\check_setup.py</code>
+    to check the service principal connection to this dashboard's semantic model.</p>
   <div class="err-actions">
-    <a class="btn" href="{{ request.full_path.rstrip('?') }}">Coba lagi</a>
-    <a class="btn ghost" href="{{ url_for('portal.reports') }}">Kembali ke Reports</a>
+    <a class="btn" href="{{ request.full_path.rstrip('?') }}">Try again</a>
+    <a class="btn ghost" href="{{ url_for('portal.reports') }}">Back to Reports</a>
   </div>
-  <details class="err-more">
-    <summary>Detail error</summary>
-    <pre class="err-detail">{{ message }}</pre>
-  </details>
+  {% if ref %}<p class="muted small">Reference code for the administrator: <code>{{ ref }}</code> (details are in the server log).</p>{% endif %}
 </section>
 {% endblock %}

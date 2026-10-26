@@ -6,16 +6,25 @@
 <div class="page-head">
   <div>
     <h1>User Management</h1>
-    <p class="muted">Akun MANTRA dan dashboard yang boleh dibuka setiap user</p>
+    <p class="muted">Power BI Portal accounts and the dashboards each user may open</p>
   </div>
-  <a class="btn" href="{{ url_for('admin.new_user') }}">{{ icon('user-plus') }} Tambah user</a>
+  <a class="btn" href="{{ url_for('admin.new_user') }}">{{ icon('user-plus') }} Add user</a>
 </div>
+
+{% set requests = rows | selectattr('user.reset_requested_at') | selectattr('user.is_active') | list %}
+{% if requests %}
+<div class="flash warn" role="status">
+  <b>{{ requests | length }} password reset request{{ 's' if requests | length > 1 }}</b> from the sign-in page:
+  {% for r in requests %}<a href="{{ url_for('admin.user_detail', user_id=r.user.id) }}">{{ r.user.email }}</a>{{ ', ' if not loop.last }}{% endfor %}.
+  Open the user, click <b>Reset password</b>, and give them the temporary password through a secure channel.
+</div>
+{% endif %}
 
 <section class="panel flush">
   <div class="table-wrap">
     <table class="table stack">
       <thead>
-        <tr><th>Email</th><th>Role</th><th>Status</th><th>Dashboard yang diizinkan</th><th>Login terakhir</th><th>Dibuat</th><th></th></tr>
+        <tr><th>Email</th><th>Role</th><th>Status</th><th>Allowed dashboards</th><th>Last sign-in</th><th>Created</th><th></th></tr>
       </thead>
       <tbody>
       {% for r in rows %}
@@ -25,20 +34,20 @@
             {% if u.name %}<div class="muted small">{{ u.name }}</div>{% endif %}</td>
           <td data-label="Role">{{ role_pill(u.role, roles) }}</td>
           <td data-label="Status">{{ active_status(u) }}</td>
-          <td class="wrap" data-label="Dashboard">
-            {% if u.role == 'super_admin' %}<span class="muted">Semua dashboard aktif</span>
-            {% else %}{% for d in r.dashboards %}<span class="pill">{{ d.name }}</span> {% else %}<span class="muted">Tidak ada</span>{% endfor %}{% endif %}
+          <td class="wrap" data-label="Dashboards">
+            {% if u.role == 'super_admin' %}<span class="muted">All active dashboards</span>
+            {% else %}{% for d in r.dashboards %}<span class="pill">{{ d.name }}</span> {% else %}<span class="muted">None</span>{% endfor %}{% endif %}
           </td>
-          <td class="muted" data-label="Login terakhir">{{ u.last_login_at[:16] if u.last_login_at else '-' }}</td>
-          <td class="muted" data-label="Dibuat">{{ u.created_at[:10] }}</td>
-          <td class="actions"><a class="btn sm ghost" href="{{ url_for('admin.user_detail', user_id=u.id) }}">Kelola</a></td>
+          <td class="muted" data-label="Last sign-in">{{ u.last_login_at[:16] if u.last_login_at else '-' }}</td>
+          <td class="muted" data-label="Created">{{ u.created_at[:10] }}</td>
+          <td class="actions"><a class="btn sm ghost" href="{{ url_for('admin.user_detail', user_id=u.id) }}">Manage</a></td>
         </tr>
       {% else %}
-        <tr class="empty-row"><td colspan="7" class="muted center">Belum ada user. Jalankan <code>python scripts\manage_users.py seed</code>.</td></tr>
+        <tr class="empty-row"><td colspan="7" class="muted center">No users yet. Run <code>python scripts\manage_users.py seed</code>.</td></tr>
       {% endfor %}
       </tbody>
     </table>
   </div>
 </section>
-<p class="muted small">Role Super Admin hanya bisa diberikan lewat server: <code>python scripts\manage_users.py set-role</code>.</p>
+<p class="muted small">The Super Admin role can only be granted on the server: <code>python scripts\manage_users.py set-role</code>.</p>
 {% endblock %}

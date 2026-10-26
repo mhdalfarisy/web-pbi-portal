@@ -24,9 +24,9 @@
 <div class="card-grid" id="reportGrid">
   {% for card in cards %}{{ report_card(card) }}{% endfor %}
 </div>
-<div class="empty" id="reportEmpty" hidden>{{ icon('search') }}<h3>Tidak ada report yang cocok</h3><p>Coba kata kunci atau kategori lain.</p></div>
+<div class="empty" id="reportEmpty" hidden>{{ icon('search') }}<h3>No matching reports</h3><p>Try another keyword or category.</p></div>
 {% else %}
-<div class="empty">{{ icon('lock') }}<h3>Belum ada dashboard untuk akun ini</h3>
-  <p>Akses dashboard diberikan oleh Super Admin MANTRA. Hubungi Super Admin untuk meminta akses.</p></div>
+<div class="empty">{{ icon('lock') }}<h3>No dashboards for this account yet</h3>
+  <p>Dashboard access is granted by the Power BI Portal Super Admin. Contact the Super Admin to request access.</p></div>
 {% endif %}
 {% endblock %}

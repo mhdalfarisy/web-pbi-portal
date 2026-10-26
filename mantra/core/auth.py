@@ -3,6 +3,8 @@
 Login:
 - Email + password (akun di tabel users, password disimpan sebagai hash Werkzeug). Akun baru / password yang di-reset
   admin wajib diganti saat login pertama.
+- Lupa password: user mengisi email di /forgot-password, permintaannya muncul di Admin > Users, lalu Super Admin
+  me-reset password dan memberikan password sementara (tidak ada pengiriman email dari portal).
 - Microsoft Entra ID (opsional, kalau ENTRA_* diisi): hanya untuk email yang SUDAH terdaftar & aktif di tabel users.
   App roles Entra tidak dipakai lagi untuk hak akses.
 
@@ -16,6 +18,7 @@ import time
 import warnings
 from collections import defaultdict, deque
 from functools import wraps
+from pathlib import Path
 from urllib.parse import urlencode
 
 import msal
@@ -35,11 +38,39 @@ warnings.filterwarnings("ignore", message="response_mode='form_post' is recommen
 _msal_app = None
 _msal_lock = threading.Lock()
 
-# Batas percobaan login gagal per alamat IP (di memori, berlaku per proses). Kunci per akun ada di accounts.py.
-IP_MAX_FAILURES = 20
+# Batas per alamat IP (di memori, berlaku per proses). Kunci per akun ada di accounts.py.
+IP_MAX_FAILURES = 20        # login gagal
+IP_MAX_RESET_REQUESTS = 5   # permintaan "Forgot password"
 IP_WINDOW_SECONDS = 15 * 60
-_ip_failures = defaultdict(deque)
-_ip_lock = threading.Lock()
+
+
+class _IpThrottle:
+    """Hitung kejadian per IP dalam jendela waktu bergeser; blocked() = sudah mencapai batas."""
+
+    def __init__(self, limit, window=IP_WINDOW_SECONDS):
+        self.limit, self.window = limit, window
+        self.hits = defaultdict(deque)
+        self.lock = threading.Lock()
+
+    def blocked(self, ip):
+        now = time.monotonic()
+        with self.lock:
+            hits = self.hits[ip]
+            while hits and now - hits[0] > self.window:
+                hits.popleft()
+            return len(hits) >= self.limit
+
+    def hit(self, ip):
+        with self.lock:
+            self.hits[ip].append(time.monotonic())
+
+    def clear(self):
+        with self.lock:
+            self.hits.clear()
+
+
+_login_failures = _IpThrottle(IP_MAX_FAILURES)
+_reset_requests = _IpThrottle(IP_MAX_RESET_REQUESTS)
 
 # Endpoint yang tetap boleh dibuka selama user belum mengganti password sementara
 _PASSWORD_CHANGE_ALLOWED = {"auth.change_password", "auth.logout", "auth.login", "static"}
@@ -140,7 +171,7 @@ def role_required(*roles):
             if user["role"] not in roles:
                 accounts.audit("access_denied", "page", request.path, actor=user, required=list(roles))
                 if "/api/" in request.path:
-                    return jsonify(error="Tidak punya akses."), 403
+                    return jsonify(error="You do not have access."), 403
                 return render_template("portal/denied.html", admin_only=True), 403
             return view(*args, **kwargs)
         return wrapped
@@ -159,7 +190,7 @@ def require_password_change():
     user = current_user()
     if user and user["must_change_password"]:
         if "/api/" in request.path:
-            return jsonify(error="Ganti password sementara Anda terlebih dahulu."), 403
+            return jsonify(error="Please change your temporary password first."), 403
         return redirect(url_for("auth.change_password", next=request.full_path.rstrip("?")))
     return None
 
@@ -175,23 +206,16 @@ def _start_session(row, sso=False):
     g.pop("allowed_slugs", None)
 
 
-def _ip_blocked(ip):
-    now = time.monotonic()
-    with _ip_lock:
-        hits = _ip_failures[ip]
-        while hits and now - hits[0] > IP_WINDOW_SECONDS:
-            hits.popleft()
-        return len(hits) >= IP_MAX_FAILURES
-
-
-def _ip_failed(ip):
-    with _ip_lock:
-        _ip_failures[ip].append(time.monotonic())
-
-
 def reset_ip_throttle():
-    with _ip_lock:
-        _ip_failures.clear()
+    _login_failures.clear()
+    _reset_requests.clear()
+
+
+def _login_background():
+    """Foto latar halaman login hanya dipakai kalau file-nya ada (opsional, lihat README)."""
+    if (Path(current_app.static_folder) / "img" / "login-bg.jpg").is_file():
+        return url_for("static", filename="img/login-bg.jpg")
+    return None
 
 
 @bp.route("/login", methods=["GET", "POST"])
@@ -205,9 +229,9 @@ def login():
         email = accounts.normalize_email(request.form.get("email"))
         password = request.form.get("password") or ""
         ip = request.remote_addr or "-"
-        if _ip_blocked(ip):
+        if _login_failures.blocked(ip):
             accounts.audit("login_throttled", "ip", ip, email=email)
-            flash("Terlalu banyak percobaan login dari perangkat ini. Coba lagi dalam 15 menit.", "error")
+            flash("Too many login attempts from this device. Please try again in 15 minutes.", "error")
             status = 429
         else:
             row, reason = accounts.authenticate(email, password)
@@ -216,12 +240,36 @@ def login():
                 if row["must_change_password"]:
                     return redirect(url_for("auth.change_password", next=next_url))
                 return redirect(_safe_next(next_url))
-            _ip_failed(ip)
+            _login_failures.hit(ip)
             status = 401
-            flash({"locked": f"Terlalu banyak percobaan gagal. Akun dikunci {accounts.LOCK_MINUTES} menit.",
-                   "inactive": "Akun Anda nonaktif. Hubungi Super Admin MANTRA."}
-                  .get(reason, "Email atau password salah."), "error")
-    return render_template("portal/login.html", entra=entra_configured(), next=next_url, email=email), status
+            flash({"locked": f"Too many failed attempts. Your account is locked for {accounts.LOCK_MINUTES} minutes.",
+                   "inactive": "Your account is inactive. Please contact the Power BI Portal Super Admin."}
+                  .get(reason, "Wrong email or password."), "error")
+    return render_template("portal/login.html", entra=entra_configured(), next=next_url, email=email,
+                           login_bg=_login_background()), status
+
+
+@bp.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    """Minta reset password ke Super Admin. Respons selalu sama, terdaftar atau tidak (tidak membocorkan email)."""
+    if auth_disabled() or current_user():
+        return redirect(url_for("portal.home"))
+    email, sent, status = "", False, 200
+    if request.method == "POST":
+        email = accounts.normalize_email(request.form.get("email"))
+        ip = request.remote_addr or "-"
+        if _reset_requests.blocked(ip):
+            flash("Too many requests from this device. Please try again in 15 minutes.", "error")
+            status = 429
+        elif not accounts.EMAIL_RE.match(email) or len(email) > 254:
+            flash("Please enter a valid email address.", "error")
+            status = 400
+        else:
+            _reset_requests.hit(ip)
+            accounts.request_password_reset(email)
+            sent = True
+    return render_template("portal/forgot_password.html", email=email, sent=sent,
+                           login_bg=_login_background()), status
 
 
 @bp.route("/account/password", methods=["GET", "POST"])
@@ -229,7 +277,7 @@ def login():
 def change_password():
     user = current_user()
     if user["db_id"] is None:  # user development (AUTH_DISABLED=1) tidak punya password
-        flash("Mode development (AUTH_DISABLED=1) tidak memakai password.", "warn")
+        flash("Development mode (AUTH_DISABLED=1) does not use passwords.", "warn")
         return redirect(url_for("portal.settings"))
     next_url = request.values.get("next", "")
     if request.method == "POST":
@@ -239,11 +287,11 @@ def change_password():
         confirm = request.form.get("confirm_password") or ""
         problem = None
         if not row["password_hash"] or not check_password_hash(row["password_hash"], current):
-            problem = "Password saat ini salah."
+            problem = "Your current password is incorrect."
         elif new != confirm:
-            problem = "Konfirmasi password baru tidak sama."
+            problem = "The new passwords do not match."
         elif new == current:
-            problem = "Password baru harus berbeda dari password saat ini."
+            problem = "The new password must be different from the current one."
         else:
             problem = accounts.password_problem(new, row["email"])
         if problem:
@@ -253,7 +301,7 @@ def change_password():
         version = accounts.set_password(row["id"], new, actor=user)
         session["sv"] = version  # sesi ini tetap berlaku; sesi lain user ini otomatis logout
         g.pop("user", None)
-        flash("Password berhasil diganti.", "success")
+        flash("Your password has been changed.", "success")
         return redirect(_safe_next(next_url))
     return render_template("portal/change_password.html", forced=user["must_change_password"], next=next_url)
 
@@ -264,8 +312,8 @@ def microsoft():
     if auth_disabled():
         return redirect(target)
     if not entra_configured():
-        flash("Login Microsoft belum dikonfigurasi: isi ENTRA_TENANT_ID, ENTRA_CLIENT_ID, ENTRA_CLIENT_SECRET di .env.",
-              "error")
+        flash("Microsoft sign-in is not configured: fill in ENTRA_TENANT_ID, ENTRA_CLIENT_ID and "
+              "ENTRA_CLIENT_SECRET in .env.", "error")
         return redirect(url_for("auth.login"))
     flow = _entra().initiate_auth_code_flow(
         scopes=[], redirect_uri=url_for("auth.callback", _external=True), prompt="select_account")
@@ -279,20 +327,21 @@ def callback():
     flow = session.pop("auth_flow", None)
     target = _safe_next(session.pop("auth_next", None))
     if not flow:
-        flash("Sesi login kedaluwarsa, silakan coba lagi.", "error")
+        flash("Your sign-in session expired. Please try again.", "error")
         return redirect(url_for("auth.login"))
     try:
         result = _entra().acquire_token_by_auth_code_flow(flow, request.args.to_dict())
     except ValueError:  # state tidak cocok, mis. tombol back setelah login
-        flash("Sesi login tidak valid, silakan coba lagi.", "error")
+        flash("Invalid sign-in session. Please try again.", "error")
         return redirect(url_for("auth.login"))
     if "error" in result:
         description = result.get("error_description") or result["error"]
         current_app.logger.warning("Login Entra gagal: %s", description.splitlines()[0])
         if "AADSTS50105" in description:  # user belum di-assign ke Enterprise App
-            flash("Akun Anda belum diberi akses ke MANTRA. Hubungi admin MANTRA.", "error")
+            flash("Your account has not been given access to Power BI Portal. Please contact the administrator.",
+                  "error")
         else:
-            flash(f"Login gagal: {description.splitlines()[0]}", "error")
+            flash(f"Sign-in failed: {description.splitlines()[0]}", "error")
         return redirect(url_for("auth.login"))
 
     claims = result.get("id_token_claims") or {}
@@ -301,7 +350,8 @@ def callback():
     if row is None or not row["is_active"]:
         accounts.audit("login_failed", "user", row["id"] if row else None, email=email, method="entra",
                        reason="inactive" if row else "not_registered")
-        flash("Akun Microsoft ini belum terdaftar atau nonaktif di MANTRA. Hubungi Super Admin.", "error")
+        flash("This Microsoft account is not registered or is inactive in Power BI Portal. "
+              "Please contact the Super Admin.", "error")
         return redirect(url_for("auth.login"))
     accounts.record_login(row, method="entra")
     _start_session(row, sso=True)

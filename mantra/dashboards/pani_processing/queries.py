@@ -8,18 +8,18 @@ Model berisi 4 report yang di MANTRA menjadi 4 halaman:
 Rumus setiap angka direkonstruksi dari data & divalidasi terhadap screenshot report Power BI (lihat README dashboard).
 """
 from collections import defaultdict
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
 from ...config import Config
 from ...core.cache import Cache
+from ...core.common import dax_str, fix_logo_url, stamp_info  # noqa: F401  (stamp_info dipakai routes.py)
 from ...core.powerbi import DATA_ERRORS, Dataset, query  # noqa: F401  (DATA_ERRORS dipakai routes.py)
 
 # ID bisa ditimpa lewat .env: PANI_PROCESSING_WORKSPACE_ID / PANI_PROCESSING_DATASET_ID
 DATASET = Dataset("PANI_PROCESSING", workspace_id="f8e25e4f-1d9b-44c5-94b2-069053b7b914",
                   dataset_id="2a7f8bdf-8f64-4fb1-9ba3-c49eb680c9ac")
 
-WIB = timezone(timedelta(hours=7))
 P = "'v_bq_pani_se_fact_period'"
 DIM = "'v_bq_pani_se_dim_metric'"
 EQ = "'mpx_dmr_view'"
@@ -46,10 +46,6 @@ def dax_date(d):
     return f"DATE({d.year}, {d.month}, {d.day})"
 
 
-def dax_str(value):
-    return '"' + str(value).replace('"', '""') + '"'
-
-
 def to_date(value):
     return date.fromisoformat(str(value)[:10]) if value else None
 
@@ -61,13 +57,17 @@ def parse_date(value, default):
         return default
 
 
-def now_wib():
-    return datetime.now(WIB)
+def has_data(bounds):
+    """False kalau tabel halaman masih kosong (MIN/MAX tanggal = BLANK)."""
+    return bool(bounds) and bounds.get("min") is not None and bounds.get("max") is not None
 
 
-def stamp_info(ts):
-    dt = datetime.fromtimestamp(ts, WIB)
-    return {"date": dt.strftime("%d/%m/%Y"), "time": dt.strftime("%H:%M WIB")}
+def date_range(start, end, bounds):
+    """Rentang (start, end) yang sudah urut dan dibatasi ke tanggal data yang ada. Tanggal di URL bebas diketik,
+    jadi tanpa batas ini tanggal ekstrem (mis. 0001-01-01) membuat error, dan setiap rentang baru = query baru."""
+    start, end = (end, start) if start > end else (start, end)
+    lo, hi = bounds["min"], bounds["max"]
+    return min(max(start, lo), hi), min(max(end, lo), hi)
 
 
 def _num(value):
@@ -91,11 +91,6 @@ def pct_var(actual, plan):
     return (actual - plan) / plan * 100 if actual is not None and plan else None
 
 
-def _fix_url(url):
-    # i.ibb.co diblokir di beberapa jaringan; domain .co.com melayani file yang sama (sama seperti Material Readiness)
-    return (url or "").replace("https://i.ibb.co/", "https://i.ibb.co.com/")
-
-
 def companies():
     """Company Code Alias / Company Code -> {name, logo: [logo group, logo company, warna]} untuk header."""
     def load():
@@ -104,7 +99,7 @@ def companies():
         result = {}
         for r in rows:
             info = {"name": r["Company Name"],
-                    "logo": [_fix_url(r["Company Group Icon"]), _fix_url(r["Company Code Icon"]),
+                    "logo": [fix_logo_url(r["Company Group Icon"]), fix_logo_url(r["Company Code Icon"]),
                              HOLDING_COLOR.get(r["Holding Company Name"], "")]}
             for key in (r["Company Code"], r["Company Code Alias"]):
                 if key:

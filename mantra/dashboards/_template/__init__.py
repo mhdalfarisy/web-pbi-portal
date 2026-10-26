@@ -1,4 +1,4 @@
-"""Dashboard __TITLE__ (dibuat dari dashboards/_template oleh scripts/new_dashboard.py).
+"""Dashboard __TITLE__ (dibuat dari dashboards/_template oleh scripts/create_dashboard.py).
 
 Langkah berikutnya:
 1. Isi workspace_id & dataset_id di queries.py, lalu cek: python scripts\\check_setup.py
@@ -19,7 +19,6 @@ DASHBOARD = Dashboard(
     category="Others",
     icon="chart",
     color="slate",
-    role="__ROLE__",
     dataset=queries.DATASET,
     blueprint=bp,
     pages=[("Overview", "__NAME__.overview")],

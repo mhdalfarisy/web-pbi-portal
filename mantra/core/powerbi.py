@@ -83,7 +83,9 @@ class PowerBI:
         missing = [k for k in ("PBI_TENANT_ID", "PBI_CLIENT_ID", "PBI_CLIENT_SECRET") if not getattr(Config, k)]
         if missing:
             raise PowerBIError(f"Belum diisi di .env: {', '.join(missing)}")
-        self._http = requests.Session()  # koneksi dipakai ulang supaya tiap query lebih cepat
+        # Satu requests.Session per thread: koneksi tetap dipakai ulang, tapi Session tidak dibagi antar thread
+        # (dev server multi-thread + ThreadPoolExecutor dashboard), karena Session tidak dijamin thread-safe.
+        self._local = threading.local()
         self._msal = msal.ConfidentialClientApplication(
             Config.PBI_CLIENT_ID,
             authority=f"https://login.microsoftonline.com/{Config.PBI_TENANT_ID}",
@@ -98,9 +100,16 @@ class PowerBI:
             raise PowerBIError(f"Gagal ambil token: {result.get('error')}: {result.get('error_description')}")
         return result["access_token"]
 
+    def _session(self):
+        session = getattr(self._local, "session", None)
+        if session is None:
+            session = self._local.session = requests.Session()
+        return session
+
     def request(self, method, path, **kwargs):
-        resp = self._http.request(method, f"{API}{path}", headers={"Authorization": f"Bearer {self.token()}"},
-                                  timeout=300, **kwargs)
+        # Pesan error berisi path (ID workspace/dataset) dan isi respons: hanya untuk log, lihat core/errors.py
+        resp = self._session().request(method, f"{API}{path}", headers={"Authorization": f"Bearer {self.token()}"},
+                                       timeout=Config.PBI_TIMEOUT_SECONDS, **kwargs)
         if not resp.ok:
             raise PowerBIError(f"{method} {path} -> HTTP {resp.status_code}: {resp.text[:1000]}", resp.status_code)
         return resp.json() if resp.content else None
@@ -109,10 +118,14 @@ class PowerBI:
         """Jalankan DAX, kembalikan list of dict. Batas API: 100.000 baris / 1 juta nilai per query."""
         self._limiter.wait()
         body = {"queries": [{"query": dax}], "serializerSettings": {"includeNulls": True}}
-        result = self.request("POST", f"{dataset.path}/executeQueries", json=body)["results"][0]
+        data = self.request("POST", f"{dataset.path}/executeQueries", json=body)
+        try:
+            result = data["results"][0]
+        except (KeyError, IndexError, TypeError):
+            raise PowerBIError("Respons executeQueries tidak dikenal (tidak ada results)") from None
         if "error" in result:
             raise PowerBIError(f"DAX error: {result['error']}")
-        rows = result["tables"][0].get("rows") or []
+        rows = ((result.get("tables") or [{}])[0] or {}).get("rows") or []
         if not rows:
             return []
         keys = list(rows[0])

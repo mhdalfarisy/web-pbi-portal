@@ -1,5 +1,4 @@
 """Fixture test MANTRA: database sementara (instance/mantra.db tidak disentuh), login wajib, tanpa Power BI/AI asli."""
-import os
 import sys
 import tempfile
 from pathlib import Path
@@ -9,12 +8,19 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-# Harus di-set sebelum mantra.config diimport (load_dotenv tidak menimpa variabel yang sudah ada)
-os.environ.update({"AUTH_DISABLED": "0", "FLASK_SECRET_KEY": "test-secret", "GEMINI_API_KEY": "",
-                   "ENTRA_CLIENT_ID": "", "ENTRA_CLIENT_SECRET": "", "DASHBOARD_STRICT": "1"})
-
 from mantra import create_app  # noqa: E402
+from mantra.config import Config  # noqa: E402
 from mantra.core import accounts, auth, db, powerbi  # noqa: E402
+from mantra.core.chat import routes as chat_routes  # noqa: E402
+
+# config.py memuat .env dengan override=True, jadi nilai di os.environ TIDAK bisa dipakai untuk test (selalu ditimpa
+# .env). Nilai test dipasang langsung ke Config setelah import: secret key khusus test, tanpa AI asli (Gemini tidak
+# pernah dipanggil), tanpa SSO, dan tanpa kredensial Power BI asli (request ke Power BI juga diblokir di bawah).
+TEST_CONFIG = {"SECRET_KEY": "test-secret", "AUTH_DISABLED": False, "DEBUG": False, "DASHBOARD_STRICT": True,
+               "GEMINI_API_KEY": "", "ENTRA_CLIENT_ID": "", "ENTRA_CLIENT_SECRET": "",
+               "PBI_CLIENT_ID": "test-client-id", "PBI_CLIENT_SECRET": "test-client-secret"}
+for _key, _value in TEST_CONFIG.items():
+    setattr(Config, _key, _value)
 
 PASSWORD = "Rahasia-Test-2026"
 EMAILS = {"admin": "pbi_premium@merdeka.com", "a": "pbi_pro_a@merdeka.com", "b": "pbi_pro_b@merdeka.com"}
@@ -46,6 +52,7 @@ def no_external_calls(monkeypatch):
 def fresh_data(app):
     """Setiap test mulai dari data yang sama: 3 akun awal (sudah ganti password), semua dashboard aktif."""
     auth.reset_ip_throttle()
+    chat_routes.reset_rate_limit()
     with app.app_context():
         conn = db.get_db()
         conn.executescript("""DELETE FROM user_dashboard_access; DELETE FROM users; DELETE FROM audit_log;

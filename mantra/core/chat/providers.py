@@ -63,12 +63,12 @@ class GeminiProvider:
             models = [model] + [m for m in models if m != model]  # tetap di model yang berhasil
             calls = response.function_calls or []
             if not calls:
-                return (response.text or "Maaf, saya tidak mendapatkan jawaban.").strip(), model
+                return (response.text or "Sorry, I could not get an answer.").strip(), model
             contents.append(response.candidates[0].content)
             parts = [types.Part.from_function_response(name=c.name, response={"result": call_tool(c.name, dict(c.args or {}))})
                      for c in calls]
             contents.append(types.Content(role="user", parts=parts))
-        return "Maaf, pertanyaan ini butuh terlalu banyak langkah. Coba dipersempit.", models[0]
+        return "Sorry, this question needs too many steps. Please make it more specific.", models[0]
 
 
 PROVIDERS = {"gemini": (GeminiProvider, lambda: bool(Config.GEMINI_API_KEY))}

@@ -8,19 +8,21 @@ app = create_app()
 if __name__ == "__main__":
     exit_code = 0
     if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
-        mode = ("DILEWATI (AUTH_DISABLED=1 di .env, masuk sebagai Super Admin)" if Config.AUTH_DISABLED
-                else "AKTIF (email + password)")
-        print(f" * MANTRA: http://localhost:{Config.PORT}  |  Login: {mode}")
+        mode = ("SKIPPED (AUTH_DISABLED=1 in .env, signed in as Super Admin)" if Config.AUTH_DISABLED
+                else "ON (email + password)")
+        print(f" * Power BI Portal: http://localhost:{Config.PORT}  |  Login: {mode}"
+              f"  |  Debug: {'ON (FLASK_DEBUG=1)' if Config.DEBUG else 'OFF'}")
     try:
-        # Buka lewat http://localhost:<PORT> (bukan 127.0.0.1) supaya cocok dengan redirect URI di Microsoft Entra
-        app.run(host="localhost", port=Config.PORT, debug=True)
+        # Buka lewat http://localhost:<PORT> (bukan 127.0.0.1) supaya cocok dengan redirect URI di Microsoft Entra.
+        # Debugger Werkzeug hanya aktif kalau FLASK_DEBUG=1 di .env (bisa menjalankan kode di server).
+        app.run(host="localhost", port=Config.PORT, debug=Config.DEBUG)
     except SystemExit as exc:
         exit_code = exc.code
         raise
     finally:
-        # Mode debug berhenti tanpa pesan; tampilkan penyebabnya (hanya di proses utama, bukan proses reloader)
+        # Tampilkan penyebab server berhenti (hanya di proses utama, bukan proses reloader mode debug)
         if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
-            reason = ("dihentikan (Ctrl+C atau terminal ditutup)" if not exit_code
-                      else f"crash (exit code {exit_code}), lihat error di atas")
-            print(f"\n * Server MANTRA berhenti: {reason}.")
-            print(f" * Jalankan lagi: python run.py  lalu buka http://localhost:{Config.PORT}")
+            reason = ("stopped (Ctrl+C or terminal closed)" if not exit_code
+                      else f"crashed (exit code {exit_code}), see the error above")
+            print(f"\n * Power BI Portal server {reason}.")
+            print(f" * Start it again: python run.py  then open http://localhost:{Config.PORT}")

@@ -1,24 +1,25 @@
 {% extends "portal/base.html" %}
 {% from "admin/_ui.html" import dashboard_checks %}
-{% block title %}Tambah User{% endblock %}
+{% block title %}Add User{% endblock %}
 {% block content %}
-<nav class="page-crumbs"><a href="{{ url_for('admin.users') }}">User Management</a> &#8250; Tambah user</nav>
-<div class="page-head"><div><h1>Tambah user</h1>
-  <p class="muted">Password sementara dibuat otomatis dan ditampilkan sekali setelah disimpan. User wajib menggantinya saat login pertama.</p></div></div>
+<nav class="page-crumbs"><a href="{{ url_for('admin.users') }}">User Management</a> &#8250; Add user</nav>
+<div class="page-head"><div><h1>Add user</h1>
+  <p class="muted">A temporary password is generated automatically and shown once after saving. The user must change it
+    at their first sign-in.</p></div></div>
 
 <form class="panel narrow form-stack" method="post" action="{{ url_for('admin.new_user') }}">
   <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
   <label class="field"><span>Email</span>
-    <input class="input" type="email" name="email" value="{{ form.email }}" required maxlength="254" autofocus placeholder="nama@merdeka.com"></label>
-  <label class="field"><span>Nama (opsional)</span>
+    <input class="input" type="email" name="email" value="{{ form.email }}" required maxlength="254" autofocus placeholder="name@merdeka.com"></label>
+  <label class="field"><span>Name (optional)</span>
     <input class="input" type="text" name="name" value="{{ form.name }}" maxlength="120"></label>
   <div class="field"><span>Role</span>
-    <p class="hint">User. Role Super Admin hanya bisa diberikan lewat <code>scripts\manage_users.py</code>.</p></div>
-  <div class="field"><span>Dashboard yang boleh dibuka</span>
+    <p class="hint">User. The Super Admin role can only be granted through <code>scripts\manage_users.py</code>.</p></div>
+  <div class="field"><span>Dashboards this user may open</span>
     {{ dashboard_checks(dashboards, form.dashboard | map('int') | list) }}</div>
   <div class="form-actions">
-    <button class="btn" type="submit">Simpan user</button>
-    <a class="btn ghost" href="{{ url_for('admin.users') }}">Batal</a>
+    <button class="btn" type="submit">Save user</button>
+    <a class="btn ghost" href="{{ url_for('admin.users') }}">Cancel</a>
   </div>
 </form>
 {% endblock %}

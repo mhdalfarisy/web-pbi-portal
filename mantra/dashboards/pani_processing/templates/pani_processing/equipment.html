@@ -47,15 +47,15 @@
   {% endcall %}
 
   <div class="row r4">
-    <a class="panel pk {{ 'sel' if d.status == 'active' }}" href="{{ url_for('pani_processing.equipment', status='active', **qs) }}" title="Tampilkan Top 5 unit aktif">
+    <a class="panel pk {{ 'sel' if d.status == 'active' }}" href="{{ url_for('pani_processing.equipment', status='active', **qs) }}" title="Show Top 5 active units">
       <div class="pk-top"><span class="pk-ic ic-blue">{{ picon('check') }}</span>
         <div><small>Total Active Unit</small><b class="slate">{{ fmt(d.active) }}</b>
-          <em>{{ fmt(d.active / d.total * 100 if d.total else 0, 2) }}% dari total unit</em></div></div>
+          <em>{{ fmt(d.active / d.total * 100 if d.total else 0, 2) }}% of total units</em></div></div>
       <div class="spark wide" id="sp-active"></div></a>
-    <a class="panel pk {{ 'sel' if d.status == 'inactive' }}" href="{{ url_for('pani_processing.equipment', status='inactive', **qs) }}" title="Tampilkan Top 5 unit nonaktif">
+    <a class="panel pk {{ 'sel' if d.status == 'inactive' }}" href="{{ url_for('pani_processing.equipment', status='inactive', **qs) }}" title="Show Top 5 inactive units">
       <div class="pk-top"><span class="pk-ic ic-red">{{ picon('x') }}</span>
         <div><small>Total Inactive Unit</small><b class="slate">{{ fmt(d.inactive) }}</b>
-          <em>{{ fmt(d.inactive / d.total * 100 if d.total else 0, 2) }}% dari total unit</em></div></div>
+          <em>{{ fmt(d.inactive / d.total * 100 if d.total else 0, 2) }}% of total units</em></div></div>
       <div class="spark wide" id="sp-inactive"></div></a>
     {% for label, val, delta, ic, key in [('Average PA%', d.avg_pa, d.delta_pa, 'percent', 'pa'), ('Average UA%', d.avg_ua, d.delta_ua, 'chart', 'ua')] %}
     <div class="panel pk green">
@@ -80,7 +80,7 @@
           <tr><td><b>{{ u.unit }}</b></td><td>{{ u.model }}</td>
             <td><div class="bar-wrap"><div class="bar"><span style="width: {{ u.dur / maxdur * 100 if maxdur else 0 }}%"></span></div><b>{{ fmt(u.dur, 1) }} h</b></div></td>
             <td class="r" style="color:#2563eb;font-weight:700">{{ fmt(u.pa, 2) }}%</td></tr>
-          {% else %}<tr><td colspan="4" class="note">Tidak ada unit.</td></tr>{% endfor %}
+          {% else %}<tr><td colspan="4" class="note">No units.</td></tr>{% endfor %}
         </tbody>
       </table>
     </section>
@@ -88,7 +88,7 @@
       <div class="ph"><h3>Gain &amp; Loss <small>(Operational Hours)</small></h3>
         <span class="pill-b badge-r">Net: {{ fmt(d.net_gainloss, 1) }} h</span></div>
       {% set maxgl = (d.gainloss|map(attribute='dur')|map('abs')|max) if d.gainloss else 0 %}
-      {% if not maxgl %}<p class="note" style="margin-bottom:8px">Tidak ada jam gain/loss tercatat pada periode ini.</p>{% endif %}
+      {% if not maxgl %}<p class="note" style="margin-bottom:8px">No gain/loss hours recorded in this period.</p>{% endif %}
       <div class="glbars">
         {% for g in d.gainloss %}
         <div class="glrow"><span>{{ g.name }}</span>

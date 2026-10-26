@@ -87,7 +87,7 @@ def check_powerbi(dashboards):
     for d in dashboards:
         if d.dataset is None:
             continue
-        workspace_id, dataset_id = d.dataset.ids
+        workspace_id, _ = d.dataset.ids
         print(f"\n    {d.title} ({d.slug})")
         in_ws = workspace_id.lower() in workspaces
         report(in_ws, "akses workspace", workspaces.get(workspace_id.lower(), workspace_id),

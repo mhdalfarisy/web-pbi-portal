@@ -1,4 +1,4 @@
-{#- Halaman report: tampil di dalam kerangka MANTRA (base.html), jadi sidebar & top bar tetap ada.
+{#- Halaman report: tampil di dalam kerangka portal (base.html), jadi sidebar & top bar tetap ada.
     Header biru (.hd) tetap jadi identitas report: logo entity, judul, menu halaman report, waktu update data.
     Blok untuk halaman report: title, head, main_title, pill, desc, stat_note, content, scripts. -#}
 {% extends "base.html" %}
@@ -40,7 +40,7 @@
       </div>
       <div class="hd-right">
         {% if dashboard.pages|length > 1 %}
-        <nav class="hd-nav" aria-label="Halaman {{ dashboard.title }}">
+        <nav class="hd-nav" aria-label="{{ dashboard.title }} pages">
           {% for label, endpoint in dashboard.pages %}
           <a href="{{ url_for(endpoint) }}" class="{{ 'on' if request.endpoint == endpoint }}"
              {%- if request.endpoint == endpoint %} aria-current="page"{% endif %}>{{ label }}</a>
@@ -71,15 +71,15 @@
   <header class="chat-head">
     <div>
       <b>AI Agent {{ dashboard.title }}</b>
-      <small>AI membaca langsung dari semantic model · jawaban bisa keliru, cek di dashboard</small>
+      <small>Reads directly from the semantic model · answers can be wrong, check the dashboard</small>
     </div>
-    <button type="button" id="chatReset" title="Percakapan baru">&#8635;</button>
-    <button type="button" id="chatClose" title="Tutup">&times;</button>
+    <button type="button" id="chatReset" title="New conversation">&#8635;</button>
+    <button type="button" id="chatClose" title="Close">&times;</button>
   </header>
   <div class="chat-body" id="chatBody"></div>
   <form class="chat-form" id="chatForm">
-    <textarea id="chatInput" rows="1" maxlength="1000" placeholder="Tanya soal data {{ dashboard.title }}..."></textarea>
-    <button type="submit" id="chatSend" aria-label="Kirim">&#10148;</button>
+    <textarea id="chatInput" rows="1" maxlength="1000" placeholder="Ask about {{ dashboard.title }} data..."></textarea>
+    <button type="submit" id="chatSend" aria-label="Send">&#10148;</button>
   </form>
 </section>
 <script>window.CHAT = {{ {"url": url_for("chat.chat", slug=dashboard.slug), "title": dashboard.title,

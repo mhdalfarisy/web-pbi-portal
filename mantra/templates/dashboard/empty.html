@@ -1,0 +1,12 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+<section class="panel empty-panel">
+  <h2>No data available yet</h2>
+  <p>The semantic model does not have any rows for this page yet. Data will appear after the next dataset refresh in
+    Power BI.</p>
+  <div class="err-actions">
+    <a class="btn" href="{{ request.full_path.rstrip('?') }}">Reload</a>
+    <a class="btn ghost" href="{{ url_for('portal.reports') }}">Back to Reports</a>
+  </div>
+</section>
+{% endblock %}

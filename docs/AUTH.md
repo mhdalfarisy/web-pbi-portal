@@ -11,6 +11,9 @@ database, migrasi, backup & rollback, dan cara mengelola akun.
 - Dua role: `super_admin` dan `user`.
 - Hak akses per dashboard disimpan di tabel `user_dashboard_access`. Default **deny**: tanpa baris izin, ditolak.
 - Semua cek dilakukan di server pada setiap request. Menyembunyikan menu hanya untuk kenyamanan, bukan pengaman.
+- Lupa password: link **Forgot password?** di halaman login mengirim permintaan ke Super Admin (lihat
+  "Lupa password" di bawah). Portal tidak mengirim email.
+- Tampilan website (nama: **Power BI Portal**) berbahasa Inggris; dokumen developer ini tetap berbahasa Indonesia.
 
 | Akun awal | Role | Dashboard |
 |---|---|---|
@@ -63,6 +66,8 @@ users                                   dashboards
                      status/role berubah
   failed_logins, locked_until           user_dashboard_access
   last_login_at, password_changed_at      id            PK
+  reset_requested_at (v3) permintaan
+                     Forgot password
   created_at, updated_at                  user_id       FK users ON DELETE CASCADE
                                           dashboard_id  FK dashboards ON DELETE CASCADE
 audit_log                                 granted_by    FK users ON DELETE SET NULL
@@ -99,6 +104,21 @@ Lainnya:
 - Pesan login gagal sama untuk email tidak terdaftar dan password salah (tidak membocorkan email yang valid).
 - Super Admin tidak bisa menonaktifkan dirinya sendiri, dan Super Admin aktif terakhir tidak bisa dinonaktifkan /
   diturunkan.
+
+## Lupa password
+
+1. User klik **Forgot password?** di halaman login (`/forgot-password`) dan mengisi email.
+2. Kalau email itu milik akun **aktif**, kolom `users.reset_requested_at` diisi. Halaman selalu menampilkan pesan yang
+   sama (terdaftar / tidak terdaftar / nonaktif), jadi tidak bisa dipakai menebak email. Semua permintaan dicatat di
+   audit log (`password_reset_requested`, dengan hasil `pending` / `not_registered` / `inactive`).
+3. Super Admin melihat badge merah di menu **Admin > Users**, banner di daftar user, dan status *Reset requested*.
+4. Di halaman detail user: **Reset password** (password sementara tampil sekali, permintaan otomatis selesai) atau
+   **Dismiss request** (password tidak berubah, `password_reset_dismissed`). Pastikan dulu permintaan itu benar dari
+   user tersebut (mis. lewat telepon) sebelum memberikan password sementara.
+5. User login dengan password sementara dan wajib langsung membuat password baru.
+
+Batas: 5 permintaan per IP per 15 menit (HTTP 429), token CSRF wajib, user yang sudah login diarahkan ke Home.
+Kalau Super Admin satu-satunya yang lupa password: `python scripts\manage_users.py reset-password --email <email>`.
 - Semua POST butuh token CSRF. Session: cookie HttpOnly, SameSite=Lax, Secure kalau `SESSION_COOKIE_SECURE=1`,
   berlaku `SESSION_HOURS` jam.
 
@@ -107,6 +127,7 @@ Lainnya:
 | Method | Route | Akses | Fungsi |
 |---|---|---|---|
 | GET, POST | `/login` | publik | form login email + password |
+| GET, POST | `/forgot-password` | publik (belum login) | kirim permintaan reset password ke Super Admin |
 | POST | `/logout` | login | keluar (juga dari Microsoft kalau login lewat Entra) |
 | GET, POST | `/account/password` | login | ganti password (wajib untuk password sementara) |
 | GET | `/auth/microsoft`, `/auth/callback` | publik | login Entra (opsional) |
@@ -120,6 +141,7 @@ Lainnya:
 | POST | `/admin/users/<id>/access` | super_admin | simpan daftar dashboard yang diizinkan |
 | POST | `/admin/users/<id>/status` | super_admin | aktifkan / nonaktifkan |
 | POST | `/admin/users/<id>/reset-password` | super_admin | password sementara baru, tampil sekali |
+| POST | `/admin/users/<id>/dismiss-reset` | super_admin | abaikan permintaan Forgot password (password tetap) |
 | GET | `/admin/dashboards` | super_admin | katalog dashboard + status |
 | POST | `/admin/dashboards/<id>/status` | super_admin | aktifkan / nonaktifkan dashboard |
 | GET | `/admin/audit` | super_admin | audit log |
@@ -127,7 +149,8 @@ Lainnya:
 ## Audit log
 
 Tercatat di tabel `audit_log` (lihat **Admin > Audit Log**): `login_success`, `login_failed` (dengan alasan),
-`account_locked`, `login_throttled`, `logout`, `password_changed`, `password_reset`, `user_created`,
+`account_locked`, `login_throttled`, `logout`, `password_changed`, `password_reset`, `password_reset_requested`,
+`password_reset_dismissed`, `user_created`,
 `user_activated`, `user_deactivated`, `role_changed`, `access_granted`, `access_revoked`, `dashboard_activated`,
 `dashboard_deactivated`, `access_denied`. Password, hash, token, dan secret tidak pernah dicatat (dicek oleh test).
 
@@ -183,7 +206,10 @@ Kalau kode baru dijalankan dengan database lama, migrasi otomatis memasang ulang
 | `FLASK_SECRET_KEY` | wajib; menandatangani cookie session. Ganti = semua user logout |
 | `AUTH_DISABLED` | `0` = login wajib. `1` = tanpa login, masuk sebagai Super Admin development (jangan di production) |
 | `SESSION_HOURS` | lama sesi login (default 8 jam) |
-| `SESSION_COOKIE_SECURE` | `1` kalau sudah HTTPS |
+| `SESSION_COOKIE_SECURE` | **wajib** `1` kalau portal dibuka lewat HTTPS; `0` hanya untuk `http://localhost` |
+| `FLASK_DEBUG` | `1` = Werkzeug debugger + auto reload (development saja; default `0`) |
+| `CHAT_MAX_PER_MINUTE` | batas pertanyaan AI agent per user per menit (default 10) |
+| `PBI_TIMEOUT_SECONDS` | batas waktu satu request ke Power BI (default 120 detik) |
 | `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID`, `ENTRA_CLIENT_SECRET` | opsional, login Microsoft |
 | `MANTRA_SEED_PASSWORD` | hanya saat menjalankan `seed`; jangan simpan di `.env` |
 
@@ -195,8 +221,10 @@ python -m pytest
 ```
 
 Test memakai database sementara (bukan `instance\mantra.db`), memaksa `AUTH_DISABLED=0`, dan memblokir panggilan ke
-Power BI & AI. Halaman dashboard yang lolos cek akses tampil sebagai error data (HTTP 502) di test, yang dibedakan dari
+Power BI & AI. Karena `.env` selalu menimpa environment, nilai test (secret key, tanpa API key Gemini, tanpa kredensial
+asli) dipasang langsung ke `Config` di `tests/conftest.py`. Halaman dashboard yang lolos cek akses tampil sebagai error data (HTTP 502) di test, yang dibedakan dari
 penolakan akses (HTTP 403). Cakupan: login & pesan gagal, normalisasi email, daftar dashboard per role, 403 lewat URL
 langsung (halaman, API, static, AI agent), halaman admin, akun nonaktif, cabut akses, dashboard nonaktif, manipulasi
 request, CSRF, password sementara, reset password, lockout, throttle IP, cookie palsu, hash password, seed idempotent,
-seed tidak menimpa akun, migrasi data lama + backup, constraint tabel, audit/log tanpa secret.
+seed tidak menimpa akun, migrasi data lama + backup, constraint tabel, audit/log tanpa secret, lupa password
+(`tests/test_forgot_password.py`), dan perbaikan audit teknis (`tests/test_errors_and_security.py`).

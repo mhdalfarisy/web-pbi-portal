@@ -66,12 +66,12 @@ function toolSummary(tools) {
         const args = Object.entries(t.args || {}).map(([k, v]) => k + '=' + v).join(', ');
         return '<li><b>' + esc(t.label || t.name) + '</b>' + (args ? ' · ' + esc(args) : '') + '</li>';
     }).join('');
-    return '<details class="chat-tools"><summary>Data yang dipakai (' + tools.length + ' query)</summary><ul>' + items + '</ul></details>';
+    return '<details class="chat-tools"><summary>Data used (' + tools.length + (tools.length === 1 ? ' query' : ' queries') + ')</summary><ul>' + items + '</ul></details>';
 }
 
 function welcome() {
     el('chatBody').innerHTML = '';
-    bubble('bot', '<p>Halo! Saya AI agent ' + esc(CFG.title || 'dashboard ini') + '. Saya menjawab langsung dari semantic model Power BI.</p>'
+    bubble('bot', '<p>Hi! I am the ' + esc(CFG.title || 'dashboard') + ' AI agent. I answer directly from the Power BI semantic model.</p>'
         + '<div class="chat-suggest">' + SUGGESTIONS.map((s) => '<button type="button">' + esc(s) + '</button>').join('') + '</div>');
 }
 
@@ -84,7 +84,7 @@ async function send(text) {
     el('chatInput').value = '';
     autosize();
     bubble('user', '<p>' + esc(text) + '</p>');
-    const wait = bubble('bot loading', '<span class="dots"><i></i><i></i><i></i></span> Mengambil data dari Power BI...');
+    const wait = bubble('bot loading', '<span class="dots"><i></i><i></i><i></i></span> Fetching data from Power BI...');
     try {
         const r = await fetch(CFG.url, {
             method: 'POST',
@@ -96,7 +96,7 @@ async function send(text) {
                 filters: window.DashFilters ? window.DashFilters() : null,
             }),
         });
-        const data = await r.json().catch(() => ({ error: 'Respons server tidak valid (HTTP ' + r.status + ')' }));
+        const data = await r.json().catch(() => ({ error: 'Invalid server response (HTTP ' + r.status + ')' }));
         if (!r.ok || data.error) { throw new Error(data.error || 'HTTP ' + r.status); }
         wait.className = 'chat-msg bot';
         wait.innerHTML = markdown(data.answer) + toolSummary(data.tools);

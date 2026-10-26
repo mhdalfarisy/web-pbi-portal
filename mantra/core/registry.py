@@ -49,8 +49,7 @@ class Dashboard:
     category: str                # kategori di halaman Reports, mis. Operations
     icon: str                    # nama ikon di templates/portal/_ui.html
     color: str                   # warna kartu: blue, green, orange, purple, teal, red, indigo, cyan, slate
-    role: str                    # label lama (app role Entra). Hak akses sekarang dari database: Admin > Users
-    dataset: object = None       # core.powerbi.Dataset
+    dataset: object = None       # core.powerbi.Dataset (hak akses diatur di database: Admin > Users)
     blueprint: Blueprint | None = None
     pages: list = field(default_factory=list)   # [(label, endpoint)] menu di header dashboard
     chat: ChatSpec | None = None
@@ -93,12 +92,12 @@ def _guard(dashboard):
         user = auth.current_user()
         if user is None:
             if is_api:
-                return jsonify(error="Sesi login habis, silakan muat ulang halaman."), 401
+                return jsonify(error="Your session has expired. Please reload the page."), 401
             return redirect(url_for("auth.login", next=request.full_path.rstrip("?")))
         if not auth.can_open(user, dashboard):
             accounts.audit("access_denied", "dashboard", dashboard.slug, actor=user, path=request.path)
             if is_api:
-                return jsonify(error="Tidak punya akses ke dashboard ini."), 403
+                return jsonify(error="You do not have access to this dashboard."), 403
             return render_template("portal/denied.html", dashboard=dashboard), 403
         if request.method == "GET" and request.endpoint in page_endpoints:
             db.add_history(user["id"], dashboard.slug, f"{dashboard.title} · {page_endpoints[request.endpoint]}",
@@ -114,17 +113,22 @@ def _load(app, module_name):
     dashboard = getattr(module, "DASHBOARD", None)
     if not isinstance(dashboard, Dashboard):
         raise RuntimeError(f"{module_name} tidak punya variabel DASHBOARD = Dashboard(...)")
-    if dashboard.slug in _DASHBOARDS:
+    known = _DASHBOARDS.get(dashboard.slug)
+    if known is not None and known is not dashboard:
         raise RuntimeError(f"Slug dashboard dobel: {dashboard.slug}")
-    if dashboard.ready and not (dashboard.blueprint and dashboard.pages):
-        raise RuntimeError(f"Dashboard {dashboard.slug} ready=True tapi belum punya blueprint/pages")
-    if dashboard.chat:
-        prompt.load(dashboard)  # gagal di sini kalau file prompt rusak (placeholder / nama tool salah)
+    if known is None:
+        # Sekali per proses: blueprint & DASHBOARD adalah objek modul, jadi create_app() berikutnya (test, script)
+        # cukup mendaftarkan blueprint yang sama ke app baru tanpa memasang guard dua kali.
+        if dashboard.ready and not (dashboard.blueprint and dashboard.pages):
+            raise RuntimeError(f"Dashboard {dashboard.slug} ready=True tapi belum punya blueprint/pages")
+        if dashboard.chat:
+            prompt.load(dashboard)  # gagal di sini kalau file prompt rusak (placeholder / nama tool salah)
+        if dashboard.blueprint is not None:
+            dashboard.blueprint.before_request(_guard(dashboard))
+            _BY_BLUEPRINT[dashboard.blueprint.name] = dashboard
+        _DASHBOARDS[dashboard.slug] = dashboard
     if dashboard.blueprint is not None:
-        dashboard.blueprint.before_request(_guard(dashboard))
         app.register_blueprint(dashboard.blueprint)
-        _BY_BLUEPRINT[dashboard.blueprint.name] = dashboard
-    _DASHBOARDS[dashboard.slug] = dashboard
 
 
 def module_names():

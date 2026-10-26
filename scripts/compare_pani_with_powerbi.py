@@ -4,9 +4,9 @@ Measure report (mis. html_gold_produced_ads_ytd) dijalankan lewat executeQueries
 teksnya dibaca, lalu dibandingkan dengan angka MANTRA dalam format tampilan yang sama (mis. 49,077.26 / -4.8%).
 
 Pemakaian:
-    python scripts/compare_pani_report.py              semua halaman & skenario
-    python scripts/compare_pani_report.py processing   hanya halaman tertentu (processing/equipment/mining/production)
-    python scripts/compare_pani_report.py --fixed      uji DAX perbaikan di docs/powerbi_fixes/ SEBELUM ditempel ke
+    python scripts/compare_pani_with_powerbi.py              semua halaman & skenario
+    python scripts/compare_pani_with_powerbi.py processing   hanya halaman tertentu (processing/equipment/mining/production)
+    python scripts/compare_pani_with_powerbi.py --fixed      uji DAX perbaikan di docs/powerbi_fixes/ SEBELUM ditempel ke
                                                        report (DEFINE MEASURE: hanya berlaku di query, report tidak berubah)
 
 Selisih karena bug di report aslinya ditandai "BEDA*" dan tidak dihitung gagal (lihat argumen known=).
@@ -30,6 +30,10 @@ FIX_DIR = Path(__file__).resolve().parent.parent / "docs" / "powerbi_fixes"
 FIXED = "--fixed" in sys.argv
 FIXES = {}
 if FIXED:
+    if not any(FIX_DIR.glob("*/*.dax")):
+        # Folder ini sudah dihapus dari working tree; isinya masih ada di riwayat git
+        sys.exit(f"{FIX_DIR} tidak ada atau kosong, jadi --fixed tidak bisa dijalankan.\n"
+                 "Pulihkan dulu dengan: git restore docs/powerbi_fixes  (atau jalankan tanpa --fixed)")
     for f in sorted(FIX_DIR.glob("*/*.dax")):
         head, expr = f.read_text(encoding="utf-8").split("=", 1)
         assert head.strip() == f.stem, f"{f}: baris pertama harus '{f.stem} ='"

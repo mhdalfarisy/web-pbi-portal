@@ -6,10 +6,10 @@ jadi data sesegar refresh terakhir dataset.
 import csv
 import io
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta, timezone
 
 from ...config import Config
 from ...core.cache import Cache
+from ...core.common import dax_str, fix_logo_url, now_wib, stamp_info  # noqa: F401  (now_wib/stamp_info: routes.py)
 from ...core.powerbi import DATA_ERRORS, Dataset, query  # noqa: F401  (DATA_ERRORS dipakai routes.py)
 
 # ID bisa ditimpa lewat .env: MATERIAL_READINESS_WORKSPACE_ID / MATERIAL_READINESS_DATASET_ID
@@ -18,17 +18,12 @@ DATASET = Dataset("MATERIAL_READINESS", workspace_id="076fb2d0-f8c2-44c9-8e6f-3c
 BRANCHES = ("FP", "ME")  # branch yang tampil di dashboard, sama seperti report Power BI aslinya
 DETAIL_LIMIT = 15_000    # batas baris tabel Detail per filter (KPI tetap dihitung dari semua baris)
 
-WIB = timezone(timedelta(hours=7))
 NO_COMPANY = "Unidentified"
 PAGE_SIZES = (25, 50, 100, 200)
 FILTER_KEYS = ("type", "year", "month", "company", "plant", "warehouse", "status", "doc", "week", "q")
 
 T = "'DWMaterialReadiness'"
 C = "'DWMasterIconCompany'"
-
-
-def dax_str(value):
-    return '"' + str(value).replace('"', '""') + '"'
 
 
 BRANCH = f"TREATAS({{{', '.join(dax_str(b) for b in BRANCHES)}}}, {T}[branch_code])"
@@ -72,15 +67,6 @@ _cache = Cache(Config.CACHE_SECONDS)
 def _query(dax):
     """Jalankan DAX ke semantic model dashboard ini, kembalikan list of dict."""
     return query(DATASET, dax)
-
-
-def now_wib():
-    return datetime.now(WIB)
-
-
-def stamp_info(ts):
-    dt = datetime.fromtimestamp(ts, WIB)
-    return {"date": dt.strftime("%d/%m/%Y"), "time": dt.strftime("%H:%M WIB")}
 
 
 def status_rank(status):
@@ -129,16 +115,11 @@ def summary_cube():
 
 def company_logos():
     """company name -> [logo group, logo company, warna group]."""
-    def fix(url):
-
-        return (url or "").replace("i.ibb.co/", "i.ibb.co.com/")
-
     def load():
         rows = _query(f'EVALUATE SELECTCOLUMNS({C}, "n", {C}[Company Name], "g", {C}[Company Group Icon], '
                       f'"i", {C}[Company Code Icon], "c", {C}[Company Group Color])')
-        return {r["n"]: [fix(r["g"]), fix(r["i"]), r["c"] or ""] for r in rows if r["n"]}
+        return {r["n"]: [fix_logo_url(r["g"]), fix_logo_url(r["i"]), r["c"] or ""] for r in rows if r["n"]}
     return _cache.get("logo", load)[0]
-
 
 
 def _int(value):
@@ -418,8 +399,8 @@ def detail(f):
         "filters": {k: f[k] for k in ("type", "tm", "year", "month", "sort", "dir")},
         "columns": [{"key": k, "label": COLUMNS[k][0], "kind": COLUMNS[k][1]} for k in VIEWS[f["type"]]],
         "rows": rows[start:start + f["size"]],
-        "total": len(rows),               
-        "matched": meta["kpi"]["total"],  
+        "total": len(rows),               # baris yang dimuat (maks DETAIL_LIMIT)
+        "matched": meta["kpi"]["total"],  # semua baris yang cocok dengan filter
         "page": page,
         "pages": pages,
         "size": f["size"],

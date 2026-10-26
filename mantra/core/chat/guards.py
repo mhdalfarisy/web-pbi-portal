@@ -6,11 +6,11 @@ class ToolArgError(Exception):
     """Parameter dari AI tidak cocok dengan data. Dikembalikan ke AI beserta pilihan yang valid."""
 
     def __init__(self, name, value, options):
-        super().__init__(f"{name} '{value}' tidak dikenali")
+        super().__init__(f"{name} '{value}' is not recognised")
         self.name, self.value, self.options = name, value, list(options)
 
     def result(self):
-        return {"error": f"{self.name} '{self.value}' tidak dikenali. Pakai salah satu dari valid_options.",
+        return {"error": f"{self.name} '{self.value}' is not recognised. Use one of valid_options.",
                 "valid_options": self.options[:40]}
 
 
@@ -52,11 +52,11 @@ def resolve_week(value, weeks):
     if key in by_key:
         return by_key[key]
     latest = sorted((k, w) for k, w in by_key.items() if k)[-20:]
-    raise ToolArgError("week (format 'minggu - tahun')", value, [w for _, w in latest])
+    raise ToolArgError("week (format 'week - year')", value, [w for _, w in latest])
 
 
-EMPTY_HINT = ("Hasil kosong untuk filter ini. Ini belum tentu berarti datanya tidak ada: sebutkan filter yang dipakai, "
-              "lalu sarankan memperluas periode atau mencari berdasarkan kode/nomor tertentu.")
+EMPTY_HINT = ("No rows for these filters. That does not necessarily mean the data does not exist: mention the filters "
+              "used, then suggest widening the period or searching for a specific code/number.")
 
 
 def add_hint(result):

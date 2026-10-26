@@ -15,7 +15,6 @@ DASHBOARD = Dashboard(
     category="Operations",
     icon="chart",
     color="blue",
-    role="Report.MaterialReadiness",
     dataset=queries.DATASET,
     blueprint=bp,
     pages=[("Summary", "material_readiness.summary"), ("Detail", "material_readiness.detail")],

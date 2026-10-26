@@ -3,7 +3,8 @@
 {% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='css/portal.css') }}">{% endblock %}
 {% block main %}
   {% if config.AUTH_DISABLED %}
-  <div class="flash warn">Mode development: login dilewati (AUTH_DISABLED=1), Anda masuk sebagai Super Admin tanpa akun. Isi AUTH_DISABLED=0 di .env untuk memakai login email + password.</div>
+  <div class="flash warn">Development mode: sign-in is skipped (AUTH_DISABLED=1) and you are signed in as Super Admin
+    without an account. Set AUTH_DISABLED=0 in .env to use email + password sign-in.</div>
   {% endif %}
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}

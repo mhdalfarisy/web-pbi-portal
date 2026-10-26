@@ -1,9 +1,9 @@
 """Tes regresi AI agent. Jalankan setelah mengubah prompt (core/prompts, dashboards/*/prompts) atau tools.py.
 
 Pemakaian:
-    python scripts/test_chatbot.py --static                              cek statis semua agent (gratis)
-    python scripts/test_chatbot.py --dashboard material-readiness        cek statis + pertanyaan acuan
-    python scripts/test_chatbot.py --dashboard material-readiness lookup hanya kasus yang namanya mengandung "lookup"
+    python scripts/check_ai_agent.py --static                              cek statis semua agent (gratis)
+    python scripts/check_ai_agent.py --dashboard material-readiness        cek statis + pertanyaan acuan
+    python scripts/check_ai_agent.py --dashboard material-readiness lookup hanya kasus yang namanya mengandung "lookup"
 
 Cek statis : prompt terbaca, placeholder & nama tool valid, pengaman parameter (status, company, week).
 Kasus      : pertanyaan acuan di dashboards/<nama>/chat_cases.py. Jawaban acuan dihitung dari semantic model saat

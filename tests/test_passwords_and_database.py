@@ -132,3 +132,16 @@ def test_auth_disabled_is_read_only_from_env_file():
     result = subprocess.run([sys.executable, "-c", code], cwd=ROOT, env={**os.environ, "AUTH_DISABLED": "1"},
                             capture_output=True, text=True, timeout=60)
     assert result.returncode == 0 and "ok" in result.stdout, result.stderr
+
+
+def test_env_file_wins_over_inherited_terminal_variables():
+    """Terminal VS Code bisa membawa .env project lain (python.terminal.useEnvFile). Kredensial service principal dari
+    sana tidak boleh dipakai MANTRA; yang dipakai selalu .env MANTRA."""
+    code = ("from dotenv import dotenv_values; from mantra.config import Config, BASE_DIR, ENV_OVERRIDDEN; "
+            "env = dotenv_values(BASE_DIR / '.env'); "
+            "assert Config.PBI_CLIENT_ID == (env.get('PBI_CLIENT_ID') or None), 'PBI_CLIENT_ID dari terminal terpakai'; "
+            "assert ('PBI_CLIENT_ID' in ENV_OVERRIDDEN) == ('PBI_CLIENT_ID' in env); print('ok')")
+    result = subprocess.run([sys.executable, "-c", code], cwd=ROOT,
+                            env={**os.environ, "PBI_CLIENT_ID": "service-principal-project-lain"},
+                            capture_output=True, text=True, timeout=60)
+    assert result.returncode == 0 and "ok" in result.stdout, result.stderr

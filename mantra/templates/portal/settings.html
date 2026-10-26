@@ -13,18 +13,18 @@
     <dt>Name</dt><dd>{{ current_user.name }}</dd>
     <dt>Email</dt><dd>{{ current_user.email }}</dd>
     <dt>Role</dt><dd><span class="pill">{{ current_user.role_label }}</span></dd>
-    <dt>Dashboards</dt><dd>{% for d in dashboards %}<span class="pill">{{ d.title }}</span> {% else %}<span class="muted">Belum ada</span>{% endfor %}</dd>
+    <dt>Dashboards</dt><dd>{% for d in dashboards %}<span class="pill">{{ d.title }}</span> {% else %}<span class="muted">None yet</span>{% endfor %}</dd>
   </dl>
-  <p class="muted small">Role dan dashboard yang bisa dibuka diatur Super Admin di menu Admin &rsaquo; Users.
-    {% if not config.AUTH_DISABLED %}<a href="{{ url_for('auth.change_password') }}">Ganti password</a>{% endif %}</p>
+  <p class="muted small">Your role and the dashboards you can open are managed by the Super Admin in Admin &rsaquo; Users.
+    {% if not config.AUTH_DISABLED %}<a href="{{ url_for('auth.change_password') }}">Change password</a>{% endif %}</p>
 </section>
 
 {% if status %}
 <section class="panel">
   <h2>System status <span class="pill">Admin</span></h2>
   <dl class="kv">
-    <dt>Login email + password</dt><dd>{{ badge(not status.auth_disabled, 'Aktif', 'Dilewati') }}</dd>
-    <dt>Login Microsoft Entra (opsional)</dt><dd>{{ badge(status.entra) }}{% if status.auth_disabled %} <span class="status warn">AUTH_DISABLED=1</span>{% endif %}</dd>
+    <dt>Email + password sign-in</dt><dd>{{ badge(not status.auth_disabled, 'Active', 'Skipped') }}</dd>
+    <dt>Microsoft Entra sign-in (optional)</dt><dd>{{ badge(status.entra) }}{% if status.auth_disabled %} <span class="status warn">AUTH_DISABLED=1</span>{% endif %}</dd>
     <dt>Power BI service principal</dt><dd>{{ badge(status.powerbi) }}</dd>
     <dt>AI agent ({{ status.ai_provider }})</dt><dd>{{ badge(status.ai) }}</dd>
   </dl>
@@ -44,7 +44,7 @@
       </tbody>
     </table>
   </div>
-  <p class="muted small">Cek koneksi lengkap (token, akses workspace, RLS, mode storage): <code>python scripts\check_setup.py</code></p>
+  <p class="muted small">Full connection check (token, workspace access, RLS, storage mode): <code>python scripts\check_setup.py</code></p>
 </section>
 {% endif %}
 {% endblock %}

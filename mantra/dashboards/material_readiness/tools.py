@@ -132,8 +132,14 @@ def tool_kpi(args, dash):
             "rows_per_type": tabs}
 
 
+GROUP_BY = ["status", *queries.BREAKDOWN_COLUMNS]
+
+
 def tool_breakdown(args, dash):
-    rows = queries.breakdown(_filters(args), args.get("group_by") or "status", _limit(args, 10))
+    group_by = str(args.get("group_by") or "status").strip().lower()
+    if group_by not in GROUP_BY:
+        raise ToolArgError("group_by", group_by, GROUP_BY)
+    rows = queries.breakdown(_filters(args), group_by, _limit(args, 10))
     for r in rows:
         if r.get("qty_order") is not None:
             r["qty_order"] = round(r["qty_order"], 2)
@@ -247,7 +253,7 @@ def tool_lookup(args, dash):
 
 
 TOOLS = [
-    Tool("lookup", "Cari (semua branch)",
+    Tool("lookup", "Lookup (all branches)",
          "Cari satu Job Code (work order), Doc No, atau Stock Code tertentu di SEMUA branch, termasuk yang tidak tampil "
          "di dashboard. Mengembalikan Type, branch, PO_Status Description / Status SO Description beserta jumlah baris, "
          "legend, periode Start Date, job/plant/company, dan dashboard_notes yang menjelaskan kenapa data ini tampil "
@@ -258,26 +264,25 @@ TOOLS = [
              "value": {"type": "string", "description": "Nilai persis yang dicari, mis. W0417321."},
          }, "required": ["field", "value"]},
          tool_lookup),
-    Tool("get_chart_totals", "Total (logika chart)",
+    Tool("get_chart_totals", "Totals (chart logic)",
          "Total per status dengan logika yang SAMA PERSIS dengan chart di halaman Summary (hanya baris yang status dan "
          "week-nya terisi). Juga mengembalikan pembagian per bulan Start Date, berguna kalau satu week melintasi dua "
          "bulan. Pakai ini untuk semua pertanyaan total/jumlah.",
          {"type": "object", "properties": CHART_PROPS, "required": []},
          tool_chart),
-    Tool("get_readiness_kpi", "KPI Detail",
+    Tool("get_readiness_kpi", "Detail KPIs",
          "KPI halaman Detail (aturan baris sama dengan chart Summary): jumlah per status, rata-rata schedule lead time "
          "(hari), dan jumlah baris PO vs SO. Bisa difilter plant/warehouse/search.",
          _schema(), tool_kpi),
-    Tool("get_breakdown", "Rincian",
+    Tool("get_breakdown", "Breakdown",
          "Jumlah baris per kelompok (urut dari terbanyak) beserta pecahan ready / not_ready / in_progress / approval "
          "dan total QTY order. Pakai untuk pertanyaan 'plant/company/week mana yang paling ...'.",
          _schema({
-             "group_by": {"type": "string", "enum": ["status", "company", "plant", "warehouse", "week", "month",
-                                                     "job", "stock_code", "doc"]},
+             "group_by": {"type": "string", "enum": GROUP_BY},
              "limit": {"type": "integer", "description": "Jumlah kelompok teratas, 1-30. Default 10."},
          }, required=["group_by"]),
          tool_breakdown),
-    Tool("get_rows", "Baris detail",
+    Tool("get_rows", "Detail rows",
          "Contoh baris detail (item material) sesuai filter, maksimal 30 baris.",
          _schema({
              "sort_by": {"type": "string", "enum": ["start_date", "schedule_date", "qty_order", "plant_no", "doc_no"]},
@@ -323,8 +328,8 @@ def prompt_values():
 
 
 SUGGESTIONS = [
-    "Berapa persen PO yang sudah ready bulan ini?",
-    "Plant mana yang paling banyak FP In Progress bulan ini?",
-    "Bandingkan readiness SO per company tahun 2026",
-    "Apa status work order W0417321?",
+    "What percentage of PO is ready this month?",
+    "Which plant has the most FP In Progress this month?",
+    "Compare SO readiness per company in 2026",
+    "What is the status of work order W0417321?",
 ]

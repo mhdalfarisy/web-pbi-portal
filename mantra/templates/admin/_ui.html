@@ -5,10 +5,11 @@
 {%- endmacro %}
 
 {% macro active_status(u) -%}
-{% if not u.is_active %}<span class="status bad">{{ icon('x') }}Nonaktif</span>
-{% elif u.locked_until and u.locked_until > now_str() %}<span class="status warn">{{ icon('lock') }}Terkunci</span>
-{% elif u.must_change_password %}<span class="status warn">{{ icon('check') }}Aktif · password sementara</span>
-{% else %}<span class="status ok">{{ icon('check') }}Aktif</span>{% endif %}
+{% if not u.is_active %}<span class="status bad">{{ icon('x') }}Inactive</span>
+{% elif u.locked_until and u.locked_until > now_str() %}<span class="status warn">{{ icon('lock') }}Locked</span>
+{% elif u.must_change_password %}<span class="status warn">{{ icon('check') }}Active · temporary password</span>
+{% else %}<span class="status ok">{{ icon('check') }}Active</span>{% endif %}
+{%- if u.is_active and u.reset_requested_at %} <span class="status bad">{{ icon('key') }}Reset requested</span>{% endif %}
 {%- endmacro %}
 
 {% macro dashboard_checks(dashboards, granted, disabled=False) -%}
@@ -16,10 +17,10 @@
   {% for d in dashboards %}
   <label class="check{{ ' off' if not d.is_active }}">
     <input type="checkbox" name="dashboard" value="{{ d.id }}" {{ 'checked' if d.id in granted }} {{ 'disabled' if disabled }}>
-    <span><b>{{ d.name }}</b><small>{{ d.slug }}{% if not d.is_active %} · dashboard nonaktif{% endif %}</small></span>
+    <span><b>{{ d.name }}</b><small>{{ d.slug }}{% if not d.is_active %} · dashboard inactive{% endif %}</small></span>
   </label>
   {% else %}
-  <p class="muted">Belum ada dashboard di katalog.</p>
+  <p class="muted">No dashboards in the catalog yet.</p>
   {% endfor %}
 </div>
 {%- endmacro %}

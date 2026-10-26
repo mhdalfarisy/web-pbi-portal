@@ -9,32 +9,48 @@
 <div class="page-head">
   <div>
     <h1>{{ user.email }}</h1>
-    <p class="muted">{{ user.name or 'Tanpa nama' }} · {{ role_pill(user.role, roles) }} · {{ active_status(user) }}</p>
+    <p class="muted">{{ user.name or 'No name' }} · {{ role_pill(user.role, roles) }} · {{ active_status(user) }}</p>
   </div>
 </div>
+
+{% if user.reset_requested_at and user.is_active %}
+<div class="flash warn reset-request" role="status">
+  <div>
+    <b>{{ icon('key') }} This user asked for a password reset</b> from the sign-in page on {{ user.reset_requested_at[:16] }}.
+    {% if is_self %}Change your own password from <a href="{{ url_for('auth.change_password') }}">Change Password</a>,
+    or ask another Super Admin.{% else %}Confirm it is really them (for example by phone), click <b>Reset password</b>,
+    and give them the temporary password through a secure channel.{% endif %}
+  </div>
+  <form method="post" action="{{ url_for('admin.user_dismiss_reset', user_id=user.id) }}">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <button class="btn sm ghost" type="submit" data-confirm="Dismiss the reset request from {{ user.email }}? Their password stays the same.">
+      Dismiss request</button>
+  </form>
+</div>
+{% endif %}
 
 <div class="admin-grid">
   <section class="panel">
     <h2>{{ icon('layout') }} Dashboard Access</h2>
     {% if is_admin_user %}
-    <p class="muted">Super Admin otomatis bisa membuka semua dashboard aktif. Akses per dashboard tidak dipakai.</p>
+    <p class="muted">Super Admins can open every active dashboard automatically. Per-dashboard access does not apply.</p>
     {{ dashboard_checks(dashboards, dashboards | map(attribute='id') | list, disabled=True) }}
     {% else %}
-    <p class="muted">Centang dashboard yang boleh dibuka. Hapus centang untuk mencabut akses; berlaku di request berikutnya.</p>
+    <p class="muted">Tick the dashboards this user may open. Untick to revoke access; it applies on the next request.</p>
     <form method="post" action="{{ url_for('admin.user_access', user_id=user.id) }}" class="form-stack">
       <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
       {{ dashboard_checks(dashboards, granted) }}
-      <div class="form-actions"><button class="btn" type="submit">Simpan hak akses</button></div>
+      <div class="form-actions"><button class="btn" type="submit">Save access</button></div>
     </form>
     {% endif %}
   </section>
 
   <section class="panel">
-    <h2>{{ icon('users') }} Akun</h2>
+    <h2>{{ icon('users') }} Account</h2>
     <dl class="kv">
-      <dt>Dibuat</dt><dd>{{ user.created_at[:16] }}</dd>
-      <dt>Login terakhir</dt><dd>{{ user.last_login_at[:16] if user.last_login_at else '-' }}</dd>
-      <dt>Password diganti</dt><dd>{{ user.password_changed_at[:16] if user.password_changed_at else 'Belum pernah' }}</dd>
+      <dt>Created</dt><dd>{{ user.created_at[:16] }}</dd>
+      <dt>Last sign-in</dt><dd>{{ user.last_login_at[:16] if user.last_login_at else '-' }}</dd>
+      <dt>Password changed</dt><dd>{{ user.password_changed_at[:16] if user.password_changed_at else 'Never' }}</dd>
     </dl>
     <div class="action-list">
       {% if not is_self %}
@@ -42,23 +58,24 @@
         <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
         <input type="hidden" name="active" value="{{ '0' if user.is_active else '1' }}">
         <button class="btn {{ 'danger' if user.is_active else '' }}" type="submit"
-                data-confirm="{{ ('Nonaktifkan ' if user.is_active else 'Aktifkan ') ~ user.email ~ '?' }}">
-          {{ 'Nonaktifkan akun' if user.is_active else 'Aktifkan akun' }}</button>
+                data-confirm="{{ ('Deactivate ' if user.is_active else 'Activate ') ~ user.email ~ '?' }}">
+          {{ 'Deactivate account' if user.is_active else 'Activate account' }}</button>
       </form>
       <form method="post" action="{{ url_for('admin.user_reset_password', user_id=user.id) }}">
         <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-        <button class="btn ghost" type="submit" data-confirm="Reset password {{ user.email }}? Sesi user ini akan logout.">
+        <button class="btn {{ '' if user.reset_requested_at else 'ghost' }}" type="submit"
+                data-confirm="Reset the password of {{ user.email }}? All of this user's sessions will be signed out.">
           {{ icon('key') }} Reset password</button>
       </form>
       {% else %}
-      <p class="muted small">Ini akun Anda sendiri. Ganti password lewat <a href="{{ url_for('auth.change_password') }}">Ganti Password</a>.</p>
+      <p class="muted small">This is your own account. Change your password from <a href="{{ url_for('auth.change_password') }}">Change Password</a>.</p>
       {% endif %}
     </div>
   </section>
 </div>
 
 <section class="panel flush">
-  <h2 class="panel-title">{{ icon('history') }} Aktivitas terakhir</h2>
+  <h2 class="panel-title">{{ icon('history') }} Recent activity</h2>
   {% include "admin/_audit_table.html" %}
 </section>
 {% endblock %}

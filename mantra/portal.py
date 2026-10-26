@@ -80,5 +80,5 @@ def toggle_favorite(slug):
     user = auth.current_user()
     dashboard = registry.get(slug)
     if dashboard is None or not auth.can_open(user, dashboard):
-        return jsonify(error="Dashboard tidak ditemukan."), 404
+        return jsonify(error="Dashboard not found."), 404
     return jsonify(favorite=db.toggle_favorite(user["id"], slug))

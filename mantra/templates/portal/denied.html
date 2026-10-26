@@ -1,16 +1,16 @@
 {% extends "portal/base.html" %}
 {% from "portal/_ui.html" import icon %}
-{% block title %}Akses ditolak{% endblock %}
+{% block title %}Access denied{% endblock %}
 {% block content %}
 <div class="empty big">
   {{ icon('lock') }}
-  <h3>Akses ditolak</h3>
+  <h3>Access denied</h3>
   {% if admin_only %}
-  <p>Halaman ini hanya untuk Super Admin MANTRA.</p>
+  <p>This page is only for the Power BI Portal Super Admin.</p>
   {% else %}
-  <p>Akun Anda belum diberi akses ke <b>{{ dashboard.title if dashboard else 'dashboard ini' }}</b>, atau dashboard ini
-    sedang dinonaktifkan. Hubungi Super Admin MANTRA untuk meminta akses.</p>
+  <p>Your account has not been given access to <b>{{ dashboard.title if dashboard else 'this dashboard' }}</b>, or the
+    dashboard is currently deactivated. Contact the Power BI Portal Super Admin to request access.</p>
   {% endif %}
-  <a class="btn" href="{{ url_for('portal.reports') }}">Kembali ke Reports</a>
+  <a class="btn" href="{{ url_for('portal.reports') }}">Back to Reports</a>
 </div>
 {% endblock %}

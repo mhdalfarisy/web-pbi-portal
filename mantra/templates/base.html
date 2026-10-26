@@ -1,4 +1,4 @@
-{#- Kerangka semua halaman MANTRA: sidebar + top bar + area konten.
+{#- Kerangka semua halaman Power BI Portal: sidebar + top bar + area konten.
     portal/base.html (Home, Reports, ...) dan dashboard/base.html (halaman report) meng-extend file ini.
     Halaman report men-set variabel `report` (Dashboard yang sedang dibuka) supaya sidebar & breadcrumb ikut menandainya. -#}
 {% from "components/sidebar.html" import sidebar with context %}
@@ -9,8 +9,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}MANTRA{% endblock %} - MANTRA</title>
+  <title>{% block title %}Power BI Portal{% endblock %} - Power BI Portal</title>
   <meta name="csrf-token" content="{{ csrf_token() }}">
+  <meta name="favorite-url" content="{{ url_for('portal.toggle_favorite', slug='__slug__') }}">
   <link rel="icon" href="{{ url_for('static', filename='img/mantra-mark.svg') }}" type="image/svg+xml">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/shell.css') }}">
   {% block styles %}{% endblock %}
@@ -39,7 +40,7 @@
 </div>
 
 <div class="page-loader" id="pageLoader" role="status" aria-live="polite">
-  <div class="loader-card"><span class="spinner"></span><span id="pageLoaderText">Memuat halaman...</span></div>
+  <div class="loader-card"><span class="spinner"></span><span id="pageLoaderText">Loading page...</span></div>
 </div>
 {% block overlays %}{% endblock %}
 <script src="{{ url_for('static', filename='js/shell.js') }}"></script>

@@ -13,7 +13,9 @@ CORE_PLACEHOLDERS = ("today", "year", "month", "month_name", "dashboard_title")
 PLACEHOLDER_RE = re.compile(r"\{\{\s*(\w+)\s*\}\}")
 COMMENT_RE = re.compile(r"<!--.*?-->", re.S)
 MONTHS_ID = ("Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober",
-             "November", "Desember")
+             "November", "Desember")  # dipakai chat_cases.py
+MONTHS_EN = ("January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+             "November", "December")
 
 
 def _read(path):
@@ -46,7 +48,7 @@ def load(dashboard):
 
 
 def values(dashboard, now):
-    month_name = MONTHS_ID[now.month - 1]
+    month_name = MONTHS_EN[now.month - 1]
     result = {"today": f"{now.day} {month_name} {now.year}", "year": str(now.year), "month": str(now.month),
               "month_name": month_name, "dashboard_title": dashboard.title}
     if dashboard.chat.prompt_values:

@@ -3,7 +3,7 @@ import re
 
 import pytest
 
-from conftest import APIS, EMAILS, PAGES, PASSWORD
+from conftest import APIS, EMAILS, PAGES
 
 ALL = {"material-readiness", "pani-processing"}
 
@@ -26,7 +26,7 @@ def test_wrong_password_rejected_with_generic_message(client):
     for email in (EMAILS["admin"], "tidak-ada@merdeka.com"):
         r = client.login(email, "salah-password-123")
         assert r.status_code == 401
-        assert "Email atau password salah." in r.get_data(as_text=True)
+        assert "Wrong email or password." in r.get_data(as_text=True)
     assert client.get("/").status_code == 302  # tetap belum login
 
 
@@ -55,7 +55,7 @@ def test_direct_url_to_other_dashboard_is_403(login_as, query, key, allowed, den
     for url in PAGES[denied]:
         r = c.get(url)
         assert r.status_code == 403, url
-        assert "Akses ditolak" in r.get_data(as_text=True)
+        assert "Access denied" in r.get_data(as_text=True)
     for url in PAGES[allowed]:
         # Lolos cek akses; Power BI diblokir di test sehingga halaman tampil sebagai error data (502), bukan 403
         assert c.get(url).status_code == 502, url
@@ -108,7 +108,7 @@ def test_deactivated_user_is_logged_out_immediately(login_as, fresh_data):
     assert a.get("/").status_code == 302  # sesi lama langsung tidak berlaku
     assert a.get(PAGES["material-readiness"][0]).status_code == 302
     r = a.login(EMAILS["a"])
-    assert r.status_code == 401 and "nonaktif" in r.get_data(as_text=True)
+    assert r.status_code == 401 and "inactive" in r.get_data(as_text=True)
 
 
 def test_revoked_access_applies_on_next_request(login_as, fresh_data, query):
@@ -167,7 +167,7 @@ def test_post_without_csrf_is_rejected(login_as, fresh_data):
 def test_admin_rejects_unknown_dashboard_id(login_as, fresh_data, query):
     admin = login_as("admin")
     r = admin.post(f"/admin/users/{fresh_data['a']}/access", {"dashboard": ["99999"]}, follow_redirects=True)
-    assert "Dashboard tidak dikenal." in r.get_data(as_text=True)
+    assert "Unknown dashboard." in r.get_data(as_text=True)
     assert len(query("SELECT * FROM user_dashboard_access WHERE user_id = ?", (fresh_data["a"],))) == 1
 
 
@@ -223,7 +223,7 @@ def test_account_locks_after_repeated_failures(client, query):
     for _ in range(5):
         client.login(EMAILS["a"], "salah-salah-1")
     r = client.login(EMAILS["a"])  # password benar pun ditolak selama terkunci
-    assert r.status_code == 401 and "dikunci" in r.get_data(as_text=True)
+    assert r.status_code == 401 and "locked" in r.get_data(as_text=True)
     assert query("SELECT count(*) n FROM audit_log WHERE action = 'account_locked'")[0]["n"] == 1
 
 
@@ -244,9 +244,9 @@ def test_audit_log_is_human_readable(login_as, fresh_data):
     admin.post(f"/admin/users/{fresh_data['a']}/access", {})          # cabut Material Readiness dari User A
     login_as("b").get(PAGES["material-readiness"][0])                 # User B mencoba membuka tanpa izin
     html = admin.get("/admin/audit").get_data(as_text=True)
-    assert f"Akses {EMAILS['a']} ke Material Readiness dicabut" in html
-    assert "Mencoba membuka Material Readiness tanpa izin" in html
-    assert "Akses dicabut" in html and "Akses ditolak" in html          # label aktivitas, bukan kode mentah
+    assert f"Access of {EMAILS['a']} to Material Readiness revoked" in html
+    assert "Tried to open Material Readiness without permission" in html
+    assert "Access revoked" in html and "Access denied" in html          # label aktivitas, bukan kode mentah
     assert ">access_revoked<" not in html
 
 

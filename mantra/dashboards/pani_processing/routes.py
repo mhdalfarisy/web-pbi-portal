@@ -1,12 +1,14 @@
 """Halaman dashboard PANI: Processing, Equipment, Mining, Production. Login & cek role dipasang otomatis oleh registry.
 
 Filter tanggal dibaca dari URL (?start=YYYY-MM-DD&end=YYYY-MM-DD), jadi link halaman bisa dibagikan apa adanya.
+Tanggal di luar rentang data dibatasi ke tanggal data pertama/terakhir.
 """
 import time
 from datetime import date, datetime
 
-from flask import Blueprint, current_app, render_template, request
+from flask import Blueprint, render_template, request
 
+from ...core.errors import data_error_page
 from . import queries
 
 bp = Blueprint("pani_processing", __name__, url_prefix="/d/pani-processing",
@@ -45,10 +47,10 @@ def helpers():
             "dfull": dfull}
 
 
-def _range(default_start, default_end):
+def _range(bounds, default_start, default_end):
     start = queries.parse_date(request.args.get("start"), default_start)
     end = queries.parse_date(request.args.get("end"), default_end)
-    return (end, start) if start > end else (start, end)
+    return queries.date_range(start, end, bounds)
 
 
 def _page(template, data, fetched, bounds, **extra):
@@ -58,51 +60,59 @@ def _page(template, data, fetched, bounds, **extra):
                            **extra)
 
 
-def _error(exc):
-    current_app.logger.exception("Gagal mengambil data dari Power BI")
-    return render_template("dashboard/error.html", message=str(exc), header=queries.stamp_info(time.time())), 502
+def _no_data():
+    """Tabel halaman ini belum berisi data (mis. dataset baru / belum refresh): tampilkan pesan, bukan error."""
+    return render_template("dashboard/empty.html", header=queries.stamp_info(time.time()))
 
 
 @bp.get("/")
 def processing():
     try:
         b = queries.processing_bounds()
+        if not queries.has_data(b):
+            return _no_data()
         # Default = seluruh rentang data -> mode YTD, sama seperti report tanpa filter
-        start, end = _range(b["min"], b["max"])
+        start, end = _range(b, b["min"], b["max"])
         data, fetched = queries.processing(start, end)
         return _page("processing.html", data, fetched, b)
     except queries.DATA_ERRORS as exc:
-        return _error(exc)
+        return data_error_page(exc)
 
 
 @bp.get("/equipment")
 def equipment():
     try:
         b = queries.equipment_bounds()
-        start, end = _range(b["max"], b["max"])
+        if not queries.has_data(b):
+            return _no_data()
+        start, end = _range(b, b["max"], b["max"])
         status = request.args.get("status") if request.args.get("status") in ("active", "inactive") else ""
         data, fetched = queries.equipment(start, end, status)
         return _page("equipment.html", data, fetched, b)
     except queries.DATA_ERRORS as exc:
-        return _error(exc)
+        return data_error_page(exc)
 
 
 @bp.get("/mining")
 def mining():
     try:
         b = queries.mining_bounds()
-        start, end = _range(date(b["last"].year, b["last"].month, 1), b["last"])
+        if not queries.has_data(b):
+            return _no_data()
+        start, end = _range(b, date(b["last"].year, b["last"].month, 1), b["last"])
         data, fetched = queries.mining(start, end)
         return _page("mining.html", data, fetched, b)
     except queries.DATA_ERRORS as exc:
-        return _error(exc)
+        return data_error_page(exc)
 
 
 @bp.get("/production")
 def production():
     try:
         b = queries.production_bounds()
-        start, end = _range(date(b["max"].year, b["max"].month, 1), b["max"])
+        if not queries.has_data(b):
+            return _no_data()
+        start, end = _range(b, date(b["max"].year, b["max"].month, 1), b["max"])
         data, fetched = queries.production(start, end)
         try:  # PA% hari terakhir rentang ini untuk kartu insight (data equipment bisa belum ada)
             eq = queries.equipment(start, end)[0]
@@ -111,4 +121,4 @@ def production():
             pa = pa_day = None
         return _page("production.html", data, fetched, b, avg_pa=pa, pa_day=pa_day)
     except queries.DATA_ERRORS as exc:
-        return _error(exc)
+        return data_error_page(exc)

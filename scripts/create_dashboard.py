@@ -1,7 +1,7 @@
 """Buat dashboard baru dari mantra/dashboards/_template.
 
 Pemakaian:
-    python scripts/new_dashboard.py work-order "Work Order"
+    python scripts/create_dashboard.py work-order "Work Order"
 
 Hasilnya folder mantra/dashboards/work_order/ dengan halaman contoh, satu tool agent, prompt, dan pertanyaan acuan.
 Dashboard baru tampil sebagai "Coming soon" sampai ready=True di __init__.py-nya.
@@ -32,7 +32,6 @@ def main():
         "__NAME__": name,
         "__TITLE__": title,
         "__ENV__": name.upper(),
-        "__ROLE__": "Report." + "".join(part.capitalize() for part in slug.split("-")),
     }
 
     shutil.copytree(TEMPLATE, target, ignore=shutil.ignore_patterns("__pycache__"))

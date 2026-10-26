@@ -86,6 +86,11 @@ MIGRATIONS = [
     CREATE INDEX IF NOT EXISTS ix_audit_at ON audit_log (at DESC, id DESC);
     CREATE INDEX IF NOT EXISTS ix_audit_action ON audit_log (action, at DESC);
     """,
+    # 3: permintaan "Forgot password" dari halaman login, ditangani Super Admin (diisi waktu permintaan terakhir;
+    #    kosong lagi setelah password di-reset / permintaan diabaikan)
+    """
+    ALTER TABLE users ADD COLUMN reset_requested_at TEXT;
+    """,
 ]
 
 HISTORY_KEEP = 100  # riwayat per user yang disimpan

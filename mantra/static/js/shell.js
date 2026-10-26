@@ -5,6 +5,8 @@
 const root = document.documentElement;
 const body = document.body;
 const CSRF = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+/* URL API favorit dari url_for (lihat base.html), jadi tetap benar kalau portal dipasang di sub-path */
+const FAV_URL = (document.querySelector('meta[name="favorite-url"]') || {}).content || '/api/favorites/__slug__';
 const DESKTOP = window.matchMedia('(min-width: 1200px)');
 
 /* ---------- sidebar ----------
@@ -54,8 +56,8 @@ if (main) {
    Halaman report mengambil data Power BI di server sebelum tampil, jadi bisa butuh beberapa detik.
    Loader muncul setelah jeda singkat (lihat .page-loader di shell.css) supaya tidak berkedip di halaman yang cepat. */
 const loaderText = document.getElementById('pageLoaderText');
-const REPORT_LABEL = 'Memuat report dari Power BI...';
-const DEFAULT_LABEL = body.classList.contains('is-report-page') ? REPORT_LABEL : 'Memuat halaman...';
+const REPORT_LABEL = 'Loading report from Power BI...';
+const DEFAULT_LABEL = body.classList.contains('is-report-page') ? REPORT_LABEL : 'Loading page...';
 let nextLabel = DEFAULT_LABEL;
 
 document.addEventListener('click', (e) => {
@@ -63,7 +65,7 @@ document.addEventListener('click', (e) => {
     if (!a || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) { return; }
     const url = new URL(a.href, location.href);
     if (url.origin !== location.origin) { return; }
-    nextLabel = url.pathname.startsWith('/d/') ? REPORT_LABEL : 'Memuat halaman...';
+    nextLabel = url.pathname.startsWith('/d/') ? REPORT_LABEL : 'Loading page...';
 });
 window.addEventListener('beforeunload', () => {
     if (loaderText) { loaderText.textContent = nextLabel; }
@@ -83,14 +85,14 @@ document.addEventListener('click', async (e) => {
     e.preventDefault();
     btn.disabled = true;
     try {
-        const r = await fetch('/api/favorites/' + encodeURIComponent(btn.dataset.slug), {
+        const r = await fetch(FAV_URL.replace('__slug__', encodeURIComponent(btn.dataset.slug)), {
             method: 'POST', headers: { 'X-CSRF-Token': CSRF },
         });
         const data = await r.json();
         if (!r.ok) { throw new Error(data.error || r.status); }
         btn.classList.toggle('on', data.favorite);
         btn.setAttribute('aria-pressed', String(data.favorite));
-        btn.title = data.favorite ? 'Hapus dari Favorites' : 'Tambahkan ke Favorites';
+        btn.title = data.favorite ? 'Remove from Favorites' : 'Add to Favorites';
         /* Di halaman Favorites, kartu yang batal difavoritkan langsung hilang */
         const grid = document.getElementById('favoriteGrid');
         if (grid && !data.favorite) {
@@ -98,7 +100,7 @@ document.addEventListener('click', async (e) => {
             if (!grid.children.length) { grid.hidden = true; document.getElementById('favoriteEmpty').hidden = false; }
         }
     } catch (err) {
-        btn.title = 'Gagal menyimpan favorit';
+        btn.title = 'Could not save favorite';
     }
     btn.disabled = false;
 });
