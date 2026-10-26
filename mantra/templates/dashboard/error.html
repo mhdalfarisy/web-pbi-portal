@@ -4,6 +4,13 @@
   <h2>Gagal mengambil data dari Power BI</h2>
   <p>Coba muat ulang halaman ini. Kalau masih gagal, jalankan <code>python scripts\check_setup.py</code> untuk mengecek
     koneksi service principal ke semantic model dashboard ini.</p>
-  <pre class="err-detail">{{ message }}</pre>
+  <div class="err-actions">
+    <a class="btn" href="{{ request.full_path.rstrip('?') }}">Coba lagi</a>
+    <a class="btn ghost" href="{{ url_for('portal.reports') }}">Kembali ke Reports</a>
+  </div>
+  <details class="err-more">
+    <summary>Detail error</summary>
+    <pre class="err-detail">{{ message }}</pre>
+  </details>
 </section>
 {% endblock %}

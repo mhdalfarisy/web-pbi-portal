@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sign in - MANTRA</title>
   <link rel="icon" href="{{ url_for('static', filename='img/mantra-mark.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/shell.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/portal.css') }}">
 </head>
 <body class="login-page">
@@ -34,15 +35,25 @@
         {% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}
       {% endwith %}
 
-      <a class="btn-microsoft{{ ' disabled' if not configured }}" href="{{ url_for('auth.microsoft', next=next) }}">
-        {{ ms_logo() }} Sign in with Microsoft
-      </a>
-      {% if configured %}
-      <p class="login-note">Gunakan akun Microsoft perusahaan. Akses dashboard mengikuti role yang diberikan admin di Microsoft Entra.</p>
-      {% else %}
-      <p class="login-note warn">Login Microsoft belum dikonfigurasi. Isi <code>ENTRA_TENANT_ID</code>, <code>ENTRA_CLIENT_ID</code>,
-        dan <code>ENTRA_CLIENT_SECRET</code> di <code>.env</code>, atau pakai <code>AUTH_DISABLED=1</code> untuk development.</p>
+      <form class="login-form" method="post" action="{{ url_for('auth.login') }}" novalidate>
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="next" value="{{ next }}">
+        <label class="field">
+          <span>Email</span>
+          <input class="input" type="email" name="email" value="{{ email }}" autocomplete="username" required autofocus
+                 placeholder="nama@merdeka.com">
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input class="input" type="password" name="password" autocomplete="current-password" required>
+        </label>
+        <button class="btn btn-block" type="submit">Sign in</button>
+      </form>
+      {% if entra %}
+      <div class="login-or"><span>atau</span></div>
+      <a class="btn-microsoft" href="{{ url_for('auth.microsoft', next=next) }}">{{ ms_logo() }} Sign in with Microsoft</a>
       {% endif %}
+      <p class="login-note">Akun dibuat oleh Super Admin MANTRA. Dashboard yang bisa dibuka mengikuti hak akses akun Anda.</p>
     </div>
     <p class="login-tagline mobile">Smarter Data • Better Decisions • A Stronger Tomorrow</p>
   </main>

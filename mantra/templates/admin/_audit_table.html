@@ -1,0 +1,20 @@
+{#- Tabel audit log. Butuh `history` atau `rows` = hasil accounts.describe_audit(). Di layar kecil tampil sebagai kartu. -#}
+{% set entries = history if history is defined else rows %}
+<div class="table-wrap">
+  <table class="table stack">
+    <thead><tr><th>Waktu</th><th>Aktivitas</th><th>Keterangan</th><th>Pelaku</th><th>IP</th></tr></thead>
+    <tbody>
+    {% for r in entries %}
+      <tr>
+        <td class="muted nowrap" data-label="Waktu">{{ r.e.at }}</td>
+        <td data-label="Aktivitas"><span class="pill act-{{ r.tone or 'neutral' }}">{{ r.label }}</span></td>
+        <td class="wrap" data-label="Keterangan" title="{{ r.e.detail or '' }}">{{ r.text }}</td>
+        <td data-label="Pelaku">{{ r.actor or '-' }}</td>
+        <td class="muted" data-label="IP">{{ r.e.ip or '-' }}</td>
+      </tr>
+    {% else %}
+      <tr class="empty-row"><td colspan="5" class="muted center">Belum ada aktivitas.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>

@@ -1,0 +1,22 @@
+{% extends "portal/base.html" %}
+{% from "portal/_ui.html" import icon %}
+{% block title %}Audit Log{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Audit Log</h1>
+    <p class="muted">Login, perubahan akun, hak akses, dan percobaan akses yang ditolak (300 terakhir)</p>
+  </div>
+  <form class="page-tools" method="get">
+    <label class="field-select">{{ icon('filter') }}
+      <select name="action" aria-label="Jenis aktivitas" onchange="this.form.submit()">
+        <option value="">Semua aktivitas</option>
+        {% for code, label in actions %}<option value="{{ code }}" {{ 'selected' if code == action }}>{{ label }}</option>{% endfor %}
+      </select>
+    </label>
+  </form>
+</div>
+<section class="panel flush">
+  {% include "admin/_audit_table.html" %}
+</section>
+{% endblock %}

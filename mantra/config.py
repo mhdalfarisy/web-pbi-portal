@@ -3,14 +3,21 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
-from dotenv import load_dotenv
+from dotenv import dotenv_values, load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
+_ENV_FILE = dotenv_values(BASE_DIR / ".env")
 
 
 def _flag(name):
     return os.environ.get(name, "").strip() == "1"
+
+
+def _env_file_flag(name):
+    """Flag yang HANYA dibaca dari file .env, bukan dari variabel environment terminal.
+    Dipakai untuk AUTH_DISABLED supaya `$env:AUTH_DISABLED=1` yang tertinggal di terminal tidak mematikan login."""
+    return (_ENV_FILE.get(name) or "").strip() == "1"
 
 
 def _list(value):
@@ -26,15 +33,16 @@ class Config:
     SESSION_COOKIE_SECURE = _flag("SESSION_COOKIE_SECURE")
     PERMANENT_SESSION_LIFETIME = timedelta(hours=int(os.environ.get("SESSION_HOURS") or 8))
 
-    # Login user: Microsoft Entra ID, app registration "MANTRA Portal"
+    # Login user: email + password (tabel users di mantra.db, lihat core/accounts.py).
+    # Opsional: Microsoft Entra ID (app registration "MANTRA Portal") untuk email yang sudah terdaftar di tabel users.
     ENTRA_TENANT_ID = os.environ.get("ENTRA_TENANT_ID")
     ENTRA_CLIENT_ID = os.environ.get("ENTRA_CLIENT_ID")
     ENTRA_CLIENT_SECRET = os.environ.get("ENTRA_CLIENT_SECRET")
-    ADMIN_ROLE = "Portal.Admin"
 
-    # 1 = tanpa login (hanya untuk development lokal). User development mendapat role dari DEV_ROLES.
-    AUTH_DISABLED = _flag("AUTH_DISABLED")
-    DEV_ROLES = _list(os.environ.get("DEV_ROLES") or ADMIN_ROLE)
+    # 1 = tanpa login, otomatis masuk sebagai Super Admin development (hanya untuk development lokal)
+    AUTH_DISABLED = _env_file_flag("AUTH_DISABLED")
+    # Nilai AUTH_DISABLED di environment terminal (diabaikan); dipakai untuk peringatan saat start
+    AUTH_DISABLED_ENV_IGNORED = os.environ.get("AUTH_DISABLED", "").strip() not in ("", (_ENV_FILE.get("AUTH_DISABLED") or "").strip())
 
     # Data: Power BI service principal, app registration "mantra-powerbi" (tenant sama dengan login)
     PBI_TENANT_ID = os.environ.get("PBI_TENANT_ID") or ENTRA_TENANT_ID

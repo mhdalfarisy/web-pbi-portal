@@ -58,7 +58,10 @@ async function load() {
     } catch (e) {
         if (seq !== SEQ) { return; }
         el('tblWrap').classList.remove('loading');
-        el('pageInfo').textContent = 'Gagal mengambil data dari Power BI: ' + e.message;
+        el('pageInfo').textContent = 'Gagal mengambil data dari Power BI';
+        el('tbl').tBodies[0].innerHTML = '<tr><td class="none err" colspan="99">Gagal mengambil data dari Power BI: '
+            + esc(e.message) + '<button type="button" class="detail-btn" id="retryBtn">Coba lagi</button></td></tr>';
+        el('retryBtn').addEventListener('click', load);
         return;
     }
     if (seq !== SEQ) { return; }

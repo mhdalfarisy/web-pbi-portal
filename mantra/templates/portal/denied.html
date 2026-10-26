@@ -6,10 +6,10 @@
   {{ icon('lock') }}
   <h3>Akses ditolak</h3>
   {% if admin_only %}
-  <p>Halaman ini hanya untuk admin MANTRA (role <code>Portal.Admin</code>).</p>
+  <p>Halaman ini hanya untuk Super Admin MANTRA.</p>
   {% else %}
-  <p>Akun Anda belum punya role untuk membuka <b>{{ dashboard.title if dashboard else 'dashboard ini' }}</b>.
-    Hubungi admin MANTRA untuk meminta akses.</p>
+  <p>Akun Anda belum diberi akses ke <b>{{ dashboard.title if dashboard else 'dashboard ini' }}</b>, atau dashboard ini
+    sedang dinonaktifkan. Hubungi Super Admin MANTRA untuk meminta akses.</p>
   {% endif %}
   <a class="btn" href="{{ url_for('portal.reports') }}">Kembali ke Reports</a>
 </div>

@@ -1,0 +1,48 @@
+{#- Kerangka semua halaman MANTRA: sidebar + top bar + area konten.
+    portal/base.html (Home, Reports, ...) dan dashboard/base.html (halaman report) meng-extend file ini.
+    Halaman report men-set variabel `report` (Dashboard yang sedang dibuka) supaya sidebar & breadcrumb ikut menandainya. -#}
+{% from "components/sidebar.html" import sidebar with context %}
+{% from "components/topbar.html" import topbar with context %}
+{% set report = report | default(none) %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}MANTRA{% endblock %} - MANTRA</title>
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <link rel="icon" href="{{ url_for('static', filename='img/mantra-mark.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/shell.css') }}">
+  {% block styles %}{% endblock %}
+  {% block head %}{% endblock %}
+  <script>
+    /* Pasang mode sidebar sebelum halaman digambar supaya tidak berkedip. Dipanggil lagi oleh shell.js saat resize. */
+    window.mantraSidebar = function () {
+      var w = window.innerWidth, pref = null;
+      try { pref = localStorage.getItem('mantra.sidebar'); } catch (e) {}
+      document.documentElement.classList.toggle('sb-mini', w >= 1200 ? pref === 'mini' : w >= 900);
+    };
+    window.mantraSidebar();
+  </script>
+</head>
+<body class="{{ 'is-report-page' if report }}">
+<div class="app">
+  {{ sidebar(report) }}
+  <div class="scrim" id="scrim"></div>
+
+  <div class="main">
+    {{ topbar(report) }}
+    <main class="content{% block content_class %}{% endblock %}" id="content">
+      {% block main %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<div class="page-loader" id="pageLoader" role="status" aria-live="polite">
+  <div class="loader-card"><span class="spinner"></span><span id="pageLoaderText">Memuat halaman...</span></div>
+</div>
+{% block overlays %}{% endblock %}
+<script src="{{ url_for('static', filename='js/shell.js') }}"></script>
+{% block layer_scripts %}{% endblock %}
+</body>
+</html>

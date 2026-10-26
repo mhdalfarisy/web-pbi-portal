@@ -1,0 +1,52 @@
+{% from "portal/_ui.html" import icon %}
+
+{#- Top bar global. Di halaman report: breadcrumb Reports > report > halaman, plus tombol favorit report itu. -#}
+{% macro topbar(report=none) -%}
+<header class="topbar">
+  <button class="icon-btn" id="navToggle" type="button" aria-label="Tampilkan / ringkas menu" aria-controls="sidebar"
+          title="Menu">{{ icon('menu') }}</button>
+
+  {% if report %}
+  {% set ns = namespace(page=none) %}
+  {% for label, endpoint in report.pages if endpoint == request.endpoint %}{% set ns.page = label %}{% endfor %}
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <a href="{{ url_for('portal.reports') }}">Reports</a><span class="sep">&#8250;</span>
+    {% if ns.page %}
+    <a class="crumb-report" href="{{ report.url }}">{{ report.title }}</a><span class="sep">&#8250;</span>
+    <b aria-current="page">{{ ns.page }}</b>
+    {% else %}
+    <b aria-current="page">{{ report.title }}</b>
+    {% endif %}
+  </nav>
+  <button class="fav-btn{{ ' on' if report_favorite }}" type="button" data-slug="{{ report.slug }}"
+          aria-pressed="{{ 'true' if report_favorite else 'false' }}"
+          title="{{ 'Hapus dari Favorites' if report_favorite else 'Tambahkan ke Favorites' }}">{{ icon('star') }}</button>
+  {% endif %}
+
+  <form class="top-search" action="{{ url_for('portal.reports') }}" method="get" role="search">
+    {{ icon('search') }}
+    <input type="search" name="q" placeholder="Search reports..." value="{{ q or '' }}" aria-label="Search reports">
+  </form>
+
+  {% if report and chat_enabled %}
+  <button class="chat-btn" id="chatFab" type="button" aria-controls="chatPanel" title="Tanya AI agent {{ report.title }}">
+    {{ icon('sparkles') }}<span>Tanya AI</span></button>
+  {% endif %}
+
+  <div class="user-chip">
+    {% set parts = current_user.name.split() %}
+    <span class="avatar" aria-hidden="true">{{ ((parts[0][0] if parts else '?') ~ (parts[-1][0] if parts|length > 1 else ''))|upper }}</span>
+    <span class="user-meta" title="{{ current_user.email }}">
+      <b>{{ current_user.name }}</b>
+      <small>{{ current_user.role_label }}{% if config.AUTH_DISABLED %} &middot; Dev mode{% endif %}</small>
+    </span>
+    {% if not config.AUTH_DISABLED %}
+    <a class="icon-btn key-btn" href="{{ url_for('auth.change_password') }}" title="Ganti password" aria-label="Ganti password">{{ icon('key') }}</a>
+    <form method="post" action="{{ url_for('auth.logout') }}">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <button class="icon-btn" type="submit" title="Logout" aria-label="Logout">{{ icon('logout') }}</button>
+    </form>
+    {% endif %}
+  </div>
+</header>
+{%- endmacro %}

@@ -1,0 +1,72 @@
+{% extends "portal/base.html" %}
+{% from "portal/_ui.html" import icon %}
+{% from "admin/_ui.html" import role_pill, active_status, dashboard_checks %}
+{% block title %}{{ user.email }}{% endblock %}
+{% block content %}
+{% set is_self = current_user.db_id == user.id %}
+{% set is_admin_user = user.role == 'super_admin' %}
+<nav class="page-crumbs"><a href="{{ url_for('admin.users') }}">User Management</a> &#8250; {{ user.email }}</nav>
+<div class="page-head">
+  <div>
+    <h1>{{ user.email }}</h1>
+    <p class="muted">{{ user.name or 'Tanpa nama' }} · {{ role_pill(user.role, roles) }} · {{ active_status(user) }}</p>
+  </div>
+</div>
+
+<div class="admin-grid">
+  <section class="panel">
+    <h2>{{ icon('layout') }} Dashboard Access</h2>
+    {% if is_admin_user %}
+    <p class="muted">Super Admin otomatis bisa membuka semua dashboard aktif. Akses per dashboard tidak dipakai.</p>
+    {{ dashboard_checks(dashboards, dashboards | map(attribute='id') | list, disabled=True) }}
+    {% else %}
+    <p class="muted">Centang dashboard yang boleh dibuka. Hapus centang untuk mencabut akses; berlaku di request berikutnya.</p>
+    <form method="post" action="{{ url_for('admin.user_access', user_id=user.id) }}" class="form-stack">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      {{ dashboard_checks(dashboards, granted) }}
+      <div class="form-actions"><button class="btn" type="submit">Simpan hak akses</button></div>
+    </form>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <h2>{{ icon('users') }} Akun</h2>
+    <dl class="kv">
+      <dt>Dibuat</dt><dd>{{ user.created_at[:16] }}</dd>
+      <dt>Login terakhir</dt><dd>{{ user.last_login_at[:16] if user.last_login_at else '-' }}</dd>
+      <dt>Password diganti</dt><dd>{{ user.password_changed_at[:16] if user.password_changed_at else 'Belum pernah' }}</dd>
+    </dl>
+    <div class="action-list">
+      {% if not is_self %}
+      <form method="post" action="{{ url_for('admin.user_status', user_id=user.id) }}">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="active" value="{{ '0' if user.is_active else '1' }}">
+        <button class="btn {{ 'danger' if user.is_active else '' }}" type="submit"
+                data-confirm="{{ ('Nonaktifkan ' if user.is_active else 'Aktifkan ') ~ user.email ~ '?' }}">
+          {{ 'Nonaktifkan akun' if user.is_active else 'Aktifkan akun' }}</button>
+      </form>
+      <form method="post" action="{{ url_for('admin.user_reset_password', user_id=user.id) }}">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <button class="btn ghost" type="submit" data-confirm="Reset password {{ user.email }}? Sesi user ini akan logout.">
+          {{ icon('key') }} Reset password</button>
+      </form>
+      {% else %}
+      <p class="muted small">Ini akun Anda sendiri. Ganti password lewat <a href="{{ url_for('auth.change_password') }}">Ganti Password</a>.</p>
+      {% endif %}
+    </div>
+  </section>
+</div>
+
+<section class="panel flush">
+  <h2 class="panel-title">{{ icon('history') }} Aktivitas terakhir</h2>
+  {% include "admin/_audit_table.html" %}
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+  document.addEventListener('submit', (e) => {
+    const b = e.submitter;
+    if (b && b.dataset.confirm && !confirm(b.dataset.confirm)) { e.preventDefault(); }
+  });
+</script>
+{% endblock %}

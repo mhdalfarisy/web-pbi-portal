@@ -1,0 +1,36 @@
+{% from "portal/_ui.html" import icon, brand, merdeka %}
+
+{#- Sidebar global. report = Dashboard yang sedang dibuka (atau none): menu Reports aktif dan nama report tampil di bawahnya. -#}
+{% macro sidebar(report=none) -%}
+{% set nav = [('portal.home', 'Home', 'home'), ('portal.reports', 'Reports', 'reports'),
+              ('portal.favorites', 'Favorites', 'star'), ('portal.history', 'History', 'history')] %}
+<aside class="sidebar" id="sidebar" aria-label="Menu MANTRA">
+  <a class="sidebar-brand" href="{{ url_for('portal.home') }}" title="MANTRA Home">{{ brand(dark=True) }}</a>
+  <nav class="side-nav">
+    {% for endpoint, label, ic in nav %}
+    <a href="{{ url_for(endpoint) }}" title="{{ label }}"
+       class="{{ 'active' if request.endpoint == endpoint or (report and endpoint == 'portal.reports') }}"
+       {%- if request.endpoint == endpoint %} aria-current="page"{% endif %}>{{ icon(ic) }}<span>{{ label }}</span></a>
+    {% if report and endpoint == 'portal.reports' %}
+    <div class="side-sub">
+      <a href="{{ report.url }}" class="current" title="{{ report.title }}"><i class="dot"></i><span>{{ report.title }}</span></a>
+    </div>
+    {% endif %}
+    {% endfor %}
+    {% if user_is_admin %}
+    <hr class="side-sep">
+    <span class="side-label">Admin</span>
+    {% for endpoint, label, ic in [('admin.users', 'Users', 'users'), ('admin.dashboards', 'Dashboards', 'layout'),
+                                   ('admin.audit', 'Audit Log', 'shield')] %}
+    {% set on = request.endpoint == endpoint or (endpoint == 'admin.users' and request.endpoint in ('admin.new_user', 'admin.user_detail')) %}
+    <a href="{{ url_for(endpoint) }}" title="{{ label }}" class="{{ 'active' if on }}"
+       {%- if on %} aria-current="page"{% endif %}>{{ icon(ic) }}<span>{{ label }}</span></a>
+    {% endfor %}
+    {% endif %}
+    <hr class="side-sep">
+    <a href="{{ url_for('portal.settings') }}" title="Settings" class="{{ 'active' if request.endpoint == 'portal.settings' }}"
+       {%- if request.endpoint == 'portal.settings' %} aria-current="page"{% endif %}>{{ icon('settings') }}<span>Settings</span></a>
+  </nav>
+  <div class="sidebar-foot">{{ merdeka(dark=True) }}</div>
+</aside>
+{%- endmacro %}

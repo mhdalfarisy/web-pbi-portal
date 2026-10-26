@@ -1,0 +1,25 @@
+{% from "portal/_ui.html" import icon %}
+
+{% macro role_pill(role, roles) -%}
+<span class="pill {{ 'role-admin' if role == 'super_admin' }}">{{ roles[role] }}</span>
+{%- endmacro %}
+
+{% macro active_status(u) -%}
+{% if not u.is_active %}<span class="status bad">{{ icon('x') }}Nonaktif</span>
+{% elif u.locked_until and u.locked_until > now_str() %}<span class="status warn">{{ icon('lock') }}Terkunci</span>
+{% elif u.must_change_password %}<span class="status warn">{{ icon('check') }}Aktif · password sementara</span>
+{% else %}<span class="status ok">{{ icon('check') }}Aktif</span>{% endif %}
+{%- endmacro %}
+
+{% macro dashboard_checks(dashboards, granted, disabled=False) -%}
+<div class="check-list">
+  {% for d in dashboards %}
+  <label class="check{{ ' off' if not d.is_active }}">
+    <input type="checkbox" name="dashboard" value="{{ d.id }}" {{ 'checked' if d.id in granted }} {{ 'disabled' if disabled }}>
+    <span><b>{{ d.name }}</b><small>{{ d.slug }}{% if not d.is_active %} · dashboard nonaktif{% endif %}</small></span>
+  </label>
+  {% else %}
+  <p class="muted">Belum ada dashboard di katalog.</p>
+  {% endfor %}
+</div>
+{%- endmacro %}

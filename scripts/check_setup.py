@@ -35,14 +35,14 @@ def check_env():
     print("\n[1] File .env")
     report(bool(Config.SECRET_KEY), "FLASK_SECRET_KEY terisi")
     report(None if Config.AUTH_DISABLED else True, "AUTH_DISABLED",
-           "1 (login dilewati, hanya untuk development)" if Config.AUTH_DISABLED else "0 (login Microsoft aktif)")
+           "1 (login dilewati, hanya untuk development)" if Config.AUTH_DISABLED else "0 (login email + password aktif)")
     for key in ("ENTRA_TENANT_ID", "ENTRA_CLIENT_ID", "ENTRA_CLIENT_SECRET", "PBI_CLIENT_ID", "PBI_CLIENT_SECRET"):
-        report(bool(getattr(Config, key)) or (None if Config.AUTH_DISABLED and key.startswith("ENTRA") else False),
-               f"{key} terisi")
+        # Entra opsional (login utama email + password); kalau kosong cukup dilewati
+        report(bool(getattr(Config, key)) or (None if key.startswith("ENTRA") else False), f"{key} terisi")
 
 
 def check_entra():
-    print("\n[2] Login Microsoft Entra (app registration MANTRA Portal)")
+    print("\n[2] Login Microsoft Entra, opsional (app registration MANTRA Portal)")
     if not (Config.ENTRA_TENANT_ID and Config.ENTRA_CLIENT_ID and Config.ENTRA_CLIENT_SECRET):
         report(None, "dilewati, ENTRA_* belum lengkap")
         return
@@ -61,7 +61,7 @@ def check_entra():
            ["AADSTS7000215: yang disalin 'Secret ID', bukan 'Value'.",
             "AADSTS700016: ENTRA_CLIENT_ID salah atau app ada di tenant lain.",
             "AADSTS7000222: client secret kedaluwarsa, buat yang baru."])
-    print(f"        Catatan: redirect URI http://localhost:{Config.PORT}/auth/callback, app roles, dan assignment user")
+    print(f"        Catatan: redirect URI http://localhost:{Config.PORT}/auth/callback dan assignment user")
     print(f"        hanya bisa dicek dengan login langsung di http://localhost:{Config.PORT}")
 
 

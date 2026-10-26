@@ -11,7 +11,7 @@ from typing import Callable
 
 from flask import Blueprint, jsonify, redirect, render_template, request, url_for
 
-from . import auth, db
+from . import accounts, auth, db
 
 
 @dataclass
@@ -49,7 +49,7 @@ class Dashboard:
     category: str                # kategori di halaman Reports, mis. Operations
     icon: str                    # nama ikon di templates/portal/_ui.html
     color: str                   # warna kartu: blue, green, orange, purple, teal, red, indigo, cyan, slate
-    role: str                    # app role Entra yang boleh membuka, mis. Report.MaterialReadiness
+    role: str                    # label lama (app role Entra). Hak akses sekarang dari database: Admin > Users
     dataset: object = None       # core.powerbi.Dataset
     blueprint: Blueprint | None = None
     pages: list = field(default_factory=list)   # [(label, endpoint)] menu di header dashboard
@@ -84,7 +84,8 @@ def visible_for(user):
 
 
 def _guard(dashboard):
-    """Pasang login + cek role di setiap halaman/API dashboard, dan catat halaman yang dibuka ke History."""
+    """Pasang login + cek hak akses (database) di SETIAP route dashboard: halaman, API data, dan file static.
+    Dashboard yang tidak diizinkan ditolak 403 walaupun URL-nya dibuka langsung. Halaman yang dibuka dicatat ke History."""
     page_endpoints = {endpoint: label for label, endpoint in dashboard.pages}
 
     def check():
@@ -95,6 +96,7 @@ def _guard(dashboard):
                 return jsonify(error="Sesi login habis, silakan muat ulang halaman."), 401
             return redirect(url_for("auth.login", next=request.full_path.rstrip("?")))
         if not auth.can_open(user, dashboard):
+            accounts.audit("access_denied", "dashboard", dashboard.slug, actor=user, path=request.path)
             if is_api:
                 return jsonify(error="Tidak punya akses ke dashboard ini."), 403
             return render_template("portal/denied.html", dashboard=dashboard), 403

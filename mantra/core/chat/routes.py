@@ -1,7 +1,7 @@
 """Endpoint agent setiap dashboard: POST /d/<slug>/api/chat."""
 from flask import Blueprint, current_app, jsonify, request
 
-from .. import auth, registry
+from .. import accounts, auth, registry
 from ..powerbi import DATA_ERRORS
 from . import engine, providers
 
@@ -17,6 +17,7 @@ def chat(slug):
     if user is None:
         return jsonify(error="Sesi login habis, silakan muat ulang halaman."), 401
     if not auth.can_open(user, dashboard):
+        accounts.audit("access_denied", "dashboard", slug, actor=user, path=request.path)
         return jsonify(error="Tidak punya akses ke dashboard ini."), 403
     if not providers.configured():
         return jsonify(error="AI agent belum dikonfigurasi (API key di .env)."), 503

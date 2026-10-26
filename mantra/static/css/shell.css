@@ -1,0 +1,226 @@
+/* Kerangka aplikasi MANTRA: design tokens, sidebar, top bar, area konten, loading state.
+   Dipakai SEMUA halaman (portal & dashboard). Gaya isi halaman ada di portal.css / dashboard.css. */
+:root {
+  --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --bg: #f3f6fc;
+  --surface: #ffffff;
+  --border: #e2e8f0;
+  --text: #111827;
+  --muted: #64748b;
+  --primary: #1d4ed8;
+  --primary-dark: #1e40af;
+  --active: #2563eb;
+  --navy: #0b1b43;
+  --navy-2: #081434;
+  --gold: #e5a900;
+  --warn-bg: #fff4df;
+  --radius: 14px;
+  --radius-sm: 10px;
+  --shadow: 0 1px 2px rgba(15, 27, 51, .05), 0 4px 16px rgba(15, 27, 51, .05);
+
+  --sidebar-w: 244px;
+  --sidebar-mini: 76px;
+  --topbar-h: 60px;
+
+  --blue: #2563eb;   --blue-bg: #e8f0fe;
+  --green: #16a34a;  --green-bg: #e7f6ec;
+  --orange: #f59e0b; --orange-bg: #fef4e1;
+  --purple: #7c3aed; --purple-bg: #f1eafe;
+  --teal: #0d9488;   --teal-bg: #e2f5f3;
+  --red: #dc2626;    --red-bg: #fde9e9;
+  --indigo: #1e3a8a; --indigo-bg: #e7ecf8;
+  --cyan: #0891b2;   --cyan-bg: #e1f4f8;
+  --slate: #475569;  --slate-bg: #eef1f5;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { font: 14px/1.5 var(--font); color: var(--text); background: var(--bg); }
+.ic { width: 20px; height: 20px; flex: none; }
+:is(a, button, input, select, textarea):focus-visible { outline: 2px solid var(--active); outline-offset: 2px; }
+
+/* ------------------------------------------------------------------ brand */
+.brand { display: inline-flex; align-items: center; gap: 10px; }
+.brand .mantra-mark { flex: none; }
+.brand-name { font-weight: 800; font-size: 21px; letter-spacing: .5px; }
+.merdeka { display: flex; align-items: center; gap: 10px; color: var(--navy); }
+.merdeka img { border-radius: 6px; background: #fff; padding: 2px; flex: none; }
+.merdeka div { display: flex; flex-direction: column; line-height: 1.05; }
+.merdeka b { font-size: 13px; letter-spacing: 1.5px; }
+.merdeka span { font-size: 9.5px; letter-spacing: 1.6px; }
+.merdeka small { font-size: 9px; }
+.merdeka.dark { color: #fff; }
+
+/* ------------------------------------------------------------------ buttons & messages */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 0 18px;
+  border-radius: var(--radius-sm); border: 1px solid transparent; background: var(--primary); color: #fff;
+  font: 600 14px/1 var(--font); text-decoration: none; cursor: pointer;
+}
+.btn:hover { background: var(--primary-dark); }
+.btn.ghost { background: var(--surface); color: var(--text); border-color: var(--border); }
+.btn.ghost:hover { background: var(--bg); }
+.btn .ic { width: 18px; height: 18px; }
+.btn.sm { height: 32px; padding: 0 12px; font-size: 13px; }
+.btn.danger { background: var(--red); }
+.btn.danger:hover { background: #b91c1c; }
+.btn-block { width: 100%; }
+.icon-btn {
+  display: grid; place-items: center; width: 38px; height: 38px; padding: 0; flex: none; border-radius: var(--radius-sm);
+  border: 1px solid transparent; background: transparent; color: var(--muted); cursor: pointer;
+}
+.icon-btn:hover { background: var(--bg); color: var(--text); }
+.fav-btn {
+  position: relative; z-index: 2; width: 34px; height: 34px; padding: 0; flex: none; border-radius: 9px;
+  display: grid; place-items: center; border: 1px solid transparent; background: transparent; color: #cbd5e1; cursor: pointer;
+}
+.fav-btn:hover { background: var(--bg); color: var(--orange); }
+.fav-btn.on { color: var(--orange); }
+.fav-btn.on .ic { fill: currentColor; }
+.fav-btn .ic { width: 19px; height: 19px; }
+.flash { padding: 10px 14px; border-radius: var(--radius-sm); margin: 0 0 16px; background: var(--blue-bg); color: var(--indigo); }
+.flash.error { background: var(--red-bg); color: #991b1b; }
+.flash.success { background: var(--green-bg); color: #166534; }
+.flash.warn { background: var(--warn-bg); color: #92400e; border: 1px solid #fde7b8; }
+
+/* ------------------------------------------------------------------ app shell */
+.app { min-height: 100vh; }
+.sidebar {
+  position: fixed; inset: 0 auto 0 0; z-index: 40; width: var(--sidebar-w);
+  display: flex; flex-direction: column; padding: 16px 14px; overflow: hidden;
+  background: linear-gradient(180deg, var(--navy) 0%, var(--navy-2) 100%); color: #fff;
+  transition: width .2s ease, transform .2s ease, padding .2s ease;
+}
+.sidebar-brand {
+  display: flex; align-items: center; height: 44px; margin: 0 0 20px; padding: 0 8px;
+  color: #fff; text-decoration: none; border-radius: var(--radius-sm); white-space: nowrap;
+}
+.side-nav {
+  flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 4px;
+  overflow-x: hidden; overflow-y: auto; scrollbar-width: none;
+}
+.side-nav a {
+  display: flex; align-items: center; gap: 12px; height: 42px; padding: 0 12px; flex: none; border-radius: var(--radius-sm);
+  color: rgba(255, 255, 255, .78); text-decoration: none; font-weight: 500; white-space: nowrap;
+  transition: background .15s ease, color .15s ease;
+}
+.side-nav a span { overflow: hidden; text-overflow: ellipsis; }
+.side-nav a:hover { background: rgba(255, 255, 255, .08); color: #fff; }
+.side-nav a.active { background: var(--active); color: #fff; box-shadow: 0 4px 14px rgba(37, 99, 235, .4); }
+.side-nav a:focus-visible { outline-color: #93c5fd; }
+.side-sub { display: flex; flex-direction: column; gap: 2px; margin: 2px 0 4px 21px; padding-left: 10px; border-left: 1px solid rgba(255, 255, 255, .16); }
+.side-sub a { height: 34px; padding: 0 10px; gap: 9px; font-size: 13px; }
+.side-sub a.current { background: rgba(255, 255, 255, .1); color: #fff; font-weight: 600; }
+.side-sub .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); flex: none; }
+.side-label { flex: none; padding: 0 12px 4px; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: rgba(255, 255, 255, .45); }
+.side-sep { width: 100%; flex: none; border: 0; border-top: 1px solid rgba(255, 255, 255, .14); margin: 12px 0; }
+.sidebar-foot { flex: none; margin-top: 12px; padding: 14px 8px 2px; border-top: 1px solid rgba(255, 255, 255, .1); }
+.scrim { display: none; }
+
+.main {
+  min-height: 100vh; min-width: 0; margin-left: var(--sidebar-w); display: flex; flex-direction: column;
+  overflow-x: clip; transition: margin-left .2s ease;
+}
+.topbar {
+  position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 12px; flex: none;
+  height: var(--topbar-h); padding: 0 24px 0 16px; background: rgba(255, 255, 255, .94); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+}
+.crumbs { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 13.5px; color: var(--muted); white-space: nowrap; }
+.crumbs a { color: var(--muted); text-decoration: none; font-weight: 500; border-radius: 6px; }
+.crumbs a:hover { color: var(--primary); }
+.crumbs .sep { color: #cbd5e1; font-size: 16px; line-height: 1; }
+.crumbs b, .crumbs .crumb-report { overflow: hidden; text-overflow: ellipsis; }
+.crumbs b { color: var(--text); font-weight: 600; }
+.top-search {
+  flex: 1; min-width: 0; max-width: 380px; display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); color: var(--muted);
+}
+.top-search:focus-within { border-color: var(--active); background: var(--surface); }
+.top-search .ic { width: 18px; height: 18px; }
+.top-search input { flex: 1; min-width: 0; padding: 0; border: 0; background: transparent; font: inherit; color: var(--text); outline: none; }
+.top-search input:focus-visible { outline: none; }
+.is-report-page .top-search { margin-left: auto; max-width: 300px; }
+.chat-btn {
+  display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 16px 0 12px; flex: none; border: 0;
+  border-radius: 999px; background: linear-gradient(135deg, #1e3a8a, var(--active)); color: #fff;
+  font: 700 13px/1 var(--font); cursor: pointer; box-shadow: 0 4px 12px rgba(37, 99, 235, .3);
+}
+.chat-btn:hover { filter: brightness(1.08); }
+.chat-btn .ic { width: 18px; height: 18px; color: #fde047; }
+.chat-btn.open { background: #334155; box-shadow: none; }
+.user-chip { margin-left: auto; display: flex; align-items: center; gap: 10px; flex: none; }
+.is-report-page .user-chip { margin-left: 4px; }
+.user-chip form { margin: 0; }
+.avatar {
+  width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; flex: none;
+  background: var(--navy); color: #fff; font-weight: 700; font-size: 13px;
+}
+.user-meta { display: flex; flex-direction: column; line-height: 1.2; max-width: 200px; }
+.user-meta b { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-meta small { color: var(--muted); font-size: 12px; }
+
+.content { flex: 1; width: 100%; max-width: 1440px; margin: 0 auto; padding: 28px; }
+.content.is-report { max-width: none; padding: 12px 16px 16px; }
+
+/* ------------------------------------------------------------------ loading saat pindah halaman */
+.page-loader {
+  position: fixed; top: var(--topbar-h); right: 0; bottom: 0; left: var(--sidebar-w); z-index: 25;
+  display: none; place-items: center; background: rgba(243, 246, 252, .72);
+}
+.is-loading .page-loader { display: grid; animation: loaderIn .2s ease .25s both; }
+.loader-card {
+  display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-radius: 12px;
+  background: var(--surface); border: 1px solid var(--border); box-shadow: 0 12px 32px rgba(15, 27, 51, .12);
+  font-weight: 600; color: var(--text);
+}
+.spinner { width: 20px; height: 20px; border-radius: 50%; border: 2.5px solid #dbe5f7; border-top-color: var(--active); animation: spin .8s linear infinite; }
+.is-loading .topbar::after {
+  content: ""; position: absolute; left: 0; bottom: -1px; height: 2px; width: 35%;
+  background: var(--active); animation: progress 1.1s ease-in-out infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes loaderIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes progress { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+
+/* ------------------------------------------------------------------ sidebar ringkas (ikon saja)
+   Desktop: dipilih user lewat tombol menu (disimpan di browser). Tablet: selalu ringkas, tombol menu membuka panel penuh. */
+.sb-mini .main { margin-left: var(--sidebar-mini); }
+.sb-mini .page-loader { left: var(--sidebar-mini); }
+.sb-mini body:not(.nav-open) .sidebar { width: var(--sidebar-mini); padding-left: 12px; padding-right: 12px; }
+.sb-mini body:not(.nav-open) .sidebar-brand { justify-content: center; padding: 0; }
+.sb-mini body:not(.nav-open) .side-nav a { justify-content: center; padding: 0; gap: 0; }
+.sb-mini body:not(.nav-open) :is(.brand-name, .side-nav a span, .side-sub, .side-label, .merdeka div) { display: none; }
+.sb-mini body:not(.nav-open) .merdeka { justify-content: center; }
+.sb-mini body:not(.nav-open) .sidebar-foot { padding-left: 0; padding-right: 0; }
+
+/* ------------------------------------------------------------------ responsive */
+@media (max-width: 1199px) {
+  body.nav-open .sidebar { z-index: 1100; box-shadow: 12px 0 40px rgba(8, 20, 52, .35); }
+  body.nav-open .scrim { display: block; position: fixed; inset: 0; z-index: 1050; background: rgba(8, 20, 52, .45); }
+}
+@media (max-width: 899px) {
+  .sidebar { transform: translateX(-100%); }
+  body.nav-open .sidebar { transform: none; }
+  .main, .sb-mini .main { margin-left: 0; }
+  .page-loader, .sb-mini .page-loader { left: 0; }
+  .topbar { padding: 0 12px; gap: 8px; }
+  .content { padding: 20px 16px; }
+  .content.is-report { padding: 10px; }
+  .user-meta { display: none; }
+}
+@media (max-width: 640px) {
+  .is-report-page .top-search { display: none; }
+  .is-report-page .user-chip { margin-left: auto; }
+  .is-report-page .chat-btn { margin-left: auto; width: 38px; padding: 0; justify-content: center; }
+  .is-report-page .chat-btn ~ .user-chip { margin-left: 4px; }
+  .chat-btn span { display: none; }
+  .crumbs > :is(a:first-child, a:first-child + .sep) { display: none; }
+}
+@media (max-width: 480px) {
+  .user-chip { gap: 4px; }
+  .user-chip .key-btn { display: none; }  /* Ganti password tetap bisa lewat Settings */
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar, .main { transition: none; }
+}

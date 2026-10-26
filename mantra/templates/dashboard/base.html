@@ -1,15 +1,13 @@
-{% from "dashboard/_icons.html" import icon %}<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}{{ dashboard.title }}{% endblock %} - MANTRA</title>
-  <meta name="csrf-token" content="{{ csrf_token() }}">
-  <link rel="icon" href="{{ url_for('static', filename='img/mantra-mark.svg') }}" type="image/svg+xml">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
-  {% block head %}{% endblock %}
-</head>
-<body>
+{#- Halaman report: tampil di dalam kerangka MANTRA (base.html), jadi sidebar & top bar tetap ada.
+    Header biru (.hd) tetap jadi identitas report: logo entity, judul, menu halaman report, waktu update data.
+    Blok untuk halaman report: title, head, main_title, pill, desc, stat_note, content, scripts. -#}
+{% extends "base.html" %}
+{% from "dashboard/_icons.html" import icon %}
+{% set report = dashboard %}
+{% block title %}{{ dashboard.title }}{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">{% endblock %}
+{% block content_class %} is-report{% endblock %}
+{% block main %}
 <div class="dash">
 
   <header class="hd" id="hd">
@@ -28,7 +26,7 @@
         </div>
         <div class="hd-title-block">
           <div class="hd-title-row">
-            <div class="hd-main-title">{% block main_title %}{{ dashboard.title }} Dashboard{% endblock %}</div>
+            <h1 class="hd-main-title">{% block main_title %}{{ dashboard.title }} Dashboard{% endblock %}</h1>
             <span class="hd-pill"><span class="hd-pill-dot"></span>{% block pill %}{{ dashboard.pages[0][0] }}{% endblock %}</span>
           </div>
           <div class="hd-desc">{% block desc %}{{ dashboard.description }}{% endblock %}</div>
@@ -41,32 +39,20 @@
         </div>
       </div>
       <div class="hd-right">
-        <nav class="hd-nav">
-          <a href="{{ url_for('portal.home') }}" title="Kembali ke portal MANTRA">&#8592; MANTRA</a>
+        {% if dashboard.pages|length > 1 %}
+        <nav class="hd-nav" aria-label="Halaman {{ dashboard.title }}">
           {% for label, endpoint in dashboard.pages %}
-          <a href="{{ url_for(endpoint) }}" class="{{ 'on' if request.endpoint == endpoint }}">{{ label }}</a>
+          <a href="{{ url_for(endpoint) }}" class="{{ 'on' if request.endpoint == endpoint }}"
+             {%- if request.endpoint == endpoint %} aria-current="page"{% endif %}>{{ label }}</a>
           {% endfor %}
         </nav>
+        {% endif %}
         <div class="hd-stat">
           <div class="hd-stat-ic">{{ icon('clock') }}</div>
           <div>
             <small>Last Update</small>
             <b id="hdDate">{{ header.date }}</b>
             <em><span id="hdTime">{{ header.time }}</span>{% block stat_note %}{% endblock %}</em>
-          </div>
-        </div>
-        <div class="hd-stat hd-user">
-          <div class="hd-stat-ic">{{ icon('user') }}</div>
-          <div>
-            <small>{{ current_user.email }}</small>
-            <b>{{ current_user.name }}</b>
-            <em>
-              {% if config.AUTH_DISABLED %}Mode development{% else %}
-              <form method="post" action="{{ url_for('auth.logout') }}">
-                <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-                <button type="submit">Logout</button>
-              </form>{% endif %}
-            </em>
           </div>
         </div>
       </div>
@@ -76,11 +62,11 @@
 
   {% block content %}{% endblock %}
 </div>
+{% endblock %}
+
+{% block overlays %}
+<div id="tip"></div>
 {% if chat_enabled %}
-<button class="chat-fab" id="chatFab" type="button" aria-label="Tanya AI">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M8.5 11h.01M12 11h.01M15.5 11h.01"/></svg>
-  <span>Tanya AI</span>
-</button>
 <section class="chat-panel" id="chatPanel" hidden aria-label="AI agent">
   <header class="chat-head">
     <div>
@@ -99,8 +85,10 @@
 <script>window.CHAT = {{ {"url": url_for("chat.chat", slug=dashboard.slug), "title": dashboard.title,
                           "suggestions": dashboard.chat.suggestions}|tojson }};</script>
 {% endif %}
+{% endblock %}
+
+{% block layer_scripts %}
 <script src="{{ url_for('static', filename='js/dash-common.js') }}"></script>
 {% block scripts %}{% endblock %}
 {% if chat_enabled %}<script src="{{ url_for('static', filename='js/chat.js') }}"></script>{% endif %}
-</body>
-</html>
+{% endblock %}

@@ -1,5 +1,5 @@
 """Halaman portal: Home, Reports, Favorites, History, Settings."""
-from flask import Blueprint, jsonify, render_template, request
+from flask import Blueprint, current_app, jsonify, render_template, request
 
 from .config import Config
 from .core import auth, db, registry
@@ -65,7 +65,7 @@ def settings():
     if auth.is_admin(user):
         status = {
             "entra": auth.entra_configured(),
-            "auth_disabled": Config.AUTH_DISABLED,
+            "auth_disabled": current_app.config["AUTH_DISABLED"],
             "powerbi": bool(Config.PBI_TENANT_ID and Config.PBI_CLIENT_ID and Config.PBI_CLIENT_SECRET),
             "ai": providers.configured(),
             "ai_provider": Config.AI_PROVIDER,

@@ -48,7 +48,7 @@ def main():
     print(f"Dashboard dibuat: {target.relative_to(ROOT)}")
     print("Langkah berikutnya:")
     print(f"  1. Isi workspace_id & dataset_id di {target.relative_to(ROOT)}\\queries.py")
-    print(f"  2. Entra > App registrations > MANTRA Portal > App roles: buat role '{tokens['__ROLE__']}', lalu assign user")
+    print("  2. Start Flask: dashboard otomatis masuk katalog. Beri akses user di Admin > Users (Super Admin otomatis bisa)")
     print("  3. Beri mantra-powerbi akses ke workspace-nya, lalu: python scripts\\check_setup.py")
     print(f"  4. Restart Flask dan buka http://localhost:<PORT dari .env, default 5001>/d/{slug}/")
 

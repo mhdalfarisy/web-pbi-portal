@@ -1,0 +1,44 @@
+{% extends "portal/base.html" %}
+{% from "portal/_ui.html" import icon %}
+{% from "admin/_ui.html" import role_pill, active_status %}
+{% block title %}Users{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>User Management</h1>
+    <p class="muted">Akun MANTRA dan dashboard yang boleh dibuka setiap user</p>
+  </div>
+  <a class="btn" href="{{ url_for('admin.new_user') }}">{{ icon('user-plus') }} Tambah user</a>
+</div>
+
+<section class="panel flush">
+  <div class="table-wrap">
+    <table class="table stack">
+      <thead>
+        <tr><th>Email</th><th>Role</th><th>Status</th><th>Dashboard yang diizinkan</th><th>Login terakhir</th><th>Dibuat</th><th></th></tr>
+      </thead>
+      <tbody>
+      {% for r in rows %}
+      {% set u = r.user %}
+        <tr class="{{ 'row-muted' if not u.is_active }}">
+          <td data-label="Email"><a class="strong-link" href="{{ url_for('admin.user_detail', user_id=u.id) }}">{{ u.email }}</a>
+            {% if u.name %}<div class="muted small">{{ u.name }}</div>{% endif %}</td>
+          <td data-label="Role">{{ role_pill(u.role, roles) }}</td>
+          <td data-label="Status">{{ active_status(u) }}</td>
+          <td class="wrap" data-label="Dashboard">
+            {% if u.role == 'super_admin' %}<span class="muted">Semua dashboard aktif</span>
+            {% else %}{% for d in r.dashboards %}<span class="pill">{{ d.name }}</span> {% else %}<span class="muted">Tidak ada</span>{% endfor %}{% endif %}
+          </td>
+          <td class="muted" data-label="Login terakhir">{{ u.last_login_at[:16] if u.last_login_at else '-' }}</td>
+          <td class="muted" data-label="Dibuat">{{ u.created_at[:10] }}</td>
+          <td class="actions"><a class="btn sm ghost" href="{{ url_for('admin.user_detail', user_id=u.id) }}">Kelola</a></td>
+        </tr>
+      {% else %}
+        <tr class="empty-row"><td colspan="7" class="muted center">Belum ada user. Jalankan <code>python scripts\manage_users.py seed</code>.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+<p class="muted small">Role Super Admin hanya bisa diberikan lewat server: <code>python scripts\manage_users.py set-role</code>.</p>
+{% endblock %}

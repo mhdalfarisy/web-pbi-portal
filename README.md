@@ -1,11 +1,12 @@
 # MANTRA: Multi-Agent Network for Tracking & Reporting Analytics
 
 Portal analitik grup PT Merdeka Copper Gold. Satu portal berisi banyak dashboard. Setiap dashboard punya semantic
-model Power BI, tampilan, logika query, dan **AI agent** sendiri. User login dengan akun Microsoft perusahaan, dan
-dashboard yang bisa dibuka diatur lewat **app roles** di Microsoft Entra.
+model Power BI, tampilan, logika query, dan **AI agent** sendiri. User login dengan **email + password** (opsional
+juga akun Microsoft), dan dashboard yang bisa dibuka setiap user diatur **Super Admin** di halaman Admin. Detail
+login, role, hak akses, migrasi database, backup & rollback: [docs/AUTH.md](docs/AUTH.md).
 
 ```
-Browser ── login ──> Microsoft Entra (MANTRA Portal: app roles)
+Browser ── login email + password ──> MANTRA (users & hak akses di instance/mantra.db)
    │
    ▼
 Flask MANTRA ── core/ (login, registry, cache, pembatas query, mesin AI agent)
@@ -16,14 +17,14 @@ Flask MANTRA ── core/ (login, registry, cache, pembatas query, mesin AI agen
 ```
 
 Data dashboard **tidak** disimpan di MANTRA; semuanya dibaca langsung dari semantic model lewat `executeQueries`.
-File `instance/mantra.db` hanya berisi Favorites dan History per user.
+File `instance/mantra.db` berisi akun, hak akses dashboard, audit log, Favorites, dan History.
 
 ## Status dashboard
 
-| Dashboard | Slug | App role | Status |
+| Dashboard | Slug | Akun awal yang diberi akses | Status |
 |---|---|---|---|
-| Material Readiness | `material-readiness` | `Report.MaterialReadiness` | Siap. Angka identik dengan project lama (66 perbandingan) dan 8 pertanyaan acuan AI agent lulus |
-| PANI Processing | `pani-processing` | `Report.PaniProcessing` | Siap. 4 halaman (Processing, Equipment, Mining, Production) dari model "PANI - PRCS - Processing". Angka dibandingkan langsung dengan measure HTML report: `python scripts\compare_pani_report.py` (272 sama, 76 beda karena bug di report). DAX perbaikan untuk report ada di [docs/powerbi_fixes](docs/powerbi_fixes/README.md); dengan `--fixed` (19 measure) hasilnya 348/348 sama |
+| Material Readiness | `material-readiness` | `pbi_pro_a@merdeka.com` | Siap. Angka identik dengan project lama (66 perbandingan) dan 8 pertanyaan acuan AI agent lulus |
+| PANI Processing | `pani-processing` | `pbi_pro_b@merdeka.com` | Siap. 4 halaman (Processing, Equipment, Mining, Production) dari model "PANI - PRCS - Processing". Angka dibandingkan langsung dengan measure HTML report: `python scripts\compare_pani_report.py` (272 sama, 76 beda karena bug di report). DAX perbaikan untuk report ada di [docs/powerbi_fixes](docs/powerbi_fixes/README.md); dengan `--fixed` (19 measure) hasilnya 348/348 sama |
 
 ## Struktur folder
 
@@ -33,24 +34,36 @@ mantra/
   __init__.py              create_app(), CSRF
   config.py                baca .env
   portal.py                Home, Reports, Favorites, History, Settings
+  admin.py                 halaman Super Admin: Users, Dashboard Access, katalog Dashboards, Audit Log
   core/
-    auth.py                login Microsoft Entra + hak akses dari app roles
+    auth.py                login (email + password, Entra opsional), session, role_required, can_open
+    accounts.py            users, hak akses dashboard, katalog dashboard, audit log
     registry.py            daftar dashboard (auto-discovery) + kontrak Dashboard / ChatSpec / Tool
     powerbi.py             service principal, Dataset per dashboard, pembatas query bersama
-    cache.py, db.py        cache query, Favorites & History
+    cache.py, db.py        cache query; koneksi SQLite + migrasi + backup, Favorites & History
     prompts/base.md        aturan umum SEMUA AI agent
     chat/                  mesin AI agent: engine, provider (Gemini), prompt loader, pengaman parameter
-  templates/portal/        halaman portal        templates/dashboard/   kerangka halaman dashboard
-  static/                  portal.css, dashboard.css, portal.js, chat.js, dash-common.js
+  templates/
+    base.html              kerangka SEMUA halaman: sidebar + top bar + area konten (lihat "Layout" di bawah)
+    components/            sidebar.html, topbar.html
+    portal/                halaman portal (extend portal/base.html), login, ganti password
+    admin/                 halaman Super Admin
+    dashboard/             kerangka halaman report: header biru, AI agent (extend dashboard/base.html)
+  static/
+    css/                   shell.css (token warna + sidebar/top bar), portal.css, dashboard.css
+    js/                    shell.js (sidebar, loading, favorit), portal.js, dash-common.js, chat.js
   dashboards/
     _template/             kerangka dashboard baru (dipakai scripts/new_dashboard.py)
     material_readiness/    __init__.py (manifest), queries.py, routes.py, tools.py, prompts/, templates/, static/,
                            chat_cases.py (pertanyaan acuan AI agent)
     pani_processing/       4 halaman PANI (Processing, Equipment, Mining, Production) + AI agent
 docs/
+  AUTH.md                  login, RBAC, skema database, migrasi, backup & rollback, daftar route
   powerbi_fixes/           DAX perbaikan bug di report Power BI PANI + cara memasangnya
+tests/                     pytest: login, hak akses, admin, migrasi, seed, audit log (python -m pytest)
 scripts/
-  check_setup.py           cek .env, Entra, akses tiap semantic model, AI
+  manage_users.py          akun awal (seed), buat user, hak akses, reset password, role, backup database
+  check_setup.py           cek .env, Entra (opsional), akses tiap semantic model, AI
   test_chatbot.py          tes AI agent (statis + pertanyaan acuan)
   compare_pani_report.py   bandingkan angka dashboard PANI dengan measure report Power BI (14 skenario filter);
                            --fixed menguji DAX di docs/powerbi_fixes sebelum ditempel ke report
@@ -76,20 +89,29 @@ pip install -r requirements.txt
 Copy-Item .env.example .env         # lalu isi (lihat langkah 2-4)
 ```
 
-`.env` **tidak ada di GitHub**: simpan salinannya di tempat aman. `instance\mantra.db` (Favorites & History) dibuat
-otomatis.
+`.env` **tidak ada di GitHub**: simpan salinannya di tempat aman. `instance\mantra.db` dibuat & dimigrasi otomatis
+saat start (database lama di-backup dulu ke `instance\backups\`).
 
-### 2. Microsoft Entra: login user (app registration `MANTRA Portal`)
+### 2. Akun login
+
+```powershell
+$env:MANTRA_SEED_PASSWORD = "<password sementara>"   # atau: python scripts\manage_users.py seed --generate
+python scripts\manage_users.py seed                  # pbi_premium (Super Admin), pbi_pro_a, pbi_pro_b
+Remove-Item Env:MANTRA_SEED_PASSWORD
+```
+
+Setiap akun wajib mengganti password sementara saat login pertama. User lain dibuat Super Admin di **Admin > Users**.
+Di `.env`: `AUTH_DISABLED=0`.
+
+### 2b. Microsoft Entra (opsional): login dengan akun Microsoft (app registration `MANTRA Portal`)
+
+Hanya untuk email yang sudah terdaftar & aktif di MANTRA; hak akses tetap dari database (app roles tidak dipakai).
 
 1. entra.microsoft.com > App registrations > New registration: name `MANTRA Portal`, Single tenant,
    Redirect URI **Web** `http://localhost:5001/auth/callback` (port = `PORT` di `.env`, default 5001).
 2. Catat Application (client) ID dan Directory (tenant) ID > `ENTRA_CLIENT_ID`, `ENTRA_TENANT_ID`.
 3. Certificates & secrets > New client secret > salin **Value** > `ENTRA_CLIENT_SECRET`.
-4. App roles > Create app role (Allowed member types: Users/Groups), Value harus persis:
-   `Portal.Admin`, `Report.MaterialReadiness`, `Report.PaniProcessing`.
-5. Enterprise applications > MANTRA Portal > Properties > **Assignment required = Yes**.
-6. Users and groups > Add user/group > pilih user + role.
-7. Di `.env`: `AUTH_DISABLED=0`.
+4. Enterprise applications > MANTRA Portal > Properties > **Assignment required = Yes**, lalu Users and groups.
 
 ### 3. Microsoft Entra + Power BI: akses data (app registration `mantra-powerbi`)
 
@@ -106,6 +128,7 @@ otomatis.
 
 ```powershell
 python scripts\check_setup.py                 # semua harus OK (PANI menunggu akses workspace)
+pip install -r requirements-dev.txt; python -m pytest   # tes login & hak akses (database sementara)
 python scripts\test_chatbot.py --static       # cek prompt semua AI agent (gratis)
 python run.py                                 # buka http://localhost:5001 (bukan 127.0.0.1)
 ```
@@ -114,8 +137,9 @@ Atau **double-click `run_mantra.bat`** dari File Explorer. Server berjalan di je
 berhenti kalau terminal VS Code ditutup, dan jendelanya tetap terbuka kalau server berhenti supaya pesannya bisa
 dibaca. Saat server berhenti, `run.py` selalu mencetak penyebabnya (Ctrl+C / terminal ditutup, atau crash).
 
-**Mode development tanpa login**: `AUTH_DISABLED=1` di `.env`. Role user development diatur lewat `DEV_ROLES`
-(mis. `Report.MaterialReadiness` untuk mencoba tampilan user biasa). Jangan dipakai di production.
+**Mode development tanpa login**: `AUTH_DISABLED=1` di `.env` membuat siapa pun masuk sebagai Super Admin tanpa
+akun. Untuk mencoba tampilan user biasa, pakai `AUTH_DISABLED=0` dan login sebagai `pbi_pro_a` / `pbi_pro_b`.
+Jangan dipakai di production. (`DEV_ROLES` tidak dipakai lagi.)
 
 Foto latar halaman login (opsional): simpan sebagai `mantra\static\img\login-bg.jpg`.
 
@@ -128,7 +152,7 @@ python scripts\new_dashboard.py work-order "Work Order"
 Lalu ikuti petunjuk yang dicetak:
 
 1. Isi `workspace_id` & `dataset_id` di `mantra\dashboards\work_order\queries.py`.
-2. Buat app role `Report.WorkOrder` di Entra, lalu assign user.
+2. Start Flask (dashboard otomatis masuk katalog), lalu beri akses user di **Admin > Users**.
 3. Beri `mantra-powerbi` akses ke workspace-nya, lalu jalankan `check_setup.py`.
 4. Bangun query (`queries.py`), halaman (`templates/`, `static/`), tool agent (`tools.py`), prompt (`prompts/`),
    dan pertanyaan acuan (`chat_cases.py`).
@@ -136,6 +160,27 @@ Lalu ikuti petunjuk yang dicetak:
 
 Struktur model bisa dibaca langsung:
 `python scripts\check_setup.py --dashboard work-order --dax "EVALUATE INFO.VIEW.COLUMNS()"`
+
+## Layout
+
+Semua halaman memakai `templates/base.html`, jadi sidebar MANTRA (Home, Reports, Favorites, History, Settings) dan
+top bar selalu tampil, termasuk di halaman report. Report bukan iframe Power BI: halamannya dirender Flask dari data
+semantic model, dan tampil di area konten di sebelah kanan sidebar.
+
+```
+base.html ── sidebar + top bar + <main class="content"> + loader
+  ├── portal/base.html      Home, Reports, Favorites, History, Settings, error  (+ portal.css, portal.js)
+  └── dashboard/base.html   halaman report: header biru, AI agent             (+ dashboard.css, dash-common.js)
+```
+
+- Di halaman report, menu **Reports** aktif, nama report tampil di bawahnya, dan top bar berisi breadcrumb
+  `Reports › <report> › <halaman>` serta tombol bintang favorit.
+- Sidebar: desktop (>= 1200px) bisa diringkas jadi ikon lewat tombol menu (pilihan disimpan di browser); tablet
+  (900-1199px) selalu ringkas; mobile (< 900px) jadi drawer.
+- Halaman report baru cukup `{% extends "dashboard/base.html" %}` dan mengisi blok `content` (opsional: `title`, `head`,
+  `main_title`, `pill`, `desc`, `stat_note`, `scripts`). Breakpoint CSS isi report pakai `@container dash (...)`,
+  bukan `@media`, supaya mengikuti lebar area report setelah sidebar.
+- Warna, ukuran sidebar (`--sidebar-w`) dan tinggi top bar (`--topbar-h`) ada di `:root` pada `static/css/shell.css`.
 
 ## AI agent
 
@@ -157,8 +202,11 @@ di `.env`. Dashboard dan tools tidak perlu diubah.
 
 | Gejala | Solusi |
 |---|---|
+| "Akun Microsoft ini belum terdaftar atau nonaktif" | Login Entra butuh akun MANTRA dengan email yang sama (Admin > Users) |
 | "Akun Anda belum diberi akses ke MANTRA" | User belum di-assign di Enterprise applications > MANTRA Portal > Users and groups |
-| Login berhasil tapi tidak ada dashboard | User belum punya app role `Report.*`. Assign role, lalu logout & login ulang |
+| Login berhasil tapi tidak ada dashboard | User belum diberi akses. Super Admin: Admin > Users > Kelola > centang dashboard (langsung berlaku) |
+| "Email atau password salah" terus | Akun mungkin terkunci 15 menit setelah 5 kali gagal. Super Admin bisa Reset password |
+| Lupa password Super Admin terakhir | `python scripts\manage_users.py reset-password --email <email>` di server |
 | `AADSTS50011` redirect URI mismatch | Buka lewat `http://localhost:5001`, dan pastikan redirect URI di app registration persis `http://localhost:5001/auth/callback` (port sama dengan `PORT` di `.env`) |
 | Port 5001 sudah dipakai | Ganti `PORT` di `.env` (mis. 5002), lalu ubah juga redirect URI di Entra ke port yang sama |
 | Dashboard "Gagal mengambil data dari Power BI" | `python scripts\check_setup.py`. Pesan error disertai petunjuk |
