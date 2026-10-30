@@ -15,8 +15,10 @@ from mantra.core.chat import routes as chat_routes  # noqa: E402
 
 # config.py memuat .env dengan override=True, jadi nilai di os.environ TIDAK bisa dipakai untuk test (selalu ditimpa
 # .env). Nilai test dipasang langsung ke Config setelah import: secret key khusus test, tanpa AI asli (Gemini tidak
-# pernah dipanggil), tanpa SSO, dan tanpa kredensial Power BI asli (request ke Power BI juga diblokir di bawah).
+# pernah dipanggil), tanpa SSO, tanpa kredensial Power BI asli (request ke Power BI juga diblokir di bawah), dan
+# selalu mode dev tanpa proxy (test staging membuat app sendiri, lihat test_server_config.py).
 TEST_CONFIG = {"SECRET_KEY": "test-secret", "AUTH_DISABLED": False, "DEBUG": False, "DASHBOARD_STRICT": True,
+               "APP_ENV": "dev", "TRUST_PROXY": 0,
                "GEMINI_API_KEY": "", "ENTRA_CLIENT_ID": "", "ENTRA_CLIENT_SECRET": "",
                "PBI_CLIENT_ID": "test-client-id", "PBI_CLIENT_SECRET": "test-client-secret"}
 for _key, _value in TEST_CONFIG.items():

@@ -5,3 +5,4 @@ requests>=2.31,<3
 python-dotenv>=1.0,<2
 google-genai>=2.0,<3
 httpx>=0.27,<1  # di-import langsung oleh core/chat/providers.py (juga dependency google-genai)
+gunicorn>=23,<27  # server staging & production (Linux/macOS), lihat gunicorn.conf.py; laptop tetap run.py

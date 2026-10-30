@@ -97,9 +97,11 @@ HISTORY_KEEP = 100  # riwayat per user yang disimpan
 
 
 def connect(path):
-    conn = sqlite3.connect(path)
+    # Kalau database sedang ditulis koneksi lain, tunggu sampai 15 detik dulu sebelum error "database is locked"
+    conn = sqlite3.connect(path, timeout=15)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA synchronous = NORMAL")  # aman dengan WAL (lihat migrate) dan lebih cepat saat menulis
     return conn
 
 
@@ -111,6 +113,9 @@ def backup(conn, backup_dir, label):
     dest = sqlite3.connect(target)
     try:
         conn.backup(dest)
+        # Backup ikut mode WAL dari sumbernya; dikembalikan ke mode biasa supaya backup = satu file utuh yang bisa
+        # langsung disalin saat restore (tanpa file -wal / -shm)
+        dest.execute("PRAGMA journal_mode = DELETE")
     finally:
         dest.close()
     return target
@@ -120,6 +125,10 @@ def migrate(path, backup_dir):
     """Pasang migrasi yang belum jalan. Mengembalikan (versi_awal, versi_akhir, path_backup_atau_None)."""
     conn = connect(path)
     try:
+        # WAL: pembaca tidak menunggu penulis, jadi banyak user yang membuka halaman (menulis History & audit log)
+        # tidak saling mengunci. Tersimpan permanen di file database; perintah ini tidak berbuat apa-apa kalau sudah WAL.
+        # Akibatnya ada file mantra.db-wal & mantra.db-shm di sebelah mantra.db (lihat restore di docs/AUTH.md).
+        conn.execute("PRAGMA journal_mode = WAL")
         version = conn.execute("PRAGMA user_version").fetchone()[0]
         if version > len(MIGRATIONS):
             raise RuntimeError(f"Database versi {version} lebih baru dari kode (versi {len(MIGRATIONS)}). "
@@ -141,8 +150,8 @@ def migrate(path, backup_dir):
 
 
 def init_app(app):
-    app.config["INSTANCE_DIR"].mkdir(exist_ok=True)
-    before, after, saved = migrate(app.config["APP_DB"], app.config["INSTANCE_DIR"] / "backups")
+    Path(app.config["INSTANCE_DIR"]).mkdir(parents=True, exist_ok=True)
+    before, after, saved = migrate(app.config["APP_DB"], Path(app.config["INSTANCE_DIR"]) / "backups")
     if after != before:
         app.logger.warning("Database dimigrasi dari versi %s ke %s%s", before, after,
                            f" (backup: {saved})" if saved else "")

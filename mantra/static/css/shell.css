@@ -159,6 +159,14 @@ body { font: 14px/1.5 var(--font); color: var(--text); background: var(--bg); }
 .user-chip { margin-left: auto; display: flex; align-items: center; gap: 10px; flex: none; }
 .is-report-page .user-chip { margin-left: 4px; }
 .user-chip form { margin: 0; }
+/* Penanda server staging (APP_ENV=staging) di top bar & halaman login */
+.env-badge {
+  display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; flex: none;
+  background: var(--orange-bg); color: #92400e; border: 1px solid #fcd9a0; font: 800 11px/1 var(--font);
+  letter-spacing: .06em; text-transform: uppercase; white-space: nowrap;
+}
+.login-env { height: auto; margin: -14px 0 18px; padding: 6px 12px; border-radius: var(--radius-sm); white-space: normal;
+  text-transform: none; letter-spacing: 0; font-size: 12.5px; line-height: 1.35; }
 .avatar {
   width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; flex: none;
   background: var(--navy); color: #fff; font-weight: 700; font-size: 13px;

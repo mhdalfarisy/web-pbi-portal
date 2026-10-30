@@ -190,9 +190,10 @@ Rollback (kembali ke kondisi sebelum fitur login ini):
 
 ```bash
 # 1. Hentikan server MANTRA (tutup jendela run_mantra.command / Ctrl+C)
-# 2. Simpan database sekarang, lalu pulihkan backup
-cp instance/mantra.db instance/backups/mantra-sebelum-rollback.db
+# 2. Simpan database sekarang (perintah backup, bukan cp: database memakai mode WAL), lalu pulihkan backup
+python scripts/manage_users.py backup
 cp instance/backups/mantra-<waktu>-before-v2.db instance/mantra.db
+rm -f instance/mantra.db-wal instance/mantra.db-shm   # sisa mode WAL milik database lama, wajib dihapus
 # 3. Kembalikan kode ke commit sebelum fitur ini, lalu start server lagi
 #    (kalau kode baru yang dijalankan, database itu akan dimigrasi ulang otomatis)
 ```

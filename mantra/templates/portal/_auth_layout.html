@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}{% endblock %} - Power BI Portal</title>
+  <title>{% if app_env == 'staging' %}[STAGING] {% endif %}{% block title %}{% endblock %} - Power BI Portal</title>
   <link rel="icon" href="{{ url_for('static', filename='img/mantra-mark.svg') }}" type="image/svg+xml">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/shell.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/portal.css') }}">
@@ -29,6 +29,7 @@
           <p>Integrated Dashboards &amp; AI Analytics</p>
         </div>
       </div>
+      {% if app_env == "staging" %}<p class="env-badge login-env">Staging: server uji, bukan portal production</p>{% endif %}
 
       <h2>{% block card_title %}{% endblock %}</h2>
       <p class="muted">{% block card_intro %}{% endblock %}</p>

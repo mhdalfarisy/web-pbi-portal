@@ -4,6 +4,7 @@ Satu token dan satu koneksi HTTP dipakai bersama oleh semua dashboard. Setiap da
 sendiri lewat Dataset(...). Batas query per menit juga berlaku bersama, karena kuota Power BI dihitung per service
 principal, bukan per dashboard.
 """
+import logging
 import os
 import re
 import threading
@@ -18,6 +19,8 @@ from ..config import Config
 
 API = "https://api.powerbi.com/v1.0/myorg"
 SCOPE = ["https://analysis.windows.net/powerbi/api/.default"]
+# Logger "mantra.core.powerbi": ikut format & level log aplikasi (lihat create_app)
+log = logging.getLogger(__name__)
 
 
 class PowerBIError(Exception):
@@ -116,7 +119,9 @@ class PowerBI:
 
     def execute_query(self, dataset, dax):
         """Jalankan DAX, kembalikan list of dict. Batas API: 100.000 baris / 1 juta nilai per query."""
+        started = time.monotonic()
         self._limiter.wait()
+        queued = time.monotonic() - started
         body = {"queries": [{"query": dax}], "serializerSettings": {"includeNulls": True}}
         data = self.request("POST", f"{dataset.path}/executeQueries", json=body)
         try:
@@ -126,6 +131,10 @@ class PowerBI:
         if "error" in result:
             raise PowerBIError(f"DAX error: {result['error']}")
         rows = ((result.get("tables") or [{}])[0] or {}).get("rows") or []
+        # Bahan mengukur kapasitas: berapa lama query, dan berapa lama antre karena PBI_MAX_QUERIES_PER_MINUTE.
+        # Antre >= 1 detik dicatat sebagai WARNING: tanda batas query per menit mulai tercapai.
+        log.log(logging.WARNING if queued >= 1 else logging.INFO, "Power BI %s: %d baris, %.0f ms (antre %.0f ms)",
+                dataset.env_prefix, len(rows), (time.monotonic() - started - queued) * 1000, queued * 1000)
         if not rows:
             return []
         keys = list(rows[0])

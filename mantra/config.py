@@ -10,9 +10,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # .env MANTRA SELALU menang atas variabel yang sudah ada di environment. Terminal VS Code bisa membawa .env project
 # lain (setting python.terminal.useEnvFile), mis. kredensial service principal lain atau AUTH_DISABLED=1, dan tanpa
 # override nilai itu diam-diam dipakai MANTRA. Nama variabel yang tertimpa dicatat untuk peringatan saat start.
-_ENV_FILE = dotenv_values(BASE_DIR / ".env")
+# Di server, .env boleh disimpan di luar folder kode (folder kode diganti setiap deploy): MANTRA_ENV_FILE=/etc/mantra/.env
+# MANTRA_ENV_FILE harus diset di environment proses (mis. systemd), bukan di dalam .env itu sendiri.
+ENV_PATH = Path(os.environ.get("MANTRA_ENV_FILE") or BASE_DIR / ".env")
+_ENV_FILE = dotenv_values(ENV_PATH)
 ENV_OVERRIDDEN = sorted(k for k, v in _ENV_FILE.items() if k in os.environ and os.environ[k] != (v or ""))
-load_dotenv(BASE_DIR / ".env", override=True)
+load_dotenv(ENV_PATH, override=True)
+
+APP_ENVS = ("dev", "staging", "production")
 
 
 def _flag(name):
@@ -30,6 +35,15 @@ def _list(value):
 
 
 class Config:
+    # dev = laptop developer, staging = server uji, production = server live. Selain dev, create_app menolak start
+    # kalau setting berbahaya masih aktif (lihat mantra/__init__.py: _check_server_config).
+    APP_ENV = (os.environ.get("APP_ENV") or "dev").strip().lower()
+    # Jumlah reverse proxy (Caddy/nginx) di depan aplikasi. 1 = IP user, https, dan domain dibaca dari header
+    # X-Forwarded-* yang dikirim proxy. 0 = tidak ada proxy (laptop). Jangan isi >0 kalau tidak ada proxy: header itu
+    # bisa dipalsukan user.
+    TRUST_PROXY = int(os.environ.get("TRUST_PROXY") or 0)
+    # Level log: DEBUG, INFO, WARNING. Kosong = INFO di server (ada log tiap request & query Power BI), WARNING di dev.
+    LOG_LEVEL = (os.environ.get("LOG_LEVEL") or ("WARNING" if APP_ENV == "dev" else "INFO")).strip().upper()
     # Port lokal. Redirect URI di Entra harus ikut: http://localhost:<PORT>/auth/callback
     PORT = int(os.environ.get("PORT") or 5001)
     # 1 = Werkzeug debugger + auto reload. Debugger bisa menjalankan kode di server, jadi default mati.
@@ -72,5 +86,6 @@ class Config:
     # 0 = dashboard itu disembunyikan dan dicatat di log, dashboard lain tetap jalan (production).
     DASHBOARD_STRICT = os.environ.get("DASHBOARD_STRICT", "1").strip() != "0"
 
-    INSTANCE_DIR = BASE_DIR / "instance"
+    # Database & backup. Di server isi di luar folder kode (mis. /var/lib/mantra) supaya tidak terhapus saat deploy.
+    INSTANCE_DIR = Path(os.environ.get("MANTRA_INSTANCE_DIR") or BASE_DIR / "instance")
     APP_DB = INSTANCE_DIR / "mantra.db"

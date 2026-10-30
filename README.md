@@ -32,7 +32,8 @@ File `instance/mantra.db` berisi akun, hak akses dashboard, audit log, Favorites
 ## Struktur folder
 
 ```
-run.py
+run.py                     server development (laptop)
+wsgi.py, gunicorn.conf.py  server staging & production (gunicorn), lihat docs/DEPLOY_SERVER.md
 mantra/
   __init__.py              create_app(), CSRF
   config.py                baca .env
@@ -63,6 +64,7 @@ mantra/
     pani_processing/       4 halaman PANI (Processing, Equipment, Mining, Production) + AI agent
 docs/
   AUTH.md                  login, RBAC, skema database, migrasi, backup & rollback, daftar route
+  DEPLOY_SERVER.md         untuk tim infra: gunicorn, systemd, reverse proxy, .env server, backup/restore, log
   PANDUAN_DEVELOPMENT_BERURUTAN.md  jalur membangun dari nol (fase 0-14), link file, output nyata setiap cek
   panduan_development/     pendalaman: konsep teknologi, kode inti, logika bisnis dashboard
   development_playbook/    buku panduan development lengkap (mulai dari 00_START_HERE.md)
@@ -73,11 +75,13 @@ tests/                     pytest (python -m pytest), lihat tests/README.md
   test_passwords_and_database.py  hash password, seed akun, migrasi & backup database, log tanpa secret
   test_forgot_password.py  alur lupa password
   test_errors_and_security.py     penanganan error, header keamanan, batas AI & data, cache
+  test_server_config.py    APP_ENV staging/production, proxy, lokasi data, WAL, /healthz, log, gunicorn
 scripts/                   perintah manual (python scripts/<nama>.py), lihat scripts/README.md
   manage_users.py          akun awal (seed), buat user, hak akses, reset password, role, backup database
   check_setup.py           cek .env, Entra (opsional), akses tiap semantic model, AI
   check_ai_agent.py        tes AI agent (statis + pertanyaan acuan)
   create_dashboard.py      buat dashboard baru dari _template
+  build_production.sh      paket production tanpa docs/tests (staging & production), lihat docs/DEPLOY_SERVER.md
   compare_pani_with_powerbi.py    bandingkan angka dashboard PANI dengan measure report Power BI (14 skenario
                            filter); --fixed menguji DAX di docs/powerbi_fixes (pulihkan dulu dari git, lihat di atas)
 ```
