@@ -44,7 +44,13 @@ Catatan penting (Verified dari `config.py`):
 
 | Variabel | Default di kode | Dibaca oleh | Fungsi |
 |---|---|---|---|
-| `PORT` | 5001 | `run.py` | Port lokal; redirect URI Entra harus sama |
+| `APP_ENV` | dev | `create_app` (`_check_server_config`), template | dev / staging / production. Selain dev: menolak start bila `AUTH_DISABLED=1`, `FLASK_DEBUG=1`, `SESSION_COOKIE_SECURE=0`, secret < 32 karakter; staging tampil label STAGING; `run.py` menolak non-dev |
+| `TRUST_PROXY` | 0 | `create_app` (`ProxyFix`) | Jumlah reverse proxy; 1 di server agar IP user, https, domain dari `X-Forwarded-*` |
+| `MANTRA_INSTANCE_DIR` | `instance/` | `Config.INSTANCE_DIR` | Folder `mantra.db` + `backups/`; server: di luar folder kode |
+| `MANTRA_ENV_FILE` | `.env` di root | `config.py` (environment proses, bukan isi .env) | Lokasi file .env, mis. `/etc/mantra/mantra.env` |
+| `LOG_LEVEL` | WARNING (dev) / INFO (server) | `create_app` | INFO = log per request & per query Power BI |
+| `GUNICORN_BIND`, `GUNICORN_THREADS` | `127.0.0.1:<PORT>`, 16 | `gunicorn.conf.py` | Server saja; worker selalu 1 |
+| `PORT` | 5001 | `run.py`, `gunicorn.conf.py` | Port lokal; redirect URI Entra harus sama |
 | `FLASK_SECRET_KEY` | — (**wajib**) | `create_app` | Menandatangani cookie session; ganti = semua user logout |
 | `SESSION_COOKIE_SECURE` | 0 | Flask | Wajib 1 bila HTTPS |
 | `FLASK_DEBUG` | 0 | `run.py` | Debugger + reload (bisa eksekusi kode: dev saja) |

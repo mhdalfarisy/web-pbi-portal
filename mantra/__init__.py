@@ -1,12 +1,18 @@
 """Power BI Portal (nama project & package: MANTRA). Application factory: create_app()."""
 import hmac
+import logging
 import secrets
+import sqlite3
+import time
 from datetime import datetime
+from pathlib import Path
 
-from flask import Flask, abort, jsonify, render_template, request, session
+from flask import Flask, abort, g, jsonify, render_template, request, session
+from flask.logging import default_handler
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from . import admin, portal
-from .config import ENV_OVERRIDDEN, Config
+from .config import APP_ENVS, BASE_DIR, ENV_OVERRIDDEN, Config
 from .core import accounts, auth, db, registry
 from .core.chat import providers
 from .core.chat import routes as chat_routes
@@ -19,6 +25,18 @@ def create_app(test_config=None):
         app.config.update(test_config)  # dipakai tests/ (database sementara, AUTH_DISABLED=0)
     if not app.config["SECRET_KEY"]:
         raise RuntimeError("FLASK_SECRET_KEY belum diisi di .env")
+
+    # Satu format untuk log aplikasi, log request, dan log query Power BI (semua logger "mantra.*"). Di server,
+    # gunicorn meneruskan log ini ke journal / file log.
+    default_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+    app.logger.setLevel(app.config["LOG_LEVEL"])
+    _check_server_config(app)
+
+    if app.config["TRUST_PROXY"]:
+        # IP user, https, dan domain asli dikirim proxy lewat X-Forwarded-*. Tanpa ini semua user terlihat datang dari
+        # IP proxy (throttle login mengenai semua orang) dan url_for(_external=True) menghasilkan http:// (SSO gagal).
+        hops = app.config["TRUST_PROXY"]
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=hops, x_proto=hops, x_host=hops, x_port=hops)
 
     db.init_app(app)
     app.register_blueprint(auth.bp)
@@ -43,6 +61,12 @@ def create_app(test_config=None):
                            "Jangan dipakai di production.")
 
     app.jinja_env.globals["now_str"] = lambda: datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # Label "STAGING" di top bar & halaman login, supaya tester tidak tertukar dengan production
+    app.jinja_env.globals["app_env"] = app.config["APP_ENV"]
+
+    @app.before_request
+    def start_timer():
+        g.started = time.perf_counter()
 
     @app.before_request
     def csrf_protect():
@@ -62,6 +86,28 @@ def create_app(test_config=None):
         resp.headers.setdefault("X-Content-Type-Options", "nosniff")
         resp.headers.setdefault("Referrer-Policy", "same-origin")
         return resp
+
+    @app.after_request
+    def log_request(resp):
+        # Satu baris per request (tanpa file static & health check): dipakai mencari halaman lambat & error di server.
+        # User diambil dari cache request (g.user) saja, supaya log tidak menambah query database.
+        endpoint = request.endpoint or ""
+        if app.logger.isEnabledFor(logging.INFO) and endpoint != "healthz" and not endpoint.endswith("static"):
+            user = g.get("user")
+            ms = (time.perf_counter() - g.get("started", time.perf_counter())) * 1000
+            app.logger.info("%s %s %s %.0fms user=%s ip=%s", request.method, request.path, resp.status_code, ms,
+                            user["email"] if user else "-", request.remote_addr)
+        return resp
+
+    @app.get("/healthz")
+    def healthz():
+        """Untuk monitoring & cek setelah deploy: 200 kalau aplikasi hidup dan database bisa dibaca. Tanpa login."""
+        try:
+            db.get_db().execute("SELECT 1 FROM users LIMIT 1").fetchall()
+        except sqlite3.Error:
+            app.logger.exception("Health check gagal: database tidak bisa dibaca")
+            return jsonify(status="error"), 503
+        return jsonify(status="ok")
 
     @app.context_processor
     def inject_globals():
@@ -105,3 +151,40 @@ def create_app(test_config=None):
                            "contact the Super Admin.")
 
     return app
+
+
+def _check_server_config(app):
+    """Di staging & production: tolak start kalau setting development masih aktif, dan beri peringatan untuk setting
+    yang kurang tepat. Di dev tidak ada pengecekan. Mengembalikan daftar peringatan."""
+    cfg = app.config
+    env = cfg["APP_ENV"]
+    if env not in APP_ENVS:
+        raise RuntimeError(f"APP_ENV={env!r} tidak dikenal. Pilih salah satu: {', '.join(APP_ENVS)}")
+    if env == "dev":
+        return []
+
+    errors = []
+    if cfg["AUTH_DISABLED"]:
+        errors.append("AUTH_DISABLED=1: portal terbuka tanpa login. Hapus dari .env")
+    if cfg["DEBUG"]:
+        errors.append("FLASK_DEBUG=1: debugger bisa menjalankan kode di server. Isi 0")
+    if not cfg["SESSION_COOKIE_SECURE"]:
+        errors.append("SESSION_COOKIE_SECURE harus 1 (portal dibuka lewat HTTPS)")
+    if len(cfg["SECRET_KEY"]) < 32:
+        errors.append("FLASK_SECRET_KEY terlalu pendek. Buat baru: python -c \"import secrets; print(secrets.token_hex(32))\"")
+    if errors:
+        raise RuntimeError(f"Setting tidak aman untuk APP_ENV={env}:\n  - " + "\n  - ".join(errors))
+
+    warnings = []
+    if not (cfg["ENTRA_TENANT_ID"] and cfg["ENTRA_CLIENT_ID"] and cfg["ENTRA_CLIENT_SECRET"]):
+        warnings.append("ENTRA_* belum diisi: login Microsoft (SSO) tidak tersedia, user hanya bisa login dengan password")
+    if not cfg["TRUST_PROXY"]:
+        warnings.append("TRUST_PROXY=0: kalau portal di belakang Caddy/nginx, IP user & https tidak terbaca (isi 1)")
+    if cfg["DASHBOARD_STRICT"]:
+        warnings.append("DASHBOARD_STRICT=1: satu dashboard yang error membuat portal gagal start (isi 0)")
+    if Path(cfg["INSTANCE_DIR"]).resolve().is_relative_to(BASE_DIR):
+        warnings.append(f"Database ada di dalam folder kode ({cfg['INSTANCE_DIR']}) dan bisa ikut terhapus saat deploy. "
+                        "Isi MANTRA_INSTANCE_DIR, mis. /var/lib/mantra")
+    for warning in warnings:
+        app.logger.warning("APP_ENV=%s: %s", env, warning)
+    return warnings

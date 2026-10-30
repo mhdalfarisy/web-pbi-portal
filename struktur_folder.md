@@ -2,6 +2,8 @@ Web App MANTRA/
 │
 ├── run.py                      Entry point: menjalankan website di http://localhost:5001
 ├── run_mantra.command          Launcher double-click macOS (Finder): menjalankan run.py di jendela Terminal sendiri
+├── wsgi.py                     Entry point server staging & production: gunicorn -c gunicorn.conf.py wsgi:app
+├── gunicorn.conf.py            Setting gunicorn: 1 worker + 16 thread, bind 127.0.0.1, timeout > query Power BI
 ├── requirements.txt            Daftar library Python yang dibutuhkan aplikasi
 ├── requirements-dev.txt        Library tambahan untuk developer (pytest)
 ├── pytest.ini                  Pengaturan pytest (folder test, output ringkas)
@@ -126,6 +128,7 @@ Web App MANTRA/
 │   ├── check_setup.py          Cek .env, login Microsoft, akses Power BI, API AI
 │   ├── check_ai_agent.py       Uji AI agent (--static gratis; --dashboard pakai kuota Gemini)
 │   ├── create_dashboard.py     Buat folder dashboard baru dari _template
+│   ├── build_production.sh     Buat paket production (tanpa docs/tests/.env/database) di folder lain
 │   └── compare_pani_with_powerbi.py   Bandingkan angka PANI di MANTRA dengan report Power BI asli
 │
 ├── tests/                      TEST OTOMATIS (python -m pytest), bukan bagian website
@@ -134,7 +137,8 @@ Web App MANTRA/
 │   ├── test_login_and_access.py        Login, hak akses dashboard, halaman Admin, akun terkunci, CSRF
 │   ├── test_passwords_and_database.py  Hash password, seed akun, migrasi & backup DB, log tanpa secret
 │   ├── test_forgot_password.py         Alur lupa password
-│   └── test_errors_and_security.py     Penanganan error, header keamanan, batas AI & data, cache
+│   ├── test_errors_and_security.py     Penanganan error, header keamanan, batas AI & data, cache
+│   └── test_server_config.py           APP_ENV staging/production, proxy, lokasi data, WAL, /healthz, log, gunicorn
 │
 ├── .venv/                      Python + semua library (dibuat: python -m venv .venv). Jangan dihapus
 ├── .pytest_cache/              Cache pytest (otomatis, boleh dihapus)

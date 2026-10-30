@@ -1,4 +1,5 @@
 import os
+import sys
 
 from mantra import create_app
 from mantra.config import Config
@@ -6,6 +7,9 @@ from mantra.config import Config
 app = create_app()
 
 if __name__ == "__main__":
+    if Config.APP_ENV != "dev":
+        sys.exit(f"run.py adalah server development. APP_ENV={Config.APP_ENV} dijalankan dengan gunicorn:\n"
+                 "  gunicorn -c gunicorn.conf.py wsgi:app")
     exit_code = 0
     if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
         mode = ("SKIPPED (AUTH_DISABLED=1 in .env, signed in as Super Admin)" if Config.AUTH_DISABLED

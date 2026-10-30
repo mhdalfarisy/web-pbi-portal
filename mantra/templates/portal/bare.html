@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Power BI Portal{% endblock %} - Power BI Portal</title>
+  <title>{% if app_env == 'staging' %}[STAGING] {% endif %}{% block title %}Power BI Portal{% endblock %} - Power BI Portal</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/shell.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/portal.css') }}">
 </head>

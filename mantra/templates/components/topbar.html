@@ -34,6 +34,7 @@
   {% endif %}
 
   <div class="user-chip">
+    {% if app_env == "staging" %}<span class="env-badge" title="Server uji: bukan portal production">Staging</span>{% endif %}
     {% set parts = current_user.name.split() %}
     <span class="avatar" aria-hidden="true">{{ ((parts[0][0] if parts else '?') ~ (parts[-1][0] if parts|length > 1 else ''))|upper }}</span>
     <span class="user-meta" title="{{ current_user.email }}">

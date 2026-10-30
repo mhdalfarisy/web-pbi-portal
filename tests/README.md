@@ -18,5 +18,6 @@ python -m pytest -k forgot                            # test yang namanya mengan
 | `test_passwords_and_database.py` | Password disimpan sebagai hash, seed akun aman diulang, migrasi database tidak menghapus data & membuat backup, constraint tabel akses, log tanpa secret, `AUTH_DISABLED` hanya dari `.env` |
 | `test_forgot_password.py` | Permintaan "Forgot password" sampai ke Super Admin, respons sama untuk email terdaftar / tidak, throttle, CSRF |
 | `test_errors_and_security.py` | Tanggal ekstrem tidak membuat error 500, halaman "no data", detail error Power BI tidak tampil, error tool AI, batas pertanyaan AI, header keamanan, halaman 404, cache saat request bersamaan |
+| `test_server_config.py` | Staging/production menolak start dengan setting development, label STAGING, `run.py` menolak non-dev, `.env` & database di luar folder kode, header proxy (IP asli & https) hanya dipakai kalau `TRUST_PROXY`, database mode WAL, `/healthz`, log request & query Power BI, `gunicorn.conf.py` 1 worker |
 
 Nama file test harus diawali `test_` supaya ditemukan pytest (lihat `pytest.ini`).

@@ -1,5 +1,7 @@
 # 25 — Release & Rollback (lokal)
 
+> Server staging & production: lihat `docs/DEPLOY_SERVER.md` (gunicorn, systemd, backup/restore di server).
+
 ### A. Objective
 Menyimpan perubahan dengan aman (git), membuat titik pemulihan database, dan kembali ke kondisi sebelumnya bila perlu.
 
@@ -36,9 +38,11 @@ Seluruh repo, `instance/mantra.db`, `instance/backups/`.
 **Rollback database** (Verified dengan `docs/AUTH.md`)
 ```bash
 # 1. Hentikan server (Ctrl+C / tutup jendela run_mantra.command)
-# 2. Simpan DB sekarang, lalu pulihkan backup
-cp instance/mantra.db instance/backups/mantra-sebelum-rollback.db
+# 2. Simpan DB sekarang (pakai perintah backup: database mode WAL, cp mantra.db saja bisa tidak lengkap),
+#    lalu pulihkan backup dan hapus file WAL milik database lama
+python scripts/manage_users.py backup
 cp instance/backups/mantra-<waktu>-<label>.db instance/mantra.db
+rm -f instance/mantra.db-wal instance/mantra.db-shm
 # 3. Start server (kode harus versi yang sesuai dengan DB tersebut atau lebih baru)
 ```
 
