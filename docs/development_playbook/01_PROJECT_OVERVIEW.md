@@ -7,10 +7,10 @@
 | Nama project / package | **MANTRA**: Multi-Agent Network for Tracking & Reporting Analytics (`mantra/`) |
 | Nama yang tampil di website | **Power BI Portal** (seluruh UI berbahasa Inggris) |
 | Pemilik data | Grup PT Merdeka Copper Gold |
-| Lokasi | `D:\Training SSIS + Python + Streamlit\Web App MANTRA` |
+| Lokasi | `~/Documents/Portfolio/web-pbi-portal` (macOS) |
 | Repository | `https://github.com/mhdalfarisy/web-pbi-portal.git`, branch `main` |
-| Framework | Flask 3.1 (bukan Streamlit; nama folder induk hanya nama folder training) |
-| Target development | Windows 11, VS Code, Python 3.13.3, `.venv`, `http://localhost:5001` |
+| Framework | Flask 3.1 |
+| Target development | macOS (Apple Silicon), VS Code, Python 3.13 (Homebrew), `.venv`, `http://localhost:5001`. Tidak ada launcher Windows; padanan perintah PowerShell (referensi) di [04 §Q](04_MACOS_VSCODE_SETUP.md#q-padanan-windows-powershell) |
 
 ## Ruang lingkup
 
@@ -22,7 +22,7 @@
 - Role `super_admin` dan `user`; hak akses per dashboard (default deny); halaman Admin (Users, Dashboards, Audit Log).
 - Dashboard plug-in yang dideteksi otomatis. Saat ini ada dua:
   - **Material Readiness** (`/d/material-readiness/`): halaman Summary dan Detail.
-  - **PANI Processing** (`/d/pani-processing/`): halaman Processing, Equipment, Mining, Production.
+  - **PROCESSING, EQUIPMENT, MINING & STOCKPILE PRODUCTION** (dashboard PANI, `/d/pani-processing/`): halaman Processing, Equipment, Mining, Production.
 - Data langsung dari semantic model Power BI (`executeQueries`) dengan service principal `mantra-powerbi`.
 - AI agent per dashboard (Gemini, provider bisa diganti) dengan tools yang memakai query dashboard.
 - Script operasional (`scripts/`) dan test otomatis (`tests/`, pytest).
@@ -89,4 +89,4 @@ Label: semua komponen di diagram ini `Existing` dan `Verified` dari kode.
 | Dashboard | Slug | Semantic model | Halaman | AI tools |
 |---|---|---|---|---|
 | Material Readiness | `material-readiness` | "All Site - AMNT - Material Readiness" | Summary, Detail | `lookup`, `get_chart_totals`, `get_readiness_kpi`, `get_breakdown`, `get_rows` |
-| PANI Processing | `pani-processing` | "PANI - PRCS - Processing" (workspace PANI-MCG) | Processing, Equipment, Mining, Production | `get_processing_metrics`, `get_processing_trend`, `get_variance_drivers`, `get_equipment`, `get_mining`, `get_stockpile` |
+| PROCESSING, EQUIPMENT, MINING & STOCKPILE PRODUCTION (PANI) | `pani-processing` | "PANI - PRCS - Processing" (workspace PANI-MCG) | Processing, Equipment, Mining, Production | `get_processing_metrics`, `get_processing_trend`, `get_variance_drivers`, `get_equipment`, `get_mining`, `get_stockpile` |

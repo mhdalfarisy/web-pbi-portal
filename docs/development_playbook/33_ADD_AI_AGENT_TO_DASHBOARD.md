@@ -104,10 +104,10 @@ window.DashFilters = function () { return { year: state.year }; };
 diawali `get_` supaya salah ketik nama tool di prompt terdeteksi saat start (dok 28 issue 11).
 
 ### I. Commands
-```powershell
-python scripts\check_ai_agent.py --static
+```bash
+python scripts/check_ai_agent.py --static
 python -m pytest
-python scripts\check_ai_agent.py --dashboard <slug>
+python scripts/check_ai_agent.py --dashboard <slug>
 ```
 
 ### J. Expected result

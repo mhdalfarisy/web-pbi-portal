@@ -1,15 +1,15 @@
 """Kelola akun MANTRA dari server (butuh akses ke folder aplikasi). Semua perubahan tercatat di audit log.
 
 Pemakaian:
-    python scripts\\manage_users.py seed                       akun awal (Super Admin, User A, User B); aman dijalankan ulang
-    python scripts\\manage_users.py seed --generate            sama, tapi password sementara acak & unik per akun
-    python scripts\\manage_users.py list
-    python scripts\\manage_users.py create --email x@merdeka.com --dashboard material-readiness
-    python scripts\\manage_users.py set-access --email x@merdeka.com --dashboard pani-processing
-    python scripts\\manage_users.py reset-password --email x@merdeka.com
-    python scripts\\manage_users.py set-active --email x@merdeka.com --inactive
-    python scripts\\manage_users.py set-role --email x@merdeka.com --role super_admin
-    python scripts\\manage_users.py backup                     salin instance\\mantra.db ke instance\\backups\\
+    python scripts/manage_users.py seed                       akun awal (Super Admin, User A, User B); aman dijalankan ulang
+    python scripts/manage_users.py seed --generate            sama, tapi password sementara acak & unik per akun
+    python scripts/manage_users.py list
+    python scripts/manage_users.py create --email x@merdeka.com --dashboard material-readiness
+    python scripts/manage_users.py set-access --email x@merdeka.com --dashboard pani-processing
+    python scripts/manage_users.py reset-password --email x@merdeka.com
+    python scripts/manage_users.py set-active --email x@merdeka.com --inactive
+    python scripts/manage_users.py set-role --email x@merdeka.com --role super_admin
+    python scripts/manage_users.py backup                     salin instance/mantra.db ke instance/backups/
 
 Password awal `seed` diambil dari environment variable MANTRA_SEED_PASSWORD (atau ditanyakan di terminal), tidak
 pernah ditulis ke file atau log. Semua password awal/reset bersifat sementara: user wajib menggantinya saat login.

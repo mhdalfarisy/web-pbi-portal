@@ -11,8 +11,14 @@
 | Mau menambah dashboard baru | 14 → 15 → 17 → 33 → 21 | |
 | Mau mengembangkan AI agent | 20 → 29 → 30 → 31 → 32 → 33 | |
 | Ada error | 26 → 23 | |
-| Mau membangun ulang dari nol | 03 → 27 | |
+| Mau membangun ulang dari nol | [PANDUAN_DEVELOPMENT_BERURUTAN](../PANDUAN_DEVELOPMENT_BERURUTAN.md) → 03 → 27 | |
+| Mau paham konsep, kode inti, atau asal angka dashboard | [panduan_development/](../panduan_development/01_KONSEP_TEKNOLOGI.md) (4 file pendalaman) | |
+| Mau membaca semuanya sebagai satu buku (PDF) | [docs/ebook/](../ebook/README.md) → `MANTRA_Development_Ebook.pdf` | |
 | Serah terima / status project | 28 | |
+
+> **Jalur utama membangun dari nol:** [PANDUAN_DEVELOPMENT_BERURUTAN](../PANDUAN_DEVELOPMENT_BERURUTAN.md) (fase 0-14,
+> link ke setiap file, output nyata setiap "Cek"). Setiap fase menunjuk bab pendalaman di
+> [panduan_development/](../panduan_development/01_KONSEP_TEKNOLOGI.md) dan bab playbook yang relevan.
 
 ## Gambaran 60 detik
 
@@ -40,9 +46,10 @@ Browser ──> Flask (mantra/) ──> Power BI REST API (data report)
 
 ## Aturan kerja harian
 
-- Selalu pakai Python dari `.venv` (`.venv\Scripts\Activate.ps1`).
-- Setelah mengubah kode: `python -m pytest` (harus **58 passed**, angka per 26 Oktober 2026).
-- Setelah mengubah prompt/tools AI: `python scripts\check_ai_agent.py --static`, lalu **restart Flask**.
+- Selalu pakai Python dari `.venv` (`source .venv/bin/activate`).
+- Setelah mengubah kode: `python -m pytest` (harus **58 passed**; 26 Okt 2026 Windows, 28 Okt 2026 macOS).
+- Setelah mengubah isi `docs/`: bangun ulang ebook dengan `python docs/ebook/build_ebook.py`.
+- Setelah mengubah prompt/tools AI: `python scripts/check_ai_agent.py --static`, lalu **restart Flask**.
 - Jangan commit `.env`, jangan hapus `instance/mantra.db`, jangan ubah migrasi database yang sudah ada.
 - Ubah file fondasi (lihat daftar di dok 02, bagian "Tingkat risiko file") hanya setelah analisis dampak.
 

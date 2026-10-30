@@ -44,9 +44,9 @@ Format setiap entri: Gejala · Penyebab · File · Reproduksi · Diagnostik · M
 ### 4. Port conflict
 | | |
 |---|---|
-| Gejala | `OSError: [WinError 10048] Only one usage of each socket address` |
-| Penyebab | Server MANTRA lain (mis. jendela `run_mantra.bat`) masih jalan |
-| Diagnostik | `netstat -ano \| findstr :5001` lalu `tasklist /FI "PID eq <pid>"` |
+| Gejala | `OSError: [Errno 48] Address already in use` (Windows: `[WinError 10048]`) |
+| Penyebab | Server MANTRA lain (mis. jendela `run_mantra.command`) masih jalan, atau proses lain memakai port itu |
+| Diagnostik | `lsof -nP -iTCP:5001 -sTCP:LISTEN` lalu `ps -p <pid> -o pid,command` |
 | Solusi | Tutup server lama; atau ubah `PORT` di `.env` (+ redirect URI Entra) |
 | Selesai jika | Hanya satu PID mendengar di port itu |
 
@@ -56,7 +56,7 @@ Format setiap entri: Gejala · Penyebab · File · Reproduksi · Diagnostik · M
 | Gejala | `Belum diisi di .env: PBI_CLIENT_ID...`; tombol Ask AI hilang; tombol Microsoft memberi pesan "not configured" |
 | Penyebab | Nilai kosong / salah nama / server belum restart; `.env` menang atas env terminal |
 | File | `.env`, `config.py` |
-| Diagnostik | `python scripts\check_setup.py` (tidak mencetak secret) |
+| Diagnostik | `python scripts/check_setup.py` (tidak mencetak secret) |
 | Solusi | Isi `.env`, restart |
 
 ### 6. Database schema error
@@ -75,7 +75,8 @@ Format setiap entri: Gejala · Penyebab · File · Reproduksi · Diagnostik · M
 | Gejala | "Wrong email or password" terus; langsung logout; "account is locked"; "Invalid security token" |
 | Penyebab | Password salah / lockout 15 menit setelah 5 gagal / throttle IP 20 gagal; akun nonaktif; `session_version` berubah (reset password, ganti password di perangkat lain); `FLASK_SECRET_KEY` diganti; cookie diblokir; dibuka via `127.0.0.1` vs `localhost` (cookie terpisah) |
 | File | `core/auth.py`, `core/accounts.py` |
-| Diagnostik | Admin > Audit Log (`login_failed` + reason, `account_locked`, `login_throttled`); `python scripts\manage_users.py list` |
+| Diagnostik | Admin > Audit Log (`login_failed` + reason, `account_locked`, `login_throttled`); `python scripts/manage_users.py list` |
+| Catatan | Akun dikunci **pada** kegagalan ke-5, tetapi kegagalan ke-5 itu masih menampilkan "Wrong email or password."; pesan "Too many failed attempts. Your account is locked for 15 minutes." baru tampil di percobaan ke-6 (selama kunci berlaku, password benar pun ditolak). Audit log mencatat `account_locked` tepat di kegagalan ke-5. Jadi user yang melihat "Wrong email or password" 5x lalu yakin password-nya benar sebenarnya sudah terkunci: cek `account_locked` di Audit Log |
 | Solusi | Tunggu lock; Super Admin reset password; `manage_users.py reset-password --email ...` (Super Admin terakhir); buka lewat `http://localhost:5001` |
 | Uji | `test_login_and_access.py` |
 
@@ -103,7 +104,7 @@ Format setiap entri: Gejala · Penyebab · File · Reproduksi · Diagnostik · M
 | Gejala | Halaman polos; console `Dash is not defined` / `Pani is not defined`; 404 di tab Network |
 | Penyebab | `url_for` salah endpoint (`static` vs `<bp>.static`); template tidak extend base yang memuat file; cache browser |
 | Diagnostik | DevTools Network & Console |
-| Solusi | Perbaiki `url_for`; `Ctrl+F5`; panggil `{{ scripts() }}` (PANI) |
+| Solusi | Perbaiki `url_for`; `Cmd+Shift+R`; panggil `{{ scripts() }}` (PANI) |
 | Catatan | Static dashboard butuh login + akses (302/403 bila tidak) |
 
 ### 11. Dashboard tidak muncul di portal
@@ -118,7 +119,7 @@ Format setiap entri: Gejala · Penyebab · File · Reproduksi · Diagnostik · M
 |---|---|
 | Gejala | Halaman "Could not load data from Power BI (ref ...)"; log `Gagal ambil token: ...` |
 | Penyebab | `PBI_CLIENT_SECRET` salah/kedaluwarsa (pakai **Value**, bukan Secret ID), tenant salah |
-| Diagnostik | `python scripts\check_setup.py` |
+| Diagnostik | `python scripts/check_setup.py` |
 | Solusi | Buat secret baru di Entra, update `.env`, restart |
 
 ### 13. Workspace / semantic model tidak ditemukan
@@ -134,7 +135,7 @@ Format setiap entri: Gejala · Penyebab · File · Reproduksi · Diagnostik · M
 |---|---|
 | Gejala | Log `DAX error: ...` |
 | Penyebab | Nama tabel/kolom berubah di model, sintaks, nilai filter tidak di-escape |
-| Diagnostik | `python scripts\check_setup.py --dashboard <slug> --dax "EVALUATE ..."`; `EVALUATE INFO.VIEW.COLUMNS()` |
+| Diagnostik | `python scripts/check_setup.py --dashboard <slug> --dax "EVALUATE ..."`; `EVALUATE INFO.VIEW.COLUMNS()` |
 | Solusi | Perbaiki DAX di `queries.py`; selalu `dax_str()` untuk teks |
 | Uji | Halaman terkait + `compare_pani_with_powerbi.py` (PANI) |
 
@@ -177,7 +178,7 @@ Format setiap entri: Gejala · Penyebab · File · Reproduksi · Diagnostik · M
 ## Diagnosis "localhost tidak bisa dibuka" (urutan)
 
 1. Terminal server: masih jalan? pesan `crashed`? → entri 1.
-2. `netstat -ano | findstr :5001` → ada yang mendengar? PID siapa? → entri 4.
+2. `lsof -nP -iTCP:5001 -sTCP:LISTEN` → ada yang mendengar? PID siapa? → entri 4.
 3. URL `http://localhost:<PORT>` sesuai `.env`?
-4. `curl.exe -I http://localhost:5001/login` → 200?
+4. `curl -I http://localhost:5001/login` → 200?
 5. Browser: cache/cookie, mode private.

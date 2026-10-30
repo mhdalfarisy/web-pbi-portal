@@ -1,17 +1,21 @@
 Web App MANTRA/
 │
 ├── run.py                      Entry point: menjalankan website di http://localhost:5001
-├── run_mantra.bat              Launcher double-click: menjalankan run.py di jendela sendiri
+├── run_mantra.command          Launcher double-click macOS (Finder): menjalankan run.py di jendela Terminal sendiri
 ├── requirements.txt            Daftar library Python yang dibutuhkan aplikasi
 ├── requirements-dev.txt        Library tambahan untuk developer (pytest)
 ├── pytest.ini                  Pengaturan pytest (folder test, output ringkas)
 ├── .env                        Konfigurasi & SECRET asli (Power BI, Entra, Gemini). Tidak ada di GitHub
 ├── .env.example                Contoh isi .env beserta penjelasan setiap variabel
-├── .gitignore                  Daftar file/folder yang tidak masuk git (.env, .venv, instance/, cache)
+├── .gitignore                  Daftar file/folder yang tidak masuk git (.env, .venv, instance/, cache, .DS_Store)
 ├── README.md                   Panduan utama: setup, menjalankan, menambah dashboard, troubleshooting
 │
 ├── docs/
-│   └── AUTH.md                 Dokumentasi login, role, hak akses, skema database, migrasi, backup & rollback
+│   ├── AUTH.md                 Dokumentasi login, role, hak akses, skema database, migrasi, backup & rollback
+│   ├── PANDUAN_DEVELOPMENT_BERURUTAN.md   Jalur membangun dari nol (fase 0-14), link file, output nyata setiap "Cek"
+│   ├── panduan_development/    Pendalaman: konsep teknologi, kode inti fondasi, kode data & AI, logika bisnis dashboard
+│   ├── development_playbook/   Buku panduan development bab 00-33 (mulai dari 00_START_HERE.md)
+│   └── ebook/                  Semua isi docs/ sebagai satu PDF + script build (python docs/ebook/build_ebook.py)
 │
 ├── instance/                   DATA RUNTIME (dibuat otomatis, jangan dihapus)
 │   └── mantra.db               Database SQLite: akun user, hak akses dashboard, audit log, Favorites, History

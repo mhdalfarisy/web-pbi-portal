@@ -3,8 +3,8 @@
 Perintah manual untuk developer & admin. **Bukan bagian dari website**: tidak ikut jalan saat `python run.py`, hanya
 saat dipanggil sendiri dari folder project (aktifkan `.venv` dulu):
 
-```powershell
-python scripts\<nama>.py ...
+```bash
+python scripts/<nama>.py ...
 ```
 
 | Script | Gunanya | Kapan dipakai | Butuh layanan luar? |
@@ -17,12 +17,12 @@ python scripts\<nama>.py ...
 
 Contoh:
 
-```powershell
-python scripts\manage_users.py seed
-python scripts\check_setup.py
-python scripts\check_ai_agent.py --static
-python scripts\create_dashboard.py work-order "Work Order"
-python scripts\compare_pani_with_powerbi.py processing
+```bash
+python scripts/manage_users.py seed
+python scripts/check_setup.py
+python scripts/check_ai_agent.py --static
+python scripts/create_dashboard.py work-order "Work Order"
+python scripts/compare_pani_with_powerbi.py processing
 ```
 
 Detail pemakaian ada di docstring bagian atas setiap file.

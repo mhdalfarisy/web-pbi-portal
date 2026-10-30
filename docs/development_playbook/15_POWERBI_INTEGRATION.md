@@ -51,7 +51,7 @@ sequenceDiagram
 |---|---|
 | Kondisi gagal | Kredensial kosong (`Belum diisi di .env: ...`), token gagal, HTTP ≠ 2xx, respons tanpa `results`, `DAX error: ...`, timeout |
 | Cara uji (lokal, tanpa Power BI) | `test_errors_and_security.py::test_power_bi_error_details_are_not_shown` (request di-stub), test cache |
-| Cara uji (asli) | `python scripts\check_setup.py`; `python scripts\check_setup.py --dashboard <slug> --dax "EVALUATE ..."` |
+| Cara uji (asli) | `python scripts/check_setup.py`; `python scripts/check_setup.py --dashboard <slug> --dax "EVALUATE ..."` |
 
 ## 3. Jenis error & cara membedakan
 
@@ -74,7 +74,7 @@ respons) hanya di log server: `Power BI request failed [ref XXXXXXXX]: ...`.
 - Bungkus dengan cache: `_cache.get(key, load)`, key memuat semua filter.
 - Nilai dari user selalu lewat `dax_str()` (string) atau dikonversi ke angka/tanggal (mis. `_int`, `parse_date`).
 - Kembalikan `(data, fetched)` agar header "Last Update" konsisten.
-- Struktur model bisa dibaca: `python scripts\check_setup.py --dashboard <slug> --dax "EVALUATE INFO.VIEW.COLUMNS()"`.
+- Struktur model bisa dibaca: `python scripts/check_setup.py --dashboard <slug> --dax "EVALUATE INFO.VIEW.COLUMNS()"`.
 
 Contoh nyata (template, `Verified`):
 ```python
@@ -92,7 +92,7 @@ def tables():
 - Material Readiness: logika chart/slicer diambil dari measure `dax_html_material_readiness_v16`; README mencatat
   66 perbandingan identik dengan project lama.
 - PANI: rumus measure report tidak bisa dibaca service principal, jadi angka **direkonstruksi** dari tabel model dan
-  dibandingkan dengan measure HTML report memakai `python scripts\compare_pani_with_powerbi.py` (14 skenario).
+  dibandingkan dengan measure HTML report memakai `python scripts/compare_pani_with_powerbi.py` (14 skenario).
   README mencatat hasil: 272 sama, 76 beda karena bug di report. Opsi `--fixed` membutuhkan `docs/powerbi_fixes/`
   yang saat ini dihapus dari working tree (pulihkan: `git restore docs/powerbi_fixes`).
 - Status di sesi dokumentasi ini: **NOT RUN** (butuh akses Power BI asli).

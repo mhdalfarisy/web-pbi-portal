@@ -52,10 +52,10 @@ Detail parameter yang tepat ada di masing-masing fungsi `case_*` (sumber kebenar
 
 ## 4. Prosedur menjalankan
 
-```powershell
-python scripts\check_ai_agent.py --static                              # gratis, semua agent
-python scripts\check_ai_agent.py --dashboard material-readiness        # static + semua kasus (kuota)
-python scripts\check_ai_agent.py --dashboard material-readiness lookup # hanya kasus yang namanya mengandung "lookup"
+```bash
+python scripts/check_ai_agent.py --static                              # gratis, semua agent
+python scripts/check_ai_agent.py --dashboard material-readiness        # static + semua kasus (kuota)
+python scripts/check_ai_agent.py --dashboard material-readiness lookup # hanya kasus yang namanya mengandung "lookup"
 python -m pytest -k "chat or tool"                                     # test pytest terkait AI (provider palsu)
 ```
 Jawaban AI bisa sedikit berbeda setiap kali; jika satu kasus gagal, jalankan ulang kasus itu sebelum mengubah prompt.

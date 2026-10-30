@@ -9,7 +9,7 @@
  Kapan diperbarui:
  - Ada kolom baru di semantic model, atau kolom baru yang bisa dibaca tool di tools.py.
  - Ada status baru (PO_Status / SO_Status) atau perubahan pemetaan ke legend.
-   Cek pemetaan terbaru dengan: python scripts\check_setup.py --dashboard material-readiness --dax "<query>", mis.:
+   Cek pemetaan terbaru dengan: python scripts/check_setup.py --dashboard material-readiness --dax "<query>", mis.:
    EVALUATE SUMMARIZECOLUMNS('DWMaterialReadiness'[PO_Status], 'DWMaterialReadiness'[PO_Status Description],
        'DWMaterialReadiness'[PO Legend Description], "rows", COUNTROWS('DWMaterialReadiness'))
  - Kolom "Dibaca chatbot" HARUS sesuai dengan tool di tools.py. Kalau tool belum bisa

@@ -1,4 +1,4 @@
-"""Pertanyaan acuan untuk python scripts\\check_ai_agent.py --dashboard pani-processing
+"""Pertanyaan acuan untuk python scripts/check_ai_agent.py --dashboard pani-processing
 
 Jawaban acuan dihitung dari queries/tools saat tes dijalankan. Format kasus: lihat dashboards/_template/chat_cases.py.
 """

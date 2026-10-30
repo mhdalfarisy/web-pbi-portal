@@ -11,7 +11,7 @@ Detail skema & rollback juga ada di [docs/AUTH.md](../AUTH.md). Dokumen ini foku
 | Isi | akun, katalog dashboard, hak akses, audit log, Favorites, History. **Bukan** data dashboard |
 | Koneksi | `get_db()` satu koneksi per request (`g.db`), `row_factory=sqlite3.Row`, `PRAGMA foreign_keys=ON`; ditutup di `teardown_appcontext` |
 | Versi skema | `PRAGMA user_version` = jumlah migrasi yang sudah jalan (saat ini **3**) |
-| Backup | Sebelum migrasi pada DB yang berisi tabel: `instance/backups/mantra-<YYYYmmdd-HHMMSS>-before-v<N>.db` (SQLite backup API). Manual: `python scripts\manage_users.py backup` → `...-manual.db` |
+| Backup | Sebelum migrasi pada DB yang berisi tabel: `instance/backups/mantra-<YYYYmmdd-HHMMSS>-before-v<N>.db` (SQLite backup API). Manual: `python scripts/manage_users.py backup` → `...-manual.db` |
 
 ## 2. Skema
 
@@ -53,7 +53,7 @@ Menambah tabel/kolom/index tanpa merusak data.
 ### B. When to use
 Fitur baru butuh data portal baru (bukan data dashboard).
 ### C. Prerequisites
-Backup: `python scripts\manage_users.py backup`.
+Backup: `python scripts/manage_users.py backup`.
 ### D. Architecture context
 `migrate()` menjalankan `MIGRATIONS[version:]` berurutan, masing-masing dalam `BEGIN ... PRAGMA user_version=N; COMMIT`.
 ### E. Files involved
@@ -77,7 +77,7 @@ MIGRATIONS = [
 ### H. Code explanation
 `user_version` membuat setiap migrasi berjalan tepat sekali di setiap database.
 ### I. Commands
-`python -m pytest tests\test_passwords_and_database.py` · `python run.py`
+`python -m pytest tests/test_passwords_and_database.py` · `python run.py`
 ### J. Expected result
 Test lulus; backup `before-v4` dibuat; data lama utuh.
 ### K. Validation
@@ -96,10 +96,10 @@ Migrasi v1-v3: PASS (test). Migrasi v4: Not Applicable (belum ada).
 ## 5. Restore
 
 Lihat [25_RELEASE_AND_ROLLBACK](25_RELEASE_AND_ROLLBACK.md). Ringkas: hentikan server → salin `mantra.db` saat ini
-ke backup → salin file backup menjadi `instance\mantra.db` → start.
+ke backup → salin file backup menjadi `instance/mantra.db` → start.
 
 **Kondisi saat ini (26 Okt 2026):** folder `instance/backups/` tidak ada (`Not Found`), jadi belum ada titik rollback.
-Disarankan menjalankan `python scripts\manage_users.py backup` sebelum perubahan berikutnya.
+Disarankan menjalankan `python scripts/manage_users.py backup` sebelum perubahan berikutnya.
 
 ## 6. Database test
 

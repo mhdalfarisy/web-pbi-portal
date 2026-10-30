@@ -9,7 +9,7 @@
               + khusus dashboard ini: {{branches}} {{companies}}  (lihat tools.py)
  Nama tool di antara backtick (mis. `lookup`) harus ada di tools.py. Dicek saat start.
  Setelah mengubah: restart Flask, lalu
-     python scripts\check_ai_agent.py --dashboard material-readiness
+     python scripts/check_ai_agent.py --dashboard material-readiness
 ================================================================================
 -->
 # Memilih tool

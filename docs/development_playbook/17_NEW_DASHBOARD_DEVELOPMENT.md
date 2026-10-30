@@ -46,24 +46,24 @@ Tambahan: `tests/conftest.py` (`PAGES`), dokumentasi.
 Generator: `scripts/create_dashboard.py` (Verified). Argumen: `<slug> "<Judul>"`. Tanpa argumen → mencetak
 cara pakai. Menolak slug tidak valid dan **menolak jika folder sudah ada** (tidak menimpa).
 
-```powershell
-python scripts\create_dashboard.py work-order "Work Order"
+```bash
+python scripts/create_dashboard.py work-order "Work Order"
 ```
-Expected output (Tested di salinan sandbox, 26 Okt 2026):
+Expected output (Tested di salinan sandbox macOS, 28 Okt 2026; dicetak apa adanya oleh script):
 ```
-Dashboard dibuat: mantra\dashboards\work_order
+Dashboard dibuat: mantra/dashboards/work_order
 Langkah berikutnya:
-  1. Isi workspace_id & dataset_id di mantra\dashboards\work_order\queries.py
+  1. Isi workspace_id & dataset_id di mantra/dashboards/work_order/queries.py
   2. Start Flask: dashboard otomatis masuk katalog. Beri akses user di Admin > Users (Super Admin otomatis bisa)
-  3. Beri mantra-powerbi akses ke workspace-nya, lalu: python scripts\check_setup.py
+  3. Beri mantra-powerbi akses ke workspace-nya, lalu: python scripts/check_setup.py
   4. Restart Flask dan buka http://localhost:<PORT dari .env, default 5001>/d/work-order/
 ```
 Placeholder yang diganti: `__SLUG__` → `work-order`, `__NAME__` → `work_order` (nama folder, blueprint, folder
 template), `__TITLE__` → `Work Order`, `__ENV__` → `WORK_ORDER` (prefix `.env`). Cek: tidak ada sisa placeholder:
-```powershell
-Get-ChildItem mantra\dashboards\work_order -Recurse -File | Select-String -Pattern "__SLUG__|__NAME__|__TITLE__|__ENV__"
+```bash
+grep -rnE "__SLUG__|__NAME__|__TITLE__|__ENV__" mantra/dashboards/work_order
 ```
-(perintah ini tidak boleh menghasilkan baris; versi `bash`: `grep -rn "__SLUG__\|__NAME__" mantra/dashboards/work_order`).
+(perintah ini tidak boleh menghasilkan baris).
 
 ## B4 — Registrasi
 Tidak ada langkah manual: restart server → registry memuat folder baru → `sync_dashboards` menambah baris di tabel
@@ -71,12 +71,12 @@ Tidak ada langkah manual: restart server → registry memuat folder baru → `sy
 route `/d/work-order/` dan `/d/work-order/static/...` terpasang, katalog DB berisi `('work-order', 'Work Order', 1)`.
 
 Beri akses: Admin > Users > pilih user > centang dashboard, atau
-`python scripts\manage_users.py set-access --email x@merdeka.com --dashboard work-order` (daftar **baru**, menggantikan
+`python scripts/manage_users.py set-access --email x@merdeka.com --dashboard work-order` (daftar **baru**, menggantikan
 yang lama: sertakan juga dashboard lain milik user itu).
 
 ## B5 — Backend & data
-1. `queries.py`: isi `workspace_id`, `dataset_id`; jalankan `python scripts\check_setup.py` (akses workspace + model).
-2. Baca struktur model: `python scripts\check_setup.py --dashboard work-order --dax "EVALUATE INFO.VIEW.COLUMNS()"`.
+1. `queries.py`: isi `workspace_id`, `dataset_id`; jalankan `python scripts/check_setup.py` (akses workspace + model).
+2. Baca struktur model: `python scripts/check_setup.py --dashboard work-order --dax "EVALUATE INFO.VIEW.COLUMNS()"`.
 3. Ganti `tables()` dengan query sebenarnya (pola dok 15: cache, `dax_str`, return `(data, fetched)`).
 4. `routes.py`: satu fungsi per halaman, tangkap `queries.DATA_ERRORS` → `data_error_page`.
 5. `__init__.py`: `pages=[("Overview", "work_order.overview"), ...]`, isi `description`, `category`, `icon`
@@ -97,7 +97,7 @@ dari manifest (tombol Ask AI tidak muncul, `/api/chat` → 404).
    `test_super_admin_sees_all_active_dashboards` membandingkan link `href="/d/<slug>/"` di Reports dengan `ALL`.
    Selama `ready=False` kartu tidak punya link (`url=None`), jadi test masih lulus; **setelah `ready=True`** test
    gagal sampai slug baru ditambahkan ke `ALL`. Ini perilaku benar; perbarui test bersamaan dengan `ready=True`.
-3. `python -m pytest`, `python scripts\check_ai_agent.py --static`.
+3. `python -m pytest`, `python scripts/check_ai_agent.py --static`.
 4. Manual: Super Admin melihat kartu; user tanpa akses tidak melihat kartu dan URL langsung → 403.
 5. Regresi: Material Readiness & PANI tetap terbuka.
 
@@ -109,9 +109,9 @@ dari manifest (tombol Ask AI tidak muncul, `/api/chat` → 404).
 ---
 
 ### I. Commands
-```powershell
-python scripts\create_dashboard.py work-order "Work Order"
-python scripts\check_setup.py
+```bash
+python scripts/create_dashboard.py work-order "Work Order"
+python scripts/check_setup.py
 python -m pytest
 python run.py
 ```

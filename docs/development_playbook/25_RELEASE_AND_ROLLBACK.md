@@ -20,11 +20,11 @@ Seluruh repo, `instance/mantra.db`, `instance/backups/`.
 ### F. Step-by-step instructions
 
 **Release lokal**
-1. `python -m pytest` dan `python scripts\check_ai_agent.py --static` → lulus.
+1. `python -m pytest` dan `python scripts/check_ai_agent.py --static` → lulus.
 2. `git status` → pastikan `.env`, `instance/` tidak muncul.
 3. `git diff` → tinjau.
 4. Kelompokkan commit per tujuan (mis. fitur vs dokumentasi). Rename file: `git add -A` agar terdeteksi sebagai rename.
-5. Jika ada migrasi: `python scripts\manage_users.py backup` sebelum start kode baru.
+5. Jika ada migrasi: `python scripts/manage_users.py backup` sebelum start kode baru.
 6. Restart server; jalankan smoke test dok 22.
 
 **Rollback kode**
@@ -34,11 +34,11 @@ Seluruh repo, `instance/mantra.db`, `instance/backups/`.
 3. Start server, smoke test.
 
 **Rollback database** (Verified dengan `docs/AUTH.md`)
-```powershell
-# 1. Hentikan server (Ctrl+C / tutup jendela run_mantra.bat)
+```bash
+# 1. Hentikan server (Ctrl+C / tutup jendela run_mantra.command)
 # 2. Simpan DB sekarang, lalu pulihkan backup
-Copy-Item instance\mantra.db instance\backups\mantra-sebelum-rollback.db
-Copy-Item instance\backups\mantra-<waktu>-<label>.db instance\mantra.db
+cp instance/mantra.db instance/backups/mantra-sebelum-rollback.db
+cp instance/backups/mantra-<waktu>-<label>.db instance/mantra.db
 # 3. Start server (kode harus versi yang sesuai dengan DB tersebut atau lebih baru)
 ```
 
@@ -49,14 +49,14 @@ Tidak ada.
 Backup dibuat dengan SQLite backup API (`db.backup`) sehingga konsisten walau DB sedang dipakai.
 
 ### I. Commands
-```powershell
-python scripts\manage_users.py backup     # -> instance\backups\mantra-<waktu>-manual.db
+```bash
+python scripts/manage_users.py backup     # -> instance/backups/mantra-<waktu>-manual.db
 git status
 git log --oneline -5
 ```
 
 ### J. Expected result
-`Backup: ...\instance\backups\mantra-YYYYmmdd-HHMMSS-manual.db`.
+`Backup: .../instance/backups/mantra-YYYYmmdd-HHMMSS-manual.db`.
 
 ### K. Validation
 Setelah restore: login, Admin > Users menampilkan akun yang diharapkan.

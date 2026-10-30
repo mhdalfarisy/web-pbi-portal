@@ -35,7 +35,7 @@ def create_app(test_config=None):
         conn.close()
 
     if ENV_OVERRIDDEN and not app.config.get("TESTING"):
-        # Hanya nama variabel, tidak pernah nilainya (bisa berisi secret)
+
         app.logger.warning("Variabel environment terminal ditimpa oleh .env MANTRA: %s. Biasanya terbawa dari .env "
                            "project lain di VS Code (setting python.terminal.useEnvFile).", ", ".join(ENV_OVERRIDDEN))
     if app.config["AUTH_DISABLED"]:
@@ -100,7 +100,7 @@ def create_app(test_config=None):
 
     @app.errorhandler(500)
     def server_error(exc):
-        # Exception tak tertangani sudah dicatat Flask (log.exception) sebelum handler ini dipanggil
+
         return _error(500, "Something went wrong on the server. Please try again; if it keeps happening, "
                            "contact the Super Admin.")
 

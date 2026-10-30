@@ -13,7 +13,7 @@ DATASET = queries.DATASET
 
 DASHBOARD = Dashboard(
     slug="pani-processing",
-    title="PANI Processing",
+    title="PROCESSING, EQUIPMENT, MINING & STOCKPILE PRODUCTION",
     description="Processing, equipment, mining, and stockpile production performance for PANI Gold Project.",
     category="Operations",
     icon="factory",

@@ -7,9 +7,9 @@ Status per 26 Oktober 2026. `Verified` = isi file dibaca. `Tested` = perilakunya
 
 ```
 Web App MANTRA/
-├── run.py · run_mantra.bat · requirements.txt · requirements-dev.txt · pytest.ini
+├── run.py · run_mantra.command · requirements.txt · requirements-dev.txt · pytest.ini
 ├── .env (secret, tidak di git) · .env.example · .gitignore · README.md
-├── docs/            AUTH.md · development_playbook/
+├── docs/            AUTH.md · PANDUAN_DEVELOPMENT_BERURUTAN.md · panduan_development/ · development_playbook/ · ebook/
 ├── instance/        mantra.db (runtime) · backups/ (dibuat otomatis saat migrasi / backup manual)
 ├── mantra/          aplikasi Flask
 │   ├── __init__.py · config.py · portal.py · admin.py
@@ -36,14 +36,17 @@ Web App MANTRA/
 
 | Path | Status | Fungsi utama | Isi & tanggung jawab | Input | Output | Dependency | Dipanggil oleh | Berkaitan dengan | Test terkait | Kapan diubah | Risiko perubahan |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| `run.py` | Verified, Tested (server berjalan di 5001) | Entry point | `app = create_app()`; `app.run(host="localhost", port=Config.PORT, debug=Config.DEBUG)`; cetak status login/debug dan penyebab server berhenti | `.env` lewat `Config` | Dev server Werkzeug | `mantra.create_app`, `Config` | Developer, `run_mantra.bat` | Semua | — | Jarang (mis. pesan startup) | Host/port salah → redirect Entra gagal |
-| `run_mantra.bat` | Verified | Launcher double-click | `cd` ke folder, cek `.venv\Scripts\python.exe`, jalankan `run.py`, `pause` | — | Jendela server | `.venv`, `run.py` | User (Explorer) | Startup | — | Jarang | Path venv berubah → gagal start |
+| `run.py` | Verified, Tested (server berjalan di 5001) | Entry point | `app = create_app()`; `app.run(host="localhost", port=Config.PORT, debug=Config.DEBUG)`; cetak status login/debug dan penyebab server berhenti | `.env` lewat `Config` | Dev server Werkzeug | `mantra.create_app`, `Config` | Developer, `run_mantra.command` | Semua | — | Jarang (mis. pesan startup) | Host/port salah → redirect Entra gagal |
+| `run_mantra.command` | Verified (syntax) | Launcher double-click macOS | `cd` ke folder script, cek `.venv/bin/python`, jalankan `run.py`, tunggu tombol | — | Jendela Terminal | `.venv`, `run.py` | User (Finder) | Startup | — | Jarang | Tidak executable → `chmod +x run_mantra.command` |
 | `requirements.txt` | Verified | Dependency runtime | Flask, msal, requests, python-dotenv, google-genai, httpx (dengan batas atas versi mayor) | — | — | pip | `pip install -r` | Semua | Seluruh pytest | Tambah library baru | Upgrade mayor bisa merusak API |
 | `requirements-dev.txt` | Verified | Dependency dev | `-r requirements.txt` + pytest | — | — | pip | Developer | Test | — | Tambah tool dev | Rendah |
 | `pytest.ini` | Verified | Konfigurasi pytest | `testpaths = tests`, `addopts = -q` | — | — | pytest | `python -m pytest` | Test | — | Jarang | Test tidak ditemukan |
 | `.env` | Existing (isi tidak dibaca: secret) | Konfigurasi & secret asli | Nilai variabel | — | Environment | python-dotenv | `config.py` | Semua | — | Setup / ganti kredensial | Secret bocor jika di-commit |
 | `.env.example` | Verified | Template `.env` | 23 variabel + penjelasan | — | — | — | Developer | Setup | `test_passwords_and_database` (perilaku `.env`) | Variabel baru di `config.py` | Dokumentasi tidak sinkron |
-| `.gitignore` | Verified | Pengecualian git | `.env`, `.venv/`, `__pycache__/`, `*.pyc`, `instance/`, `.claude/`, `.pytest_cache/` | — | — | git | git | Keamanan | — | Folder runtime baru | Secret/DB ikut ter-commit |
+| `.gitignore` | Verified | Pengecualian git | `.env`, `.venv/`, `__pycache__/`, `*.pyc`, `instance/`, `.claude/`, `.pytest_cache/`, `.DS_Store` | — | — | git | git | Keamanan | — | Folder runtime baru | Secret/DB ikut ter-commit |
+| `docs/PANDUAN_DEVELOPMENT_BERURUTAN.md` | Verified, Tested (output "Cek" dari sandbox 28 Okt) | Jalur build berurutan | Fase 0-14, link file, output nyata, temuan | — | — | — | Developer | Dokumentasi | — | Urutan/perilaku berubah | Panduan menyesatkan |
+| `docs/panduan_development/` (4 file) | Verified | Pendalaman | Konsep teknologi, kode inti fondasi, kode data & AI, logika bisnis dashboard | — | — | — | Developer | Dokumentasi | — | Kode inti / rumus berubah | Penjelasan tidak sesuai kode |
+| `docs/ebook/` | Verified, Tested (build 28 Okt) | Ebook PDF | `build_ebook.py` (pandoc + Chrome), `ebook.css`, `template.html`, `MANTRA_Development_Ebook.pdf`; `.build/` di-ignore | `docs/**/*.md` | PDF | pandoc, Google Chrome | Developer | Dokumentasi | — | Dokumen baru → tambah ke `PARTS` | PDF tertinggal dari `.md` |
 | `README.md` | Verified | Panduan utama | Setup, struktur, menambah dashboard, layout, AI, troubleshooting | — | — | — | Developer | Semua | — | Perubahan perilaku/command | Panduan menyesatkan |
 
 ## B. `mantra/` (aplikasi)
