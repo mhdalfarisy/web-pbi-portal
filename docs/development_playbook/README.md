@@ -4,6 +4,10 @@ Buku panduan development **Power BI Portal (MANTRA)** untuk developer: dari fold
 `http://localhost:5001`, lalu cara mengembangkannya (halaman baru, dashboard baru, AI agent, perbaikan bug).
 
 > Mulai dari **[00_START_HERE.md](00_START_HERE.md)**.
+>
+> Mau membangun dari nol secara berurutan? Ikuti **[PANDUAN_DEVELOPMENT_BERURUTAN.md](../PANDUAN_DEVELOPMENT_BERURUTAN.md)**
+> (fase 0-14) beserta seri pendalamannya di **[panduan_development/](../panduan_development/01_KONSEP_TEKNOLOGI.md)**.
+> Semua dokumen ini juga tersedia sebagai satu PDF: **[docs/ebook/](../ebook/README.md)**.
 
 Dokumentasi disusun dari source code aktual (diperiksa 26 Oktober 2026). Setiap klaim diberi status:
 
@@ -24,7 +28,7 @@ Dokumentasi disusun dari source code aktual (diperiksa 26 Oktober 2026). Setiap 
 | Paham MANTRA itu apa | [01_PROJECT_OVERVIEW](01_PROJECT_OVERVIEW.md) |
 | Tahu fungsi setiap file | [02_PROJECT_STRUCTURE](02_PROJECT_STRUCTURE.md) |
 | Paham urutan membangun aplikasi | [03_DEVELOPMENT_ROADMAP](03_DEVELOPMENT_ROADMAP.md), [27_REBUILD_FROM_ZERO](27_REBUILD_FROM_ZERO.md) |
-| Setup laptop baru | [04_WINDOWS_VSCODE_SETUP](04_WINDOWS_VSCODE_SETUP.md), [05_PYTHON_ENVIRONMENT_AND_DEPENDENCIES](05_PYTHON_ENVIRONMENT_AND_DEPENDENCIES.md), [06_CONFIGURATION_GUIDE](06_CONFIGURATION_GUIDE.md) |
+| Setup laptop baru | [04_MACOS_VSCODE_SETUP](04_MACOS_VSCODE_SETUP.md), [05_PYTHON_ENVIRONMENT_AND_DEPENDENCIES](05_PYTHON_ENVIRONMENT_AND_DEPENDENCIES.md), [06_CONFIGURATION_GUIDE](06_CONFIGURATION_GUIDE.md) |
 | Menjalankan aplikasi | [22_LOCALHOST_RUNBOOK](22_LOCALHOST_RUNBOOK.md) |
 | Paham alur request | [07_FLASK_STARTUP_AND_REQUEST_LIFECYCLE](07_FLASK_STARTUP_AND_REQUEST_LIFECYCLE.md) |
 | Mengubah tampilan saja | [18_FRONTEND_ONLY_CHANGES](18_FRONTEND_ONLY_CHANGES.md), [08_FRONTEND_ARCHITECTURE](08_FRONTEND_ARCHITECTURE.md) |
@@ -49,7 +53,7 @@ Dokumentasi disusun dari source code aktual (diperiksa 26 Oktober 2026). Setiap 
 | 01 | [PROJECT_OVERVIEW](01_PROJECT_OVERVIEW.md) | Identitas, ruang lingkup, arsitektur ringkas |
 | 02 | [PROJECT_STRUCTURE](02_PROJECT_STRUCTURE.md) | Inventaris file + status verifikasi |
 | 03 | [DEVELOPMENT_ROADMAP](03_DEVELOPMENT_ROADMAP.md) | CP-01 s.d. CP-16 |
-| 04 | [WINDOWS_VSCODE_SETUP](04_WINDOWS_VSCODE_SETUP.md) | Git, Python, VS Code |
+| 04 | [MACOS_VSCODE_SETUP](04_MACOS_VSCODE_SETUP.md) | Git, Homebrew, Python, VS Code di macOS (+ padanan Windows) |
 | 05 | [PYTHON_ENVIRONMENT_AND_DEPENDENCIES](05_PYTHON_ENVIRONMENT_AND_DEPENDENCIES.md) | `.venv`, requirements, versi |
 | 06 | [CONFIGURATION_GUIDE](06_CONFIGURATION_GUIDE.md) | `.env`, `config.py`, matriks konfigurasi |
 | 07 | [FLASK_STARTUP_AND_REQUEST_LIFECYCLE](07_FLASK_STARTUP_AND_REQUEST_LIFECYCLE.md) | Startup & siklus request |
@@ -84,6 +88,9 @@ Dokumentasi disusun dari source code aktual (diperiksa 26 Oktober 2026). Setiap 
 nomor 21-25 yang sudah dipakai, jadi diberi nomor 29-33. `20_AI_AGENT_DEVELOPMENT.md` dipakai bersama.
 
 **Dokumen terkait di luar folder ini:** [README.md](../../README.md) (setup ringkas), [docs/AUTH.md](../AUTH.md)
-(login, RBAC, skema, rollback), [scripts/README.md](../../scripts/README.md), [tests/README.md](../../tests/README.md).
+(login, RBAC, skema, rollback), [scripts/README.md](../../scripts/README.md), [tests/README.md](../../tests/README.md),
+[docs/PANDUAN_DEVELOPMENT_BERURUTAN.md](../PANDUAN_DEVELOPMENT_BERURUTAN.md) (jalur build berurutan),
+[docs/panduan_development/](../panduan_development/01_KONSEP_TEKNOLOGI.md) (konsep, kode inti, logika bisnis),
+[docs/ebook/](../ebook/README.md) (PDF gabungan + script build).
 Folder `audit_reports/` sengaja tidak dibuat ulang (sudah dihapus pemilik project); matriks dependency, versi,
 konfigurasi, known issues, dan parity ada di dokumen 02, 05, 06, 09, dan 28.

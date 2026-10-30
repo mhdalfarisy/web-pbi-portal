@@ -4,10 +4,10 @@ Test otomatis (pytest) yang memastikan website tidak rusak setelah kode diubah. 
 **tidak menyentuh data asli**: test memakai database sementara (bukan `instance/mantra.db`), akun dummy, dan tidak
 memanggil Power BI / Gemini sungguhan.
 
-```powershell
+```bash
 pip install -r requirements-dev.txt   # sekali saja (pytest)
 python -m pytest                      # semua test
-python -m pytest tests\test_login_and_access.py      # satu file
+python -m pytest tests/test_login_and_access.py      # satu file
 python -m pytest -k forgot                            # test yang namanya mengandung "forgot"
 ```
 

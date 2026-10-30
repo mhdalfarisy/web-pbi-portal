@@ -9,6 +9,17 @@ Sebelum & sesudah **setiap** perubahan kode; sebelum commit.
 ### C. Prerequisites
 `pip install -r requirements-dev.txt`; `.venv` aktif.
 
+Saat **membangun dari nol** (dok 03 / 27), pytest baru bisa dijalankan setelah mesin AI **dan** kedua dashboard ada:
+
+| Syarat | Alasan | Error kalau belum ada (diuji 28 Okt 2026) |
+|---|---|---|
+| `mantra/core/chat/routes.py` (CP-13) | `conftest.py` meng-import `mantra.core.chat.routes` | `ImportError while loading conftest ... cannot import name 'routes' from 'mantra.core.chat'` |
+| `mantra/dashboards/pani_processing/` (CP-12) | `test_errors_and_security.py` meng-import modul PANI; `fresh_data` memberi akses ke `pani-processing` | `ModuleNotFoundError: No module named 'mantra.dashboards.pani_processing'` |
+| `mantra/dashboards/material_readiness/` (CP-12) | `fresh_data` memberi akses ke `material-readiness`; `PAGES`/`APIS` menguji URL-nya | `AccountError: Dashboard not in the catalog yet` |
+| `PBI_CLIENT_ID` terisi di `.env` (nilai apa saja) | `test_env_file_wins_over_inherited_terminal_variables` membandingkan `Config.PBI_CLIENT_ID` dengan `None` | 1 failed, 57 passed |
+
+Sebelum syarat itu terpenuhi, setiap tahap dicek manual (bagian "Cek" di [PANDUAN_DEVELOPMENT_BERURUTAN](../PANDUAN_DEVELOPMENT_BERURUTAN.md)).
+
 ### D. Architecture context
 
 ```mermaid
@@ -43,10 +54,10 @@ Pemeriksaan non-pytest:
 
 | Perintah | Cakupan | Biaya |
 |---|---|---|
-| `python scripts\check_ai_agent.py --static` | Prompt terbaca, placeholder & nama tool valid, komentar developer tidak terkirim, guards | Gratis |
-| `python scripts\check_ai_agent.py --dashboard <slug> [filter]` | Pertanyaan acuan `chat_cases.py` | Kuota Gemini + query Power BI |
-| `python scripts\compare_pani_with_powerbi.py [halaman]` | Angka PANI vs measure report | Query Power BI |
-| `python scripts\check_setup.py` | Konfigurasi & koneksi | Entra, Power BI, Gemini |
+| `python scripts/check_ai_agent.py --static` | Prompt terbaca, placeholder & nama tool valid, komentar developer tidak terkirim, guards | Gratis |
+| `python scripts/check_ai_agent.py --dashboard <slug> [filter]` | Pertanyaan acuan `chat_cases.py` | Kuota Gemini + query Power BI |
+| `python scripts/compare_pani_with_powerbi.py [halaman]` | Angka PANI vs measure report | Query Power BI |
+| `python scripts/check_setup.py` | Konfigurasi & koneksi | Entra, Power BI, Gemini |
 | `python -m compileall -q mantra scripts tests run.py` | Sintaks | Gratis |
 
 **Tidak ada** (Not Found): test JavaScript, test visual/browser otomatis, test integrasi Power BI/Gemini di pytest.
@@ -73,16 +84,17 @@ Fixture tersedia: `app`, `client` (tidak login), `login_as("admin"|"a"|"b")`, `q
 yang sama dengan browser.
 
 ### I. Commands
-```powershell
+```bash
 python -m pytest                                        # semua
-python -m pytest tests\test_login_and_access.py         # satu file
+python -m pytest tests/test_login_and_access.py         # satu file
 python -m pytest -k "csrf"                              # berdasarkan nama
-python -m pytest tests\test_login_and_access.py::test_ip_throttle   # satu test
+python -m pytest tests/test_login_and_access.py::test_ip_throttle   # satu test
 python -m pytest -x -vv                                 # berhenti di gagal pertama, detail
 ```
 
 ### J. Expected result
-`58 passed` (Tested 26 Okt 2026; ± 50-75 detik).
+`58 passed` (Tested 26 Okt 2026 Windows: ± 50-75 detik; 28 Okt 2026 macOS Apple Silicon: ± 36-38 detik).
+Satu file: `python -m pytest tests/test_login_and_access.py` → `28 passed` (± 18 detik).
 
 ### K. Validation — membaca hasil
 | Output | Arti |
@@ -113,9 +125,9 @@ Tidak ada `F`/`E` baru; test baru untuk perilaku baru.
 Tabel E dan [tests/README.md](../../tests/README.md).
 
 ### P. Actual status
-| Pemeriksaan (26 Okt 2026) | Hasil |
+| Pemeriksaan | Hasil |
 |---|---|
-| `python -m pytest` | PASS — 58 passed |
+| `python -m pytest` (26 Okt Windows, 28 Okt macOS) | PASS — 58 passed |
 | `check_ai_agent.py --static` | PASS — SEMUA LULUS |
 | `compileall` | PASS |
 | `check_ai_agent.py --dashboard ...` | NOT RUN (kuota) |

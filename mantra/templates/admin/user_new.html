@@ -14,7 +14,7 @@
   <label class="field"><span>Name (optional)</span>
     <input class="input" type="text" name="name" value="{{ form.name }}" maxlength="120"></label>
   <div class="field"><span>Role</span>
-    <p class="hint">User. The Super Admin role can only be granted through <code>scripts\manage_users.py</code>.</p></div>
+    <p class="hint">User. The Super Admin role can only be granted through <code>scripts/manage_users.py</code>.</p></div>
   <div class="field"><span>Dashboards this user may open</span>
     {{ dashboard_checks(dashboards, form.dashboard | map('int') | list) }}</div>
   <div class="form-actions">

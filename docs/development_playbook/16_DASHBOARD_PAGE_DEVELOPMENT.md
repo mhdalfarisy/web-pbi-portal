@@ -1,6 +1,6 @@
 # 16 — Workflow A: Menambah Halaman ke Dashboard yang Sudah Ada
 
-Contoh berjalan: menambah halaman **"Mining Detail"** ke PANI Processing (`/d/pani-processing/mining-detail`).
+Contoh berjalan: menambah halaman **"Mining Detail"** ke dashboard PANI (`/d/pani-processing/mining-detail`).
 Pola yang sama berlaku untuk Material Readiness (perbedaannya di bagian A6).
 
 ### A. Objective
@@ -132,13 +132,13 @@ Perbarui tabel halaman di dok 01/10, `prompts/data_dictionary.md` jika istilah b
 ---
 
 ### I. Commands
-```powershell
+```bash
 python -m pytest
-python scripts\check_ai_agent.py --static
+python scripts/check_ai_agent.py --static
 python run.py
 ```
 ### J. Expected result
-Menu "Mining Detail" muncul di header PANI; breadcrumb `Reports › PANI Processing › Mining Detail`; History mencatat.
+Menu "Mining Detail" muncul di header PANI; breadcrumb `Reports › PROCESSING, EQUIPMENT, MINING & STOCKPILE PRODUCTION › Mining Detail` (judul dari `title` di manifest); History mencatat.
 ### K. Validation
 `curl -I http://localhost:5001/d/pani-processing/mining-detail` tanpa login → 302 ke login.
 ### L. Troubleshooting

@@ -22,7 +22,7 @@ flowchart TD
 | Hanya ingin mengubah tampilan, file mana? | Dok 18 §E (tabel "yang dilihat di layar → file"); DevTools Elements → class → grep | Regression checklist dok 08 §3 |
 | Menambah halaman Summary/Detail? | `dashboards/<x>/routes.py` + `__init__.py` (`pages`) + template; pola `routes.mining` / `material_readiness.detail` | `PAGES` di `conftest.py` |
 | Menambah dashboard baru, cek apa dulu? | `scripts/create_dashboard.py`, `_template/`, `core/registry.py` (kontrak `Dashboard`) | `test_login_and_access.py` (`ALL`) |
-| Angka dashboard salah? | Telusuri: template (format `fmt`) → payload (`Ctrl+U` / response `/api/...`) → fungsi `queries.py` → DAX (`check_setup.py --dax`) → report Power BI dengan filter sama; PANI: `compare_pani_with_powerbi.py` | Stub test untuk logika |
+| Angka dashboard salah? | Telusuri: template (format `fmt`) → payload (`Cmd+Option+U` / response `/api/...`) → fungsi `queries.py` → DAX (`check_setup.py --dax`) → report Power BI dengan filter sama; PANI: `compare_pani_with_powerbi.py` | Stub test untuk logika |
 | Power BI gagal diakses? | Kode ref di layar → log server → dok 15 §3 / dok 23 entri 12-14 → `check_setup.py` | — |
 | AI menjawab tidak sesuai data? | Response JSON `tools` (tool & args yang dipakai) → jalankan fungsi tool yang sama → `prompts/system.md` / `data_dictionary.md` → `clean_args` | `check_ai_agent.py --static` + `--dashboard` |
 | Sidebar tidak muncul? | Template harus extend `portal/base.html` atau `dashboard/base.html` (bukan `bare.html`, yang memang tanpa sidebar); `base.html` memanggil `sidebar(report)`; cek console JS & `shell.css` termuat | Render halaman di test |

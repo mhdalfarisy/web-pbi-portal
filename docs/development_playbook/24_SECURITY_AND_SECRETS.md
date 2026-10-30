@@ -6,7 +6,7 @@
 |---|---|---|---|
 | Secret | `.env` di `.gitignore`; `check_setup.py` tidak mencetak secret; audit/log tanpa secret | `.gitignore`, scripts | `test_audit_log_and_app_log_contain_no_secrets` |
 | Password | Hash Werkzeug; kebijakan ≥10, huruf+angka, tanpa nama email; dummy hash untuk email tak terdaftar (cegah timing) | `accounts.py` | `test_passwords_are_hashed` |
-| Brute force | Lockout akun 5x/15 mnt; throttle IP login 20/15 mnt, reset 5/15 mnt | `accounts.py`, `auth.py` | `test_account_locks_after_repeated_failures`, `test_ip_throttle` |
+| Brute force | Lockout akun 5x/15 mnt (dikunci di kegagalan ke-5; pesan "locked" baru tampil di percobaan ke-6, kegagalan ke-5 tetap berpesan generik); throttle IP login 20/15 mnt, reset 5/15 mnt | `accounts.py`, `auth.py` | `test_account_locks_after_repeated_failures`, `test_ip_throttle` |
 | Enumerasi email | Pesan login generik; lupa password respons sama | `auth.py`, `accounts.py` | `test_wrong_password_rejected_with_generic_message`, `test_unknown_and_inactive_emails_get_the_same_response` |
 | Session | Cookie ditandatangani, `HttpOnly`, `SameSite=Lax`, opsional `Secure`; `session.clear()` saat login (anti fixation); `session_version` (invalidasi) | `config.py`, `auth.py` | `test_session_cookie_cannot_be_forged`, `test_reset_password_logs_out_user` |
 | CSRF | Token per session, wajib di semua POST (form & fetch) | `__init__.py` | `test_post_without_csrf_is_rejected`, `test_non_ascii_csrf_token_is_400_not_500` |
@@ -27,7 +27,7 @@
 
 1. Jangan commit `.env`, jangan tempel isinya di chat/issue/dokumen. Cek: `git status` tidak boleh menampilkan `.env`.
 2. Secret yang terlanjur terekspos → **rotasi** (buat secret baru di Entra / API key baru), bukan sekadar hapus file.
-3. `MANTRA_SEED_PASSWORD` hanya di environment saat seed, lalu `Remove-Item Env:MANTRA_SEED_PASSWORD`.
+3. `MANTRA_SEED_PASSWORD` hanya di environment saat seed, lalu `unset MANTRA_SEED_PASSWORD`.
 4. Mengganti `FLASK_SECRET_KEY` me-logout semua user (cookie lama tidak valid).
 5. Secret tidak boleh masuk prompt AI (prompt dikirim ke Gemini).
 

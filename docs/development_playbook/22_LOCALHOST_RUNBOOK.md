@@ -7,24 +7,25 @@ Menjalankan MANTRA di `http://localhost:5001` dan memastikan semuanya berfungsi.
 Setiap hari development; setelah setup; setelah perubahan besar.
 
 ### C. Prerequisites
-Dok 04-06 selesai; ada akun (`python scripts\manage_users.py seed`).
+Dok 04-06 selesai; ada akun (`python scripts/manage_users.py seed`).
 
 ### D. Architecture context
 `run.py` menjalankan dev server Werkzeug di **`localhost`** (bukan `0.0.0.0`) pada `PORT` dari `.env`. Buka lewat
 `http://localhost:<PORT>` (bukan `127.0.0.1`) supaya cookie & redirect URI Entra cocok (komentar `run.py`).
 
 ### E. Files involved
-`run.py`, `run_mantra.bat`, `.env` (`PORT`, `FLASK_DEBUG`).
+`run.py`, `run_mantra.command`, `.env` (`PORT`, `FLASK_DEBUG`).
 
 ### F. Step-by-step instructions
 
 **Cara 1 — terminal VS Code**
-```powershell
-.\.venv\Scripts\Activate.ps1
+```bash
+source .venv/bin/activate
 python run.py
 ```
-**Cara 2 — jendela sendiri:** double-click `run_mantra.bat` (server tetap jalan walau VS Code ditutup; jendela tetap
-terbuka saat server berhenti supaya pesan terbaca).
+**Cara 2 — jendela sendiri:** double-click `run_mantra.command` di Finder. Server
+tetap jalan walau VS Code ditutup; jendela Terminal tetap terbuka saat server berhenti supaya pesan terbaca.
+Kalau macOS menolak membukanya: klik kanan > Open sekali, atau `chmod +x run_mantra.command`.
 
 **Berhenti:** `Ctrl+C` / tutup jendela. **Restart wajib** setelah mengubah `.env`, prompt AI, manifest/registry,
 atau kode Python (kecuali `FLASK_DEBUG=1` yang auto-reload kode).
@@ -37,17 +38,17 @@ Tidak ada.
 saat berhenti mencetak `stopped (Ctrl+C or terminal closed)` atau `crashed (exit code N)`.
 
 ### I. Commands — smoke test (tanpa login, read-only)
-```powershell
-curl.exe -s -o NUL -w "%{http_code}`n" http://localhost:5001/login                     # 200
-curl.exe -s -o NUL -w "%{http_code} %{redirect_url}`n" http://localhost:5001/          # 302 .../login
-curl.exe -s -o NUL -w "%{http_code}`n" http://localhost:5001/d/material-readiness/api/detail   # 401
-curl.exe -s -o NUL -w "%{http_code}`n" http://localhost:5001/static/css/shell.css      # 200
-curl.exe -s -o NUL -w "%{http_code}`n" -X POST -d "email=x&password=x" http://localhost:5001/login  # 400 (CSRF)
-curl.exe -s -D - -o NUL http://localhost:5001/login | Select-String "X-Frame|X-Content|Referrer"
-netstat -ano | findstr :5001                                                          # PID yang mendengar
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:5001/login                     # 200
+curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" http://localhost:5001/          # 302 .../login
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:5001/d/material-readiness/api/detail   # 401
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:5001/static/css/shell.css      # 200
+curl -s -o /dev/null -w "%{http_code}\n" -X POST -d "email=x&password=x" http://localhost:5001/login  # 400 (CSRF)
+curl -s -D - -o /dev/null http://localhost:5001/login | grep -E "X-Frame|X-Content|Referrer"
+lsof -nP -iTCP:5001 -sTCP:LISTEN                                                          # PID yang mendengar
 ```
 
-### J. Expected result (Tested 26 Okt 2026 pada server yang sedang berjalan, PID `.venv\Scripts\python.exe run.py`)
+### J. Expected result (Tested 26 Okt 2026 pada server yang sedang berjalan, PID `.venv/bin/python run.py`)
 
 | Request | Hasil |
 |---|---|
@@ -79,11 +80,11 @@ netstat -ano | findstr :5001                                                    
 ### L. Troubleshooting
 | Gejala | Solusi |
 |---|---|
-| `OSError: [WinError 10048]` / port dipakai | `netstat -ano \| findstr :5001` → jika itu server MANTRA lama, tutup jendelanya; atau ganti `PORT` di `.env` (dan redirect URI Entra) |
+| `OSError: [Errno 48] Address already in use` / port dipakai | `lsof -nP -iTCP:5001 -sTCP:LISTEN` → jika itu server MANTRA lama, tutup jendelanya; atau ganti `PORT` di `.env` (dan redirect URI Entra) |
 | `RuntimeError: FLASK_SECRET_KEY belum diisi` | Isi `.env` |
 | App gagal start dengan pesan prompt/tool | Perbaiki file prompt yang disebut (dok 31) |
 | Login Microsoft `AADSTS50011` | Buka lewat `http://localhost:5001`; redirect URI harus `http://localhost:<PORT>/auth/callback` |
-| Perubahan tidak terlihat | Restart; `Ctrl+F5` untuk CSS/JS |
+| Perubahan tidak terlihat | Restart; `Cmd+Shift+R` untuk CSS/JS |
 | Selengkapnya | Dok 23 |
 
 ### M. Regression impact

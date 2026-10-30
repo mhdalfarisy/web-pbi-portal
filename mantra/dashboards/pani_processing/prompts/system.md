@@ -5,7 +5,7 @@
  Dikirim setelah core/prompts/base.md (aturan umum) dan sebelum data_dictionary.md.
  Setiap tool di tools.py WAJIB disebut di file ini di antara backtick (dicek saat start).
  Setelah mengubah: restart Flask, lalu
-     python scripts\check_ai_agent.py --dashboard pani-processing
+     python scripts/check_ai_agent.py --dashboard pani-processing
 ================================================================================
 -->
 # Memilih tool

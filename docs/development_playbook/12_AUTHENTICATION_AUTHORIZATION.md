@@ -101,7 +101,7 @@ def something():
 ### H. Code explanation
 `role_required` = `login_required` + cek role + audit `access_denied` + 403.
 ### I. Commands
-`python -m pytest tests\test_login_and_access.py`
+`python -m pytest tests/test_login_and_access.py`
 ### J. Expected result
 Semua lulus.
 ### K. Validation

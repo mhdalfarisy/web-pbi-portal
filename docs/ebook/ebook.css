@@ -1,0 +1,137 @@
+/* Gaya cetak ebook MANTRA (Chrome headless --print-to-pdf). */
+:root {
+  --ink: #1f2937;
+  --muted: #6b7280;
+  --accent: #1d4ed8;
+  --accent-soft: #eff6ff;
+  --line: #d1d5db;
+  --code-bg: #f6f8fa;
+  --mono: "SF Mono", Menlo, Monaco, Consolas, monospace;
+  --sans: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+@page {
+  size: A4;
+  margin: 18mm 16mm 20mm 16mm;
+  @bottom-center { content: counter(page); font: 8.5pt var(--sans); color: #9ca3af; }
+  @bottom-right { content: "MANTRA · Power BI Portal"; font: 7.5pt var(--sans); color: #c0c4cc; }
+}
+@page :first {
+  margin: 0;
+  @bottom-center { content: none; }
+  @bottom-right { content: none; }
+}
+
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body {
+  margin: 0;
+  background: #fff;
+  color: var(--ink);
+  font: 10pt/1.55 var(--sans);
+  hyphens: auto;
+}
+
+/* ---------- sampul ---------- */
+.cover {
+  height: 297mm;
+  box-sizing: border-box;
+  padding: 70mm 22mm 24mm;
+  background: linear-gradient(160deg, #0f172a 0%, #1e3a8a 55%, #2563eb 100%);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  break-after: page;
+}
+.cover-kicker { font-size: 11pt; letter-spacing: .18em; text-transform: uppercase; color: #93c5fd; }
+.cover-title { margin-top: 10mm; font-size: 34pt; font-weight: 750; line-height: 1.12; max-width: 150mm; }
+.cover-sub { margin-top: 8mm; font-size: 13pt; line-height: 1.45; color: #dbeafe; max-width: 140mm; }
+.cover-meta { margin-top: auto; font-size: 10.5pt; line-height: 1.7; color: #bfdbfe; }
+.cover-meta b { color: #fff; font-size: 12pt; }
+.cover code { background: rgba(255, 255, 255, .12); color: #fff; }
+
+.about { break-after: page; }
+.about h1 { font-size: 20pt; margin: 0 0 4mm; color: var(--accent); }
+.small { font-size: 8.5pt; color: var(--muted); }
+
+/* ---------- daftar isi ---------- */
+#TOC { break-after: page; }
+.toc-title { font-size: 20pt; color: var(--accent); margin: 0 0 5mm; }
+#TOC ul { list-style: none; margin: 0; padding: 0; }
+#TOC > ul > li { margin: 3.2mm 0 1mm; }
+#TOC > ul > li > a { font-weight: 700; font-size: 10.5pt; color: var(--ink); }
+#TOC > ul > li > ul { padding-left: 5mm; columns: 1; }
+#TOC li li { font-size: 9pt; line-height: 1.6; }
+#TOC li li a { color: #374151; }
+#TOC a { text-decoration: none; }
+
+/* ---------- bagian & bab ---------- */
+h1, h2, h3, h4, h5, h6 { line-height: 1.25; break-after: avoid; }
+h1.part {
+  break-before: page;
+  margin: 70mm 0 6mm;
+  font-size: 28pt;
+  color: var(--accent);
+  border-left: 6px solid var(--accent);
+  padding-left: 6mm;
+}
+.part-intro { margin-left: 8mm; font-size: 12pt; color: var(--muted); break-after: page; }
+h2 {
+  break-before: page;
+  font-size: 19pt;
+  color: #0f172a;
+  margin: 0 0 5mm;
+  padding-bottom: 2.5mm;
+  border-bottom: 2px solid var(--accent);
+}
+h3 { font-size: 13.5pt; color: var(--accent); margin: 7mm 0 2.5mm; }
+h4 { font-size: 11.5pt; margin: 5mm 0 2mm; color: #111827; }
+h5, h6 { font-size: 10.5pt; margin: 4mm 0 1.5mm; }
+
+p, li { orphans: 3; widows: 3; }
+a { color: var(--accent); text-decoration: none; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 6mm 0; }
+blockquote {
+  margin: 4mm 0;
+  padding: 2.5mm 4mm;
+  background: var(--accent-soft);
+  border-left: 3px solid var(--accent);
+  color: #1e3a8a;
+}
+blockquote p { margin: 1mm 0; }
+
+/* ---------- kode ---------- */
+code { font-family: var(--mono); font-size: .86em; background: var(--code-bg); padding: .1em .3em; border-radius: 3px; }
+pre {
+  background: var(--code-bg);
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  padding: 3mm 3.5mm;
+  font-size: 7.8pt;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+div.sourceCode { margin: 3mm 0; }
+
+/* ---------- tabel ---------- */
+table { width: 100%; border-collapse: collapse; margin: 3mm 0 4mm; font-size: 8.2pt; line-height: 1.4; }
+th, td { border: 1px solid var(--line); padding: 1.4mm 2mm; vertical-align: top; text-align: left; overflow-wrap: break-word; }
+th { background: #eef2ff; color: #1e3a8a; font-weight: 650; }
+tr { break-inside: avoid; }
+tbody tr:nth-child(even) td { background: #fafafa; }
+td code, th code { font-size: .92em; overflow-wrap: anywhere; }
+
+/* tabel >= 7 kolom (mis. inventaris file bab 02): halaman landscape */
+@page wide { size: A4 landscape; margin: 14mm 14mm 16mm; }
+.wide-table { page: wide; }
+.wide-table table { font-size: 7.2pt; }
+.wide-table th, .wide-table td { padding: 1.1mm 1.5mm; }
+
+/* ---------- diagram ---------- */
+div.mermaid { margin: 4mm 0; text-align: center; break-inside: avoid; }
+div.mermaid svg { max-width: 100%; height: auto; max-height: 230mm; }
+
+/* checklist */
+ul.task-list, ul:has(> li > input[type=checkbox]) { list-style: none; padding-left: 2mm; }
+input[type=checkbox] { margin-right: 2mm; }

@@ -1,4 +1,4 @@
-"""Pertanyaan acuan untuk python scripts\\check_ai_agent.py --dashboard __SLUG__
+"""Pertanyaan acuan untuk python scripts/check_ai_agent.py --dashboard __SLUG__
 
 Setiap fungsi case_<nama>() mengembalikan dict:
     question  : pertanyaan ke agent

@@ -8,7 +8,7 @@
  Placeholder: {{today}} {{year}} {{month}} {{month_name}} {{dashboard_title}}
  Setiap tool di tools.py WAJIB disebut di file ini di antara backtick. Dicek saat start.
  Setelah mengubah: restart Flask, lalu
-     python scripts\check_ai_agent.py --dashboard __SLUG__
+     python scripts/check_ai_agent.py --dashboard __SLUG__
 ================================================================================
 -->
 # Memilih tool

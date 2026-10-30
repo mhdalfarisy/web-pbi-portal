@@ -1,4 +1,4 @@
-"""Pertanyaan acuan untuk python scripts\\check_ai_agent.py --dashboard material-readiness
+"""Pertanyaan acuan untuk python scripts/check_ai_agent.py --dashboard material-readiness
 
 Jawaban acuan dihitung dari tools/queries saat tes dijalankan, jadi tes tetap valid walaupun datanya berubah.
 Format setiap kasus dijelaskan di dashboards/_template/chat_cases.py.

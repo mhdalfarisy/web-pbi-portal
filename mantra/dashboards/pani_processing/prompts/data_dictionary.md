@@ -4,7 +4,7 @@
 ================================================================================
  Diambil dari semantic model "PANI - PRCS - Processing" (workspace PANI-MCG) pada 23 Oktober 2026.
  Cek ulang struktur model:
-   python scripts\check_setup.py --dashboard pani-processing --dax "EVALUATE INFO.VIEW.COLUMNS()"
+   python scripts/check_setup.py --dashboard pani-processing --dax "EVALUATE INFO.VIEW.COLUMNS()"
 ================================================================================
 -->
 # Kamus data

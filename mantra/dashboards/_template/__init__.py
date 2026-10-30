@@ -1,7 +1,7 @@
 """Dashboard __TITLE__ (dibuat dari dashboards/_template oleh scripts/create_dashboard.py).
 
 Langkah berikutnya:
-1. Isi workspace_id & dataset_id di queries.py, lalu cek: python scripts\\check_setup.py
+1. Isi workspace_id & dataset_id di queries.py, lalu cek: python scripts/check_setup.py
 2. Setelah Flask start, dashboard otomatis masuk katalog; beri akses user di Admin > Users.
 3. Ganti query contoh di queries.py, halaman di templates/, tools agent di tools.py, dan prompt di prompts/.
 4. Ubah ready=True di bawah, restart Flask.

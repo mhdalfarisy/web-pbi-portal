@@ -13,7 +13,7 @@ sequenceDiagram
     participant DB as core/db.py
     participant Reg as core/registry.py
     participant W as Werkzeug dev server
-    Dev->>Run: python run.py (atau run_mantra.bat)
+    Dev->>Run: python run.py (atau run_mantra.command)
     Run->>Cfg: import (baca .env, override=True)
     Run->>F: create_app()
     F->>F: SECRET_KEY ada? (tidak → RuntimeError)

@@ -43,11 +43,11 @@
           <td class="actions"><a class="btn sm ghost" href="{{ url_for('admin.user_detail', user_id=u.id) }}">Manage</a></td>
         </tr>
       {% else %}
-        <tr class="empty-row"><td colspan="7" class="muted center">No users yet. Run <code>python scripts\manage_users.py seed</code>.</td></tr>
+        <tr class="empty-row"><td colspan="7" class="muted center">No users yet. Run <code>python scripts/manage_users.py seed</code>.</td></tr>
       {% endfor %}
       </tbody>
     </table>
   </div>
 </section>
-<p class="muted small">The Super Admin role can only be granted on the server: <code>python scripts\manage_users.py set-role</code>.</p>
+<p class="muted small">The Super Admin role can only be granted on the server: <code>python scripts/manage_users.py set-role</code>.</p>
 {% endblock %}

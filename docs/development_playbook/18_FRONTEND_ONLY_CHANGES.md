@@ -14,7 +14,7 @@ Server berjalan, browser dengan DevTools (F12).
 ### D. Architecture context
 Lihat [08](08_FRONTEND_ARCHITECTURE.md): `base.html` → `portal/base.html` / `dashboard/base.html` → halaman. Template
 & static dibaca dari disk: perubahan **template** terlihat setelah refresh jika `FLASK_DEBUG=1` (auto reload);
-dengan `FLASK_DEBUG=0` restart server bila perubahan tidak muncul. Perubahan CSS/JS: refresh keras (`Ctrl+F5`) untuk
+dengan `FLASK_DEBUG=0` restart server bila perubahan tidak muncul. Perubahan CSS/JS: refresh keras (`Cmd+Shift+R`) untuk
 menghindari cache browser.
 
 ### E. Files involved — menemukan file yang benar
@@ -40,7 +40,7 @@ Cara pasti: DevTools → *Elements* → klik elemen → lihat class → `grep` c
    | Tanda | Jenis |
    |---|---|
    | Elemen ada di *Elements* tapi tampilannya salah | CSS |
-   | Elemen tidak ada di HTML sumber (`Ctrl+U`) | Template / kondisi Jinja |
+   | Elemen tidak ada di HTML sumber (`Cmd+Option+U`) | Template / kondisi Jinja |
    | Ada di sumber tapi hilang/berubah setelah load; error di *Console* | JavaScript |
    | Angka/teks salah di HTML sumber | Data backend → Workflow D |
    | Sidebar/top bar hilang | Template tidak extend `dashboard/base.html` / `portal/base.html` |
@@ -62,7 +62,7 @@ Cara pasti: DevTools → *Elements* → klik elemen → lihat class → `grep` c
 sehingga `@media` memberi hasil salah.
 
 ### I. Commands
-```powershell
+```bash
 python -m pytest            # memastikan template tetap ter-render di test
 python run.py
 ```
@@ -84,7 +84,7 @@ console bersih.
 ### L. Troubleshooting
 | Gejala | Solusi |
 |---|---|
-| Perubahan CSS tidak terlihat | `Ctrl+F5`; cek *Network* file yang dimuat |
+| Perubahan CSS tidak terlihat | `Cmd+Shift+R`; cek *Network* file yang dimuat |
 | Perubahan template tidak terlihat | Restart server (`FLASK_DEBUG=0`) |
 | Tombol favorit / chat error 400 | Meta `csrf-token` hilang dari `base.html` |
 | Console: `Dash is not defined` | `dash-common.js` tidak dimuat (template tidak extend `dashboard/base.html`) |

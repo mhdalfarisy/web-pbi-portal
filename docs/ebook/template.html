@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="$lang$">
+<head>
+<meta charset="utf-8">
+<title>$title$</title>
+$for(css)$
+<link rel="stylesheet" href="$css$">
+$endfor$
+$if(highlighting-css)$
+<style>
+$highlighting-css$
+</style>
+$endif$
+</head>
+<body>
+$for(include-before)$
+$include-before$
+$endfor$
+<nav id="TOC" role="doc-toc">
+<h1 class="toc-title">$toc-title$</h1>
+$table-of-contents$
+</nav>
+<main>
+$body$
+</main>
+<script src="$mermaid$"></script>
+<script>
+/* Blok ```mermaid dari pandoc berbentuk <pre class="mermaid"><code>...</code></pre>; mermaid butuh teksnya langsung. */
+document.querySelectorAll('pre.mermaid').forEach(function (pre) {
+  var div = document.createElement('div');
+  div.className = 'mermaid';
+  div.textContent = pre.textContent;
+  pre.replaceWith(div);
+});
+mermaid.initialize({
+  startOnLoad: false, theme: 'neutral', securityLevel: 'loose',
+  fontFamily: '-apple-system, "Helvetica Neue", Arial, sans-serif',
+  flowchart: { useMaxWidth: true, htmlLabels: true }, sequence: { useMaxWidth: true }
+});
+mermaid.run({ querySelector: '.mermaid' }).then(function () {
+  document.body.setAttribute('data-mermaid', 'done');
+}, function (err) {
+  document.body.setAttribute('data-mermaid', 'error: ' + err);
+});
+</script>
+</body>
+</html>

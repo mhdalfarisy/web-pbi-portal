@@ -14,7 +14,7 @@
  Inggris). Prompt dashboard boleh tetap berbahasa Indonesia.
 
  Komentar HTML seperti ini TIDAK dikirim ke AI. Setelah mengubah: restart Flask,
- lalu jalankan  python scripts\check_ai_agent.py --dashboard <slug>
+ lalu jalankan  python scripts/check_ai_agent.py --dashboard <slug>
 ================================================================================
 -->
 # Role

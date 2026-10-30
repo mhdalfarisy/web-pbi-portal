@@ -19,7 +19,7 @@ database, migrasi, backup & rollback, dan cara mengelola akun.
 |---|---|---|
 | `pbi_premium@merdeka.com` | `super_admin` | semua dashboard aktif |
 | `pbi_pro_a@merdeka.com` | `user` | Material Readiness |
-| `pbi_pro_b@merdeka.com` | `user` | PANI Processing |
+| `pbi_pro_b@merdeka.com` | `user` | PROCESSING, EQUIPMENT, MINING & STOCKPILE PRODUCTION (PANI) |
 
 ## Arsitektur
 
@@ -101,6 +101,7 @@ Lainnya:
   logout yang bisa dibuka (API mendapat 403).
 - Kebijakan password baru: minimal 10 karakter, huruf + angka, tidak mengandung nama email, beda dari yang lama.
 - 5 kali salah password berturut-turut → akun dikunci 15 menit. 20 login gagal dari satu IP dalam 15 menit → 429.
+  Akun dikunci **pada** kegagalan ke-5, tetapi kegagalan ke-5 itu masih menampilkan "Wrong email or password."; pesan "Too many failed attempts. Your account is locked for 15 minutes." baru tampil di percobaan ke-6 (selama kunci berlaku, password benar pun ditolak). Audit log mencatat `account_locked` tepat di kegagalan ke-5 (diuji 28 Okt 2026).
 - Pesan login gagal sama untuk email tidak terdaftar dan password salah (tidak membocorkan email yang valid).
 - Super Admin tidak bisa menonaktifkan dirinya sendiri, dan Super Admin aktif terakhir tidak bisa dinonaktifkan /
   diturunkan.
@@ -118,7 +119,7 @@ Lainnya:
 5. User login dengan password sementara dan wajib langsung membuat password baru.
 
 Batas: 5 permintaan per IP per 15 menit (HTTP 429), token CSRF wajib, user yang sudah login diarahkan ke Home.
-Kalau Super Admin satu-satunya yang lupa password: `python scripts\manage_users.py reset-password --email <email>`.
+Kalau Super Admin satu-satunya yang lupa password: `python scripts/manage_users.py reset-password --email <email>`.
 - Semua POST butuh token CSRF. Session: cookie HttpOnly, SameSite=Lax, Secure kalau `SESSION_COOKIE_SECURE=1`,
   berlaku `SESSION_HOURS` jam.
 
@@ -156,16 +157,16 @@ Tercatat di tabel `audit_log` (lihat **Admin > Audit Log**): `login_success`, `l
 
 ## Mengelola akun dari server
 
-```powershell
-python scripts\manage_users.py list
-python scripts\manage_users.py seed                    # akun awal; password dari $env:MANTRA_SEED_PASSWORD
-python scripts\manage_users.py seed --generate         # password sementara acak & unik per akun
-python scripts\manage_users.py create --email x@merdeka.com --dashboard material-readiness
-python scripts\manage_users.py set-access --email x@merdeka.com --dashboard pani-processing
-python scripts\manage_users.py reset-password --email x@merdeka.com
-python scripts\manage_users.py set-active --email x@merdeka.com --inactive
-python scripts\manage_users.py set-role --email x@merdeka.com --role super_admin
-python scripts\manage_users.py backup
+```bash
+python scripts/manage_users.py list
+python scripts/manage_users.py seed                    # akun awal; password dari $MANTRA_SEED_PASSWORD
+python scripts/manage_users.py seed --generate         # password sementara acak & unik per akun
+python scripts/manage_users.py create --email x@merdeka.com --dashboard material-readiness
+python scripts/manage_users.py set-access --email x@merdeka.com --dashboard pani-processing
+python scripts/manage_users.py reset-password --email x@merdeka.com
+python scripts/manage_users.py set-active --email x@merdeka.com --inactive
+python scripts/manage_users.py set-role --email x@merdeka.com --role super_admin
+python scripts/manage_users.py backup
 ```
 
 `seed` aman dijalankan ulang: akun yang sudah ada **tidak diubah** (password, role, dan hak aksesnya dibiarkan);
@@ -176,22 +177,22 @@ hak akses awal hanya diberikan saat akun dibuat. Password awal hanya sementara d
 Migrasi berjalan otomatis saat aplikasi start (`create_app` → `db.init_app`):
 
 1. Baca `PRAGMA user_version`. Kalau sudah versi terbaru, tidak ada yang dilakukan.
-2. Kalau database sudah berisi tabel, salin dulu ke `instance\backups\mantra-<waktu>-before-v<N>.db`
+2. Kalau database sudah berisi tabel, salin dulu ke `instance/backups/mantra-<waktu>-before-v<N>.db`
    (SQLite backup API, salinan konsisten).
 3. Jalankan migrasi yang belum ada, masing-masing dalam satu transaksi. Gagal → rollback, aplikasi tidak start.
 
 Migrasi hanya **menambah** tabel/index (`CREATE TABLE IF NOT EXISTS`); tabel `favorites` dan `history` tidak
 diubah. Untuk perubahan skema berikutnya, tambahkan string SQL baru di **akhir** `MIGRATIONS`, jangan ubah yang lama.
 
-Backup manual kapan saja: `python scripts\manage_users.py backup`.
+Backup manual kapan saja: `python scripts/manage_users.py backup`.
 
 Rollback (kembali ke kondisi sebelum fitur login ini):
 
-```powershell
-# 1. Hentikan server MANTRA (tutup jendela run_mantra.bat / Ctrl+C)
+```bash
+# 1. Hentikan server MANTRA (tutup jendela run_mantra.command / Ctrl+C)
 # 2. Simpan database sekarang, lalu pulihkan backup
-Copy-Item instance\mantra.db instance\backups\mantra-sebelum-rollback.db
-Copy-Item instance\backups\mantra-<waktu>-before-v2.db instance\mantra.db
+cp instance/mantra.db instance/backups/mantra-sebelum-rollback.db
+cp instance/backups/mantra-<waktu>-before-v2.db instance/mantra.db
 # 3. Kembalikan kode ke commit sebelum fitur ini, lalu start server lagi
 #    (kalau kode baru yang dijalankan, database itu akan dimigrasi ulang otomatis)
 ```
@@ -215,12 +216,12 @@ Kalau kode baru dijalankan dengan database lama, migrasi otomatis memasang ulang
 
 ## Test
 
-```powershell
+```bash
 pip install -r requirements-dev.txt
 python -m pytest
 ```
 
-Test memakai database sementara (bukan `instance\mantra.db`), memaksa `AUTH_DISABLED=0`, dan memblokir panggilan ke
+Test memakai database sementara (bukan `instance/mantra.db`), memaksa `AUTH_DISABLED=0`, dan memblokir panggilan ke
 Power BI & AI. Karena `.env` selalu menimpa environment, nilai test (secret key, tanpa API key Gemini, tanpa kredensial
 asli) dipasang langsung ke `Config` di `tests/conftest.py`. Halaman dashboard yang lolos cek akses tampil sebagai error data (HTTP 502) di test, yang dibedakan dari
 penolakan akses (HTTP 403). Cakupan: login & pesan gagal, normalisasi email, daftar dashboard per role, 403 lewat URL

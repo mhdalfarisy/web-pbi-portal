@@ -7,19 +7,19 @@ Membuat `.venv`, memasang dependency, dan mendiagnosis masalah paket.
 Setup awal, menambah library, error `ModuleNotFoundError` / `ImportError`.
 
 ### C. Prerequisites
-Python 3.13.x di PATH ([04](04_WINDOWS_VSCODE_SETUP.md)).
+Python 3.13.x di PATH ([04](04_MACOS_VSCODE_SETUP.md)).
 
 ### D. Architecture context
-Semua perintah (`run.py`, `pytest`, `scripts/*`) harus memakai interpreter `.venv`. `run_mantra.bat` memanggil
-`.venv\Scripts\python.exe` langsung dan berhenti dengan pesan jika `.venv` belum ada.
+Semua perintah (`run.py`, `pytest`, `scripts/*`) harus memakai interpreter `.venv`. `run_mantra.command` memanggil
+Python `.venv` langsung dan berhenti dengan pesan jika `.venv` belum ada.
 
 ### E. Files involved
 `requirements.txt`, `requirements-dev.txt`, `.venv/`.
 
 ### F. Step-by-step instructions
-1. `py -m venv .venv` (atau `python -m venv .venv`) — membuat folder `.venv`.
-2. `.\.venv\Scripts\Activate.ps1` — prompt berubah menjadi `(.venv) PS ...`.
-3. `python -m pip --version` — harus menunjuk `...\.venv\Lib\site-packages\pip`.
+1. `python3.13 -m venv .venv` — membuat folder `.venv` (pakai `python3.13` eksplisit; `python3` bisa menunjuk versi lain).
+2. `source .venv/bin/activate` — prompt berubah menjadi `(.venv) ...`.
+3. `python -m pip --version` — harus menunjuk `.../.venv/lib/python3.13/site-packages/pip`.
 4. `pip install -r requirements.txt` — dependency runtime.
 5. `pip install -r requirements-dev.txt` — tambahan untuk test (pytest).
 6. Verifikasi import (bagian I).
@@ -51,7 +51,7 @@ httpx>=0.27,<1  # di-import langsung oleh core/chat/providers.py (juga dependenc
 Batas atas versi = versi mayor yang sudah diuji (komentar di `requirements.txt`). Jangan naikkan tanpa menjalankan test.
 
 ### I. Commands
-```powershell
+```bash
 python --version
 python -m pip --version
 python -c "import sys; print(sys.executable)"
@@ -59,12 +59,12 @@ python -c "import flask, msal, requests, dotenv, httpx; from google import genai
 pip list
 ```
 
-### J. Expected result — environment version matrix (Tested 26 Okt 2026)
+### J. Expected result — environment version matrix (Tested 28 Okt 2026, macOS)
 
 | Komponen | Versi |
 |---|---|
-| Windows | 11 Pro 10.0.22631 |
-| Python | 3.13.3 |
+| macOS | 26.6.2 (Apple Silicon arm64) |
+| Python | 3.13.17 (Homebrew `python@3.13`) |
 | pip | 26.2.2 |
 | Flask / Werkzeug / Jinja2 | 3.1.3 / 3.1.9 / 3.1.6 |
 | msal | 1.39.0 |
@@ -73,10 +73,12 @@ pip list
 | google-genai | 2.33.0 |
 | httpx | 0.28.1 |
 | pytest | 9.1.1 |
-| Git | 2.56.0.windows.2 |
+| Git | 2.50.1 (Apple Git-155) |
+
+Versi teruji sebelumnya di Windows 11 (26 Okt 2026): Python 3.13.3, Git 2.56.0.windows.2, paket lain sama.
 
 ### K. Validation
-`python -m pytest` lulus; `python scripts\check_ai_agent.py --static` → `SEMUA LULUS`.
+`python -m pytest` lulus; `python scripts/check_ai_agent.py --static` → `SEMUA LULUS`.
 
 ### L. Troubleshooting
 | Gejala | Penyebab | Solusi |
@@ -85,7 +87,7 @@ pip list
 | `cannot import name 'genai' from 'google'` | Python global | Aktifkan `.venv` |
 | `ModuleNotFoundError: pytest` | Belum install dev | `pip install -r requirements-dev.txt` |
 | Konflik versi setelah upgrade | Versi mayor baru | Kembali ke rentang di `requirements.txt`, jalankan test |
-| `.venv` rusak | — | Hapus `.venv`, buat ulang (data tidak hilang; `.env` & `instance/` di luar `.venv`) |
+| `.venv` rusak / dibuat dengan Python yang salah | — | `rm -rf .venv`, buat ulang dengan `python3.13 -m venv .venv` (data tidak hilang; `.env` & `instance/` di luar `.venv`) |
 
 ### M. Regression impact
 Upgrade Flask/Werkzeug memengaruhi hash password, session, routing; upgrade google-genai memengaruhi

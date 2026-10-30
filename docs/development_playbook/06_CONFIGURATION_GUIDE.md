@@ -23,7 +23,7 @@ flowchart LR
 ```
 
 Catatan penting (Verified dari `config.py`):
-1. `.env` **selalu menang** atas variabel yang sudah ada di environment. Konsekuensi: `$env:PORT=5002; python run.py`
+1. `.env` **selalu menang** atas variabel yang sudah ada di environment. Konsekuensi: `PORT=5002 python run.py`
    tidak berpengaruh jika `.env` berisi `PORT`. Ubah `.env`.
 2. `AUTH_DISABLED` **hanya** dibaca dari file `.env` (`_env_file_flag`), supaya login tidak bisa dimatikan lewat
    environment.
@@ -33,12 +33,12 @@ Catatan penting (Verified dari `config.py`):
 `.env`, `.env.example`, `mantra/config.py`, `mantra/core/powerbi.py` (`Dataset.ids`), `.gitignore`.
 
 ### F. Step-by-step instructions
-1. `Copy-Item .env.example .env`
+1. `cp .env.example .env`
 2. Isi `FLASK_SECRET_KEY`: `python -c "import secrets; print(secrets.token_hex(32))"`
 3. Pastikan `AUTH_DISABLED=0` (login wajib).
 4. Isi `PBI_CLIENT_ID`, `PBI_CLIENT_SECRET` (dan `PBI_TENANT_ID` atau `ENTRA_TENANT_ID`).
 5. Opsional: `GEMINI_API_KEY`, `ENTRA_*`.
-6. Jalankan `python scripts\check_setup.py` (memanggil layanan asli; tidak mencetak secret).
+6. Jalankan `python scripts/check_setup.py` (memanggil layanan asli; tidak mencetak secret).
 
 ### G. Code or patch — configuration matrix (Verified)
 
@@ -72,9 +72,9 @@ Nilai yang dipakai Flask (`SECRET_KEY`, `SESSION_*`, `PERMANENT_SESSION_LIFETIME
 `app.config.from_object(Config)`; modul lain membaca `Config.X` langsung.
 
 ### I. Commands
-```powershell
+```bash
 python -c "from mantra.config import Config; print(Config.PORT, Config.AUTH_DISABLED, Config.AI_PROVIDER)"
-python scripts\check_setup.py
+python scripts/check_setup.py
 ```
 
 ### J. Expected result

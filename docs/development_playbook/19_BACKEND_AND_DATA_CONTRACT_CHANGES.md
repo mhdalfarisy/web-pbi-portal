@@ -24,8 +24,8 @@ Tergantung perubahan; selalu cari pemakai dulu (langkah 3).
    perlu + menyamakan katalog dashboard; tidak memanggil Power BI/AI). Endpoint `blueprint.fungsi` → file `routes.py`.
 2. **Tetapkan kontrak sebelum mengubah**: tulis input (parameter, tipe), output (key JSON/payload), error.
 3. **Cari semua pemakai kontrak**:
-   ```powershell
-   Get-ChildItem mantra, scripts, tests -Recurse -Include *.py, *.js, *.html | Select-String -Pattern "nama_fungsi|nama_key"
+   ```bash
+   grep -rnE "nama_fungsi|nama_key" mantra scripts tests --include='*.py' --include='*.js' --include='*.html'
    ```
 4. **Compatibility**: menambah key/parameter opsional = kompatibel. Mengganti nama/menghapus = breaking → ubah semua
    pemakai dalam satu perubahan. URL publik jangan diganti.
@@ -34,8 +34,8 @@ Tergantung perubahan; selalu cari pemakai dulu (langkah 3).
 6. **Tests**: tambah/ubah test (stub `_query` / `PowerBI.request` seperti `test_errors_and_security.py`).
 7. **Logging & security**: jangan log secret; detail error lewat `log_data_error`; route baru di blueprint dashboard
    otomatis dijaga `_guard`, route di blueprint lain butuh decorator.
-8. **Integration & regression**: `python -m pytest`, `python scripts\check_ai_agent.py --static`; dengan akses Power
-   BI: buka halaman, bandingkan dengan report; PANI: `python scripts\compare_pani_with_powerbi.py <halaman>`.
+8. **Integration & regression**: `python -m pytest`, `python scripts/check_ai_agent.py --static`; dengan akses Power
+   BI: buka halaman, bandingkan dengan report; PANI: `python scripts/compare_pani_with_powerbi.py <halaman>`.
 9. **Dokumentasi**: dok 10, data dictionary, README bila perilaku berubah.
 
 ### G. Code or patch — contoh perubahan lintas dashboard
@@ -50,10 +50,10 @@ Langkah: (1) pertahankan key `date` & `time` (kompatibel) dan tambah key baru bi
 Fungsi `core/` dipakai banyak dashboard; mengubah output tanpa mempertahankan key lama merusak semua dashboard sekaligus.
 
 ### I. Commands
-```powershell
+```bash
 python -m pytest
-python scripts\check_ai_agent.py --static
-python scripts\check_setup.py --dashboard material-readiness --dax "EVALUATE TOPN(5, 'DWMaterialReadiness')"
+python scripts/check_ai_agent.py --static
+python scripts/check_setup.py --dashboard material-readiness --dax "EVALUATE TOPN(5, 'DWMaterialReadiness')"
 ```
 
 ### J. Expected result
@@ -64,7 +64,7 @@ Halaman + API terkait + jawaban AI untuk pertanyaan yang memakai fungsi itu (`ch
 memakai kuota).
 
 ### L. Troubleshooting
-Angka salah → telusuri: template (format) → payload (`Ctrl+U` / response API) → fungsi `queries.py` → DAX
+Angka salah → telusuri: template (format) → payload (`Cmd+Option+U` / response API) → fungsi `queries.py` → DAX
 (`check_setup.py --dax`) → report Power BI (filter yang sama?). Lihat dok 23.
 
 ### M. Regression impact

@@ -27,9 +27,9 @@ nama), menghapus komentar `<!-- ... -->`, lalu memvalidasi:
    `data_dictionary.md`. Jangan menaruh definisi bisnis satu dashboard di `base.md`.
 2. Tulis catatan untuk developer di komentar HTML (tidak dikirim ke AI).
 3. Sebut setiap tool dengan backtick dan jelaskan kapan dipakai.
-4. `python scripts\check_ai_agent.py --static` → `SEMUA LULUS`.
+4. `python scripts/check_ai_agent.py --static` → `SEMUA LULUS`.
 5. **Restart Flask** (prompt dibaca sekali saat start).
-6. `python scripts\check_ai_agent.py --dashboard <slug>` (kuota) — ulang kasus yang gagal sekali sebelum mengubah
+6. `python scripts/check_ai_agent.py --dashboard <slug>` (kuota) — ulang kasus yang gagal sekali sebelum mengubah
    prompt lagi (jawaban AI bisa bervariasi).
 
 ### G. Code or patch — kerangka `system.md` (pola `_template`, Verified)
@@ -64,10 +64,10 @@ Isi `data_dictionary.md` (checklist):
 Validasi saat start memaksa prompt dan tools selalu sinkron; error muncul sebelum user mencoba agent.
 
 ### I. Commands
-```powershell
-python scripts\check_ai_agent.py --static
-python scripts\check_ai_agent.py --dashboard material-readiness
-python scripts\check_ai_agent.py --dashboard pani-processing gold     # hanya kasus yang namanya mengandung "gold"
+```bash
+python scripts/check_ai_agent.py --static
+python scripts/check_ai_agent.py --dashboard material-readiness
+python scripts/check_ai_agent.py --dashboard pani-processing gold     # hanya kasus yang namanya mengandung "gold"
 ```
 
 ### J. Expected result
