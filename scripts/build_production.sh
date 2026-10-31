@@ -71,7 +71,8 @@ EOF
 cd "$ROOT"
 VERSION="$(git describe --tags --always 2>/dev/null || echo tanpa-git)"
 [ -n "$(git status --porcelain 2>/dev/null)" ] && VERSION="$VERSION-belum-commit"
-printf '%s  %s  %s\n' "$VERSION" "$(git rev-parse --abbrev-ref HEAD 2>/dev/null)" "$(date '+%Y-%m-%d %H:%M')" > "$TARGET/VERSION"
+# Tanpa jam build: kode yang sama menghasilkan paket yang sama persis (tidak ada commit rilis kosong)
+printf '%s  %s\n' "$VERSION" "$(git rev-parse --abbrev-ref HEAD 2>/dev/null)" > "$TARGET/VERSION"
 
 # 5. Pengaman: tidak boleh ada secret, database, dokumentasi, atau test di paket
 bad="$(cd "$TARGET" && find . -path ./.git -prune -o \( -name ".env"-o -name "*.db" -o -name "*.db-wal" -o -name "docs" -o -name "tests" \
