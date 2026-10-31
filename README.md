@@ -82,6 +82,7 @@ scripts/                   perintah manual (python scripts/<nama>.py), lihat scr
   check_ai_agent.py        tes AI agent (statis + pertanyaan acuan)
   create_dashboard.py      buat dashboard baru dari _template
   build_production.sh      paket production tanpa docs/tests (staging & production), lihat docs/DEPLOY_SERVER.md
+  release.sh               rilis: staging dulu (scripts/release.sh staging), lalu live (scripts/release.sh live)
   compare_pani_with_powerbi.py    bandingkan angka dashboard PANI dengan measure report Power BI (14 skenario
                            filter); --fixed menguji DAX di docs/powerbi_fixes (pulihkan dulu dari git, lihat di atas)
 ```

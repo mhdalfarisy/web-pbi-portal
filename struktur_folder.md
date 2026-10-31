@@ -129,6 +129,7 @@ Web App MANTRA/
 │   ├── check_ai_agent.py       Uji AI agent (--static gratis; --dashboard pakai kuota Gemini)
 │   ├── create_dashboard.py     Buat folder dashboard baru dari _template
 │   ├── build_production.sh     Buat paket production (tanpa docs/tests/.env/database) di folder lain
+│   ├── release.sh              Rilis ke server: staging dulu, lalu live (push paket + update server)
 │   └── compare_pani_with_powerbi.py   Bandingkan angka PANI di MANTRA dengan report Power BI asli
 │
 ├── tests/                      TEST OTOMATIS (python -m pytest), bukan bagian website
