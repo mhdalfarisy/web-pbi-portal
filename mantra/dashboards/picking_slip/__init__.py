@@ -1,7 +1,7 @@
-"""Dashboard Picking Slip: 2 halaman dari measure HTML di semantic model "All Site - SCM - Picking Slip".
+"""Dashboard Picking Slip: Summary & Detail dari measure HTML di semantic model "All Site - SCM - Picking Slip".
 
-Summary dari dax_picking_slip_summary_v9, Detail dari dax_picking_slip_detail_header_v5 (salinan kode di dax/).
-Belum punya AI agent (chat=None).
+Summary dari dax_picking_slip_summary_v9, Detail dari dax_picking_slip_detail_header_v5: DAX di queries.py, tampilan di
+templates/ + static/. Belum punya AI agent (chat=None).
 """
 from ...core.registry import Dashboard
 from . import queries

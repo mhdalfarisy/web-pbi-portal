@@ -1,0 +1,87 @@
+{#- Halaman Summary Picking Slip: isi dari measure dax_picking_slip_summary_v9 (header memakai header dashboard MANTRA).
+    Data: queries.summary() -> window.PICKING_SLIP -> static/summary.js -#}
+{% extends "dashboard/base.html" %}
+{% block title %}Summary - Picking Slip{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('picking_slip.static', filename='summary.css') }}">{% endblock %}
+{% block main_title %}Picking Slip Summary{% endblock %}
+{% block pill %}Summary{% endblock %}
+{% block desc %}Summary of Picking Slip Orders and Status{% endblock %}
+{% block content %}
+<div class="ps-sum">
+  <div class='sb'>
+      <div class='sb-grid'>
+          <div class='sb-item'><div class='sb-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='4' y='3' width='16' height='18' rx='1'/><path d='M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1M10 21v-3h4v3'/></svg></div><div class='sb-field'><div class='sb-label'>Company</div><div id='sbCompany' class='ms'></div></div></div>
+          <div class='sb-item'><div class='sb-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 2 2 7l10 5 10-5z'/><path d='m2 12 10 5 10-5'/><path d='m2 17 10 5 10-5'/></svg></div><div class='sb-field'><div class='sb-label'>WO Code</div><div id='sbWoCode' class='ms'></div></div></div>
+          <div class='sb-item'><div class='sb-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 2 2 7l10 5 10-5z'/><path d='m2 12 10 5 10-5'/><path d='m2 17 10 5 10-5'/></svg></div><div class='sb-field'><div class='sb-label'>WO Description</div><div id='sbWoDesc' class='ms'></div></div></div>
+          <div class='sb-item'><div class='sb-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 22s-7-7.6-7-12a7 7 0 0 1 14 0c0 4.4-7 12-7 12z'/><circle cx='12' cy='10' r='2.5'/></svg></div><div class='sb-field'><div class='sb-label'>PS Number</div><div id='sbPsNum' class='ms'></div></div></div>
+          <div class='sb-item'><div class='sb-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 2 2 7l10 5 10-5z'/><path d='m2 12 10 5 10-5'/><path d='m2 17 10 5 10-5'/></svg></div><div class='sb-field'><div class='sb-label'>PS Description</div><div id='sbPsDesc' class='ms'></div></div></div>
+          <div class='sb-item'><div class='sb-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 22s-7-7.6-7-12a7 7 0 0 1 14 0c0 4.4-7 12-7 12z'/><circle cx='12' cy='10' r='2.5'/></svg></div><div class='sb-field'><div class='sb-label'>PS Item</div><div id='sbPsItem' class='ms'></div></div></div>
+          <div class='sb-item'><div class='sb-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 22s-7-7.6-7-12a7 7 0 0 1 14 0c0 4.4-7 12-7 12z'/><circle cx='12' cy='10' r='2.5'/></svg></div><div class='sb-field'><div class='sb-label'>PS Status</div><div id='sbPsStat' class='ms'></div></div></div>
+          <div class='sb-item'><div class='sb-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='4' y='3' width='16' height='18' rx='1'/><path d='M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1M10 21v-3h4v3'/></svg></div><div class='sb-field'><div class='sb-label'>Unit Description</div><div id='sbUnitDesc' class='ms'></div></div></div>
+          <div class='sb-item'><div class='sb-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='4' y='3' width='16' height='18' rx='1'/><path d='M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1M10 21v-3h4v3'/></svg></div><div class='sb-field'><div class='sb-label'>Warehouse</div><div id='sbWh' class='ms'></div></div></div>
+          <div class='sb-item'><div class='sb-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 22s-7-7.6-7-12a7 7 0 0 1 14 0c0 4.4-7 12-7 12z'/><circle cx='12' cy='10' r='2.5'/></svg></div><div class='sb-field'><div class='sb-label'>Territory Description</div><div id='sbTer' class='ms'></div></div></div>
+      </div>
+
+      <div class='sb-bar'>
+          <div class='sb-grp'>
+              <div class='sb-grp-lbl'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='4' width='18' height='18' rx='2'/><path d='M16 2v4M8 2v4M3 10h18'/></svg> Period</div>
+              <div class='sb-grp-body'>
+                  <label class='sb-mini w-yr'><span>Year</span><select id='sbYr' class='sb-select'></select></label>
+                  <label class='sb-mini w-mo'><span>Month</span><select id='sbMo' class='sb-select'></select></label>
+                  <label class='sb-mini w-dy'><span>Day</span><select id='sbDy' class='sb-select'></select></label>
+                  <div class='sb-mini w-td'><span>Today</span><button type='button' id='btnToday' class='sb-btn-today'>Off</button></div>
+              </div>
+          </div>
+          <div class='sb-spacer'></div>
+          <button type='button' id='btnReset' class='sb-reset'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M3 12a9 9 0 1 0 3-6.7'/><path d='M3 3v5h5'/></svg> Reset</button>
+      </div>
+  </div>
+
+
+  <div class='kpi-row'>
+      <div class='kpi-card'><div class='kpi-icon blue'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/><polyline points='14 2 14 8 20 8'/><line x1='16' y1='13' x2='8' y2='13'/><line x1='16' y1='17' x2='8' y2='17'/><polyline points='10 9 9 9 8 9'/></svg></div><div class='kpi-content'><div class='kpi-title' id='kpi-n-tot'>Total Picking Slip</div><div class='kpi-val' id='kpi-v-tot'>0</div><div class='kpi-trend flat' id='kpi-t-tot'><span class='arr'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><line x1='7' y1='17' x2='17' y2='7'/><polyline points='7 7 17 7 17 17'/></svg></span><span class='txt'>-</span></div><div class='kpi-vs' id='kpi-vs-tot'>&nbsp;</div></div></div>
+      <div class='kpi-card'><div class='kpi-icon green'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z'/><polyline points='3.27 6.96 12 12.01 20.73 6.96'/><line x1='12' y1='22.08' x2='12' y2='12'/></svg></div><div class='kpi-content'><div class='kpi-title' id='kpi-n-ready'>Ready for Picking</div><div class='kpi-val' id='kpi-v-ready'>0</div><div class='kpi-trend flat' id='kpi-t-ready'><span class='arr'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><line x1='7' y1='17' x2='17' y2='7'/><polyline points='7 7 17 7 17 17'/></svg></span><span class='txt'>-</span></div><div class='kpi-vs' id='kpi-vs-ready'>&nbsp;</div></div></div>
+      <div class='kpi-card'><div class='kpi-icon orange'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><polyline points='12 6 12 12 16 14'/></svg></div><div class='kpi-content'><div class='kpi-title' id='kpi-n-inprog'>In Progress</div><div class='kpi-val' id='kpi-v-inprog'>0</div><div class='kpi-trend flat' id='kpi-t-inprog'><span class='arr'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><line x1='7' y1='17' x2='17' y2='7'/><polyline points='7 7 17 7 17 17'/></svg></span><span class='txt'>-</span></div><div class='kpi-vs' id='kpi-vs-inprog'>&nbsp;</div></div></div>
+      <div class='kpi-card'><div class='kpi-icon sky'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M22 11.08V12a10 10 0 1 1-5.93-9.14'/><polyline points='22 4 12 14.01 9 11.01'/></svg></div><div class='kpi-content'><div class='kpi-title' id='kpi-n-finish'>Finished</div><div class='kpi-val' id='kpi-v-finish'>0</div><div class='kpi-trend flat' id='kpi-t-finish'><span class='arr'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><line x1='7' y1='17' x2='17' y2='7'/><polyline points='7 7 17 7 17 17'/></svg></span><span class='txt'>-</span></div><div class='kpi-vs' id='kpi-vs-finish'>&nbsp;</div></div></div>
+      <div class='kpi-card'><div class='kpi-icon purple'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z'/><line x1='12' y1='9' x2='12' y2='13'/><line x1='12' y1='17' x2='12.01' y2='17'/></svg></div><div class='kpi-content'><div class='kpi-title' id='kpi-n-back'>Backorder</div><div class='kpi-val' id='kpi-v-back'>0</div><div class='kpi-trend flat' id='kpi-t-back'><span class='arr'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><line x1='7' y1='17' x2='17' y2='7'/><polyline points='7 7 17 7 17 17'/></svg></span><span class='txt'>-</span></div><div class='kpi-vs' id='kpi-vs-back'>&nbsp;</div></div></div>
+  </div>
+
+
+  <div class='c-container'>
+      <div class='c-row c-row-1'>
+          <div class='c-card'>
+              <div class='c-head'><div class='c-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='22 12 18 12 15 21 9 3 6 12 2 12'/></svg></div><div><div class='c-t'>Picking Slip Trend (by Status)</div><div class='c-st' id='tr-sub'>-</div></div></div>
+              <div id='tr-box' class='tr-box'></div>
+              <div id='tr-leg' class='legend-row'></div>
+          </div>
+          <div class='c-card'>
+              <div class='c-head'><div class='c-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M21.21 15.89A10 10 0 1 1 8 2.83M22 12A10 10 0 0 0 12 2v10z'/></svg></div><div><div class='c-t'>PS Status Distribution</div><div class='c-st'>Percentage breakdown by picking slip status</div></div></div>
+              <div class='d-wrap'>
+                  <div id='dn-chart' class='d-chart'>
+                      <div class='d-hole'>
+                          <div id='dn-cap' style='font-size:10px;color:#64748b;font-weight:600;'>Total</div>
+                          <div id='dn-tot' style='font-size:13px;font-weight:800;color:#1e3a8a;white-space:nowrap;max-width:88px;text-align:center;'>0</div>
+                      </div>
+                  </div>
+                  <div class='d-leg' id='dn-leg'></div>
+              </div>
+          </div>
+      </div>
+
+      <div class='c-row c-row-2'>
+          <div class='c-card'>
+              <div class='c-head'><div class='c-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><line x1='18' y1='20' x2='18' y2='10'/><line x1='12' y1='20' x2='12' y2='4'/><line x1='6' y1='20' x2='6' y2='14'/></svg></div><div><div class='c-t'>Top 5 Items</div><div class='c-st' id='t5-sub'>-</div></div></div>
+              <table class='t5-table' id='t5-table'></table>
+          </div>
+          <div class='c-card'>
+              <div class='c-head'><div class='c-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polygon points='12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2'/><circle cx='12' cy='12' r='3'/></svg></div><div><div class='c-t'>Status Category Breakdown</div><div class='c-st'>Summary by original status category</div></div></div>
+              <div class='b-wrap' id='bc-box'></div>
+          </div>
+      </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>window.PICKING_SLIP = {{ data|tojson }};</script>
+<script src="{{ url_for('picking_slip.static', filename='summary.js') }}"></script>
+{% endblock %}

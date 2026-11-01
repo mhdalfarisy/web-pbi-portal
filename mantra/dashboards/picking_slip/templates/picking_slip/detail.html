@@ -1,0 +1,61 @@
+{#- Halaman Detail Picking Slip: isi dari measure dax_picking_slip_detail_header_v5 (header memakai header dashboard MANTRA).
+    Data: queries.detail() -> window.PICKING_SLIP -> static/detail.js -#}
+{% extends "dashboard/base.html" %}
+{% block title %}Detail - Picking Slip{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('picking_slip.static', filename='detail.css') }}">{% endblock %}
+{% block main_title %}Picking Slip Detail{% endblock %}
+{% block pill %}Detail{% endblock %}
+{% block desc %}Complete list of picking slip records{% endblock %}
+{% block content %}
+<div class="ps-det">
+  <div class='sb'>
+  <div class='sb-item'><div class='sb-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='4' y='3' width='16' height='18' rx='1'/><path d='M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1M10 21v-3h4v3'/></svg></div><div class='sb-field'><div class='sb-label'>Company</div><div id='sbCompany' class='ms'></div></div></div>
+  <div class='sb-item'><div class='sb-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><line x1='4' y1='9' x2='20' y2='9'/><line x1='4' y1='15' x2='20' y2='15'/><line x1='10' y1='3' x2='8' y2='21'/><line x1='16' y1='3' x2='14' y2='21'/></svg></div><div class='sb-field'><div class='sb-label'>WO Code</div><div id='sbWoCode' class='ms'></div></div></div>
+  <div class='sb-item'><div class='sb-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/><polyline points='14 2 14 8 20 8'/><line x1='16' y1='13' x2='8' y2='13'/><line x1='16' y1='17' x2='8' y2='17'/></svg></div><div class='sb-field'><div class='sb-label'>PS Number</div><div id='sbPsNum' class='ms'></div></div></div>
+  <div class='sb-item'><div class='sb-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z'/><polyline points='3.27 6.96 12 12.01 20.73 6.96'/><line x1='12' y1='22.08' x2='12' y2='12'/></svg></div><div class='sb-field'><div class='sb-label'>PS Item</div><div id='sbPsItem' class='ms'></div></div></div>
+  <div class='sb-item'><div class='sb-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M22 11.08V12a10 10 0 1 1-5.93-9.14'/><polyline points='22 4 12 14.01 9 11.01'/></svg></div><div class='sb-field'><div class='sb-label'>PS Status</div><div id='sbPsStat' class='ms'></div></div></div>
+  <div class='sb-item'><div class='sb-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z'/><line x1='7' y1='7' x2='7.01' y2='7'/></svg></div><div class='sb-field'><div class='sb-label'>Unit Description</div><div id='sbUnitDesc' class='ms'></div></div></div>
+  <div class='sb-item'><div class='sb-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M3 21V8l9-5 9 5v13'/><path d='M7 21v-8h10v8'/><path d='M7 17h10'/></svg></div><div class='sb-field'><div class='sb-label'>Warehouse</div><div id='sbWh' class='ms'></div></div></div>
+  <div class='sb-item'><div class='sb-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 22s-7-7.6-7-12a7 7 0 0 1 14 0c0 4.4-7 12-7 12z'/><circle cx='12' cy='10' r='2.5'/></svg></div><div class='sb-field'><div class='sb-label'>Territory Description</div><div id='sbTer' class='ms'></div></div></div>
+  <div class='sb-item'><div class='sb-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 2 2 7l10 5 10-5z'/><path d='m2 12 10 5 10-5'/><path d='m2 17 10 5 10-5'/></svg></div><div class='sb-field'><div class='sb-label'>PS Description</div><div id='sbPsDesc' class='ms'></div></div></div>
+  <div class='sb-item'><div class='sb-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M9 3h6a1 1 0 0 1 1 1v1h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2V4a1 1 0 0 1 1-1z'/><path d='M8 12h8M8 16h5'/></svg></div><div class='sb-field'><div class='sb-label'>WO Description</div><div id='sbWoDesc' class='ms'></div></div></div>
+  <div class='sb-item fix w-td'><div class='sb-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><polyline points='12 6 12 12 16 14'/></svg></div><div class='sb-field'><div class='sb-label'>Today</div><button type='button' id='btnToday' class='sb-btn-today'>Off</button></div></div>
+  <div class='sb-item fix w-yr'><div class='sb-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='4' width='18' height='18' rx='2'/><path d='M16 2v4M8 2v4M3 10h18'/></svg></div><div class='sb-field'><div class='sb-label'>Year</div><select id='sbYr' class='sb-select'></select></div></div>
+  <div class='sb-item fix w-mo'><div class='sb-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='4' width='18' height='18' rx='2'/><path d='M16 2v4M8 2v4M3 10h18'/></svg></div><div class='sb-field'><div class='sb-label'>Month</div><select id='sbMo' class='sb-select'></select></div></div>
+  <div class='sb-item fix w-dy'><div class='sb-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='4' width='18' height='18' rx='2'/><path d='M16 2v4M8 2v4M3 10h18'/></svg></div><div class='sb-field'><div class='sb-label'>Day</div><select id='sbDy' class='sb-select'></select></div></div>
+  <button type='button' id='btnReset' class='sb-reset'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M3 12a9 9 0 1 0 3-6.7'/><path d='M3 3v5h5'/></svg> Reset</button>
+  </div>
+  <div class='tc'>
+  <div class='tc-head'>
+  <div class='tc-title'>
+  <div class='tc-ic'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='4' width='18' height='16' rx='2'/><path d='M3 10h18M9 10v10M15 10v10'/></svg></div>
+  <div><div class='tc-t'>Picking Slip Detail</div><div class='tc-st'>Complete list of picking slip records &middot; click any cell to copy</div></div>
+  </div>
+  <div class='tc-tools'>
+  <div class='tc-search'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='7'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg><input type='text' id='tbSearch' placeholder='Search PS No, Item Code, Warehouse...'></div>
+  <div class='cc' id='ccBox'>
+  <button type='button' class='cc-btn' id='ccBtn'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polygon points='22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3'/></svg><span id='ccLbl'>All Columns</span></button>
+  <div class='cc-panel'>
+  <div class='cc-tools'><button type='button' class='cc-all' id='ccAll'>Show All</button><button type='button' class='cc-all' id='ccNone'>Hide All</button></div>
+  <div class='cc-list' id='ccList'></div>
+  </div>
+  </div>
+  <button type='button' class='tc-copy' id='btnCopyTbl' title='Copy all filtered rows (ready to paste into Excel)'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='9' y='9' width='13' height='13' rx='2'/><path d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'/></svg> Copy Table</button>
+  </div>
+  </div>
+  <div class='tb-wrap' id='tbWrap'><table class='tb' id='tb'></table></div>
+  <div class='tc-foot'>
+  <div class='tc-info'><span id='tbInfo'>-</span>
+  <label class='tc-ps'>Rows <select id='tbSize'><option>15</option><option>25</option><option>50</option><option>100</option><option value='250'>250</option><option value='500'>500</option><option value='999999' selected>All</option></select></label>
+  </div>
+  <div class='pg' id='tbPg'></div>
+  </div>
+  </div>
+  <div class='toast' id='toast'></div>
+  <div class='cpm' id='cpm'><div class='cpm-box'><div class='cpm-h'>Press Ctrl+C to copy<button type='button' id='cpmX'>&times;</button></div><textarea id='cpmTa' readonly></textarea></div></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>window.PICKING_SLIP = {{ data|tojson }};</script>
+<script src="{{ url_for('picking_slip.static', filename='detail.js') }}"></script>
+{% endblock %}

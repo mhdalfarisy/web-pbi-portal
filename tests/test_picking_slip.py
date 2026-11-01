@@ -1,60 +1,57 @@
-"""Dashboard Picking Slip: measure HTML Power BI dijalankan per tabel, iframe aman, dan hak akses."""
+"""Dashboard Picking Slip: DAX di queries.py, data digabung seperti CONCATENATEX, halaman memakai header MANTRA."""
 import re
 
 import pytest
 
 from mantra.core.cache import Cache
 from mantra.dashboards.picking_slip import queries
-from mantra.dashboards.picking_slip.measure_html import SEP_R, Measure
-
-VALUES = {"totalMasterCompCount": "1", "hdLastUpdate": "01/01/2026", "jsPbiFilters": ""}
 
 
 @pytest.fixture
 def fake_powerbi(monkeypatch):
-    """Setiap query data mengembalikan 2 baris teks; query satu nilai mengembalikan 46."""
+    """Query data: 2 baris teks (satu berisi </script> & baris baru). Query jumlah company: 46."""
     calls = []
 
     def fake_query(dataset, dax):
         calls.append(dax)
-        return [{"v": 46}] if "EVALUATE ROW" in dax else [{"r": "baris1"}, {"r": "baris2"}]
+        return [{"v": 46}] if dax is queries.COMPANY_COUNT else [{"r": "baris1</script>"}, {"r": "baris\r\n2"}]
     monkeypatch.setattr(queries, "query", fake_query)
     monkeypatch.setattr(queries, "_cache", Cache(0))
     return calls
 
 
-@pytest.mark.parametrize("page, data_vars", [
-    ("summary", {"jsRaw", "jsStat", "jsTer", "jsComp", "jsProj", "jsItems"}),
-    ("detail", {"jsRaw", "jsOrd", "jsStk", "jsDesc", "jsJob", "jsStat", "jsTer", "jsComp", "jsProj"}),
+@pytest.mark.parametrize("name, data_vars", [
+    ("SUMMARY", {"jsRaw", "jsStat", "jsTer", "jsComp", "jsProj", "jsItems"}),
+    ("DETAIL", {"jsRaw", "jsOrd", "jsStk", "jsDesc", "jsJob", "jsStat", "jsTer", "jsComp", "jsProj"}),
 ])
-def test_measure_is_split_into_data_queries_and_html(page, data_vars):
-    measure = queries.MEASURES[page]
-    assert set(measure.data) == data_vars
-    for name, dax in measure.queries().items():
-        assert dax.startswith("DEFINE") and 'EVALUATE SELECTCOLUMNS' in dax, name
-    html = measure.render({**VALUES, **{n: "x" for n in data_vars}})
-    assert html.lstrip().startswith("<!DOCTYPE html>") and "</html>" in html
-    assert "__MANTRA_" not in html
+def test_dax_is_typed_in_queries_py(name, data_vars):
+    queries_ = getattr(queries, name)
+    assert set(queries_) == data_vars
+    for var, dax in queries_.items():
+        assert "VAR SEP_F = UNICHAR ( 57344 )" in dax and 'SELECTCOLUMNS' in dax and '"r",' in dax, var
+        assert "\\x3C" not in dax and '"\\\\"' not in dax, var   # escape literal JS measure tidak dipakai (data lewat JSON)
 
 
-def test_rows_are_joined_like_concatenatex():
-    m = Measure('VAR SEP_R = UNICHAR ( 57345 )\nVAR jsA = CONCATENATEX ( T, T[c], SEP_R )\nRETURN\n"<p>" & jsA & "</p>"')
-    assert set(m.data) == {"jsA"}
-    assert m.render({"jsA": "a" + SEP_R + "b"}) == "<p>a" + SEP_R + "b</p>"
+def test_rows_are_joined_like_concatenatex(fake_powerbi):
+    data, _ = queries.summary()
+    assert data["jsRaw"] == "baris1</script>" + queries.SEP_R + "baris  2"   # baris baru -> spasi, sama dengan measure
+    assert data["totalMasterCompCount"] == 46 and data["jsPbiFilters"] == ""
+    assert len(fake_powerbi) == len(queries.SUMMARY) + 1
 
 
-def test_frame_serves_measure_html_in_sandboxable_frame(login_as, fake_powerbi):
-    c = login_as("admin")
-    page = c.get("/d/picking-slip/").get_data(as_text=True)
-    iframe = re.search(r"<iframe[^>]+>", page).group(0)
-    assert 'src="/d/picking-slip/frame/summary"' in iframe and "sandbox=" in iframe and "allow-same-origin" not in iframe
-    r = c.get("/d/picking-slip/frame/summary")
-    assert r.status_code == 200 and r.headers["X-Frame-Options"] == "SAMEORIGIN"
-    assert "var RAW_TXT  = 'baris1" + SEP_R + "baris2';" in r.get_data(as_text=True)
-    assert c.get("/d/picking-slip/frame/lain").status_code == 404
+@pytest.mark.parametrize("url, title, script", [
+    ("/d/picking-slip/", "Picking Slip Summary", "summary.js"),
+    ("/d/picking-slip/detail", "Picking Slip Detail", "detail.js"),
+])
+def test_pages_use_mantra_header_and_safe_json(login_as, fake_powerbi, url, title, script):
+    html = login_as("admin").get(url).get_data(as_text=True)
+    assert f'<h1 class="hd-main-title">{title}</h1>' in html and "<iframe" not in html
+    assert re.search(rf'src="/d/picking-slip/static/{script}"', html)
+    payload = re.search(r"window\.PICKING_SLIP = (.*?);</script>", html).group(1)
+    assert "</script>" not in payload and "\\u003c/script\\u003e" in payload   # data tidak bisa menutup tag script
 
 
-def test_frame_needs_login_and_access(client, login_as, fake_powerbi):
-    assert client.get("/d/picking-slip/frame/detail").status_code == 302   # belum login -> halaman login
-    assert login_as("a").get("/d/picking-slip/frame/detail").status_code == 403   # tidak punya akses Picking Slip
-    assert fake_powerbi == []   # ditolak sebelum Power BI ditanya
+def test_pages_need_login_and_access(client, login_as, fake_powerbi):
+    assert client.get("/d/picking-slip/detail").status_code == 302      # belum login -> halaman login
+    assert login_as("a").get("/d/picking-slip/").status_code == 403      # tidak punya akses Picking Slip
+    assert fake_powerbi == []                                            # ditolak sebelum Power BI ditanya
