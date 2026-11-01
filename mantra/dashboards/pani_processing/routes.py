@@ -122,12 +122,3 @@ def production():
         return _page("production.html", data, fetched, b, avg_pa=pa, pa_day=pa_day)
     except queries.DATA_ERRORS as exc:
         return data_error_page(exc)
-
-
-@bp.get("/model")
-def model():
-    try:
-        rows, fetched = queries.model_columns()
-    except queries.DATA_ERRORS as exc:
-        return data_error_page(exc)
-    return render_template("pani_processing/model.html", rows=rows, header=queries.stamp_info(fetched))

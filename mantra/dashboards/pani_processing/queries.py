@@ -546,20 +546,3 @@ def production(start, end):
                           "mtd": trend(lambda d: (d.year, d.month), lambda k: date(k[0], k[1], 1).strftime("%b %Y"))}}
     return _cache.get(("production", start, end), load)
 
-
-
-# ---------------------------------------------------------------- Model (daftar tabel & kolom)
-
-def model_columns():
-    """Semua kolom yang terlihat di semantic model: nama tabel, nama kolom, tipe data."""
-    def load():
-        return _query("""
-            EVALUATE
-            SELECTCOLUMNS(
-                FILTER(INFO.VIEW.COLUMNS(), NOT [IsHidden]),
-                "tabel", [Table],
-                "kolom", [Name],
-                "tipe", [DataType]
-            )
-            ORDER BY [tabel], [kolom]""")
-    return _cache.get(("model_columns",), load)

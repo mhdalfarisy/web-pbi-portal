@@ -21,8 +21,7 @@ DASHBOARD = Dashboard(
     dataset=DATASET,
     blueprint=bp,
     pages=[("Processing", "pani_processing.processing"), ("Equipment", "pani_processing.equipment"),
-           ("Mining", "pani_processing.mining"), ("Production", "pani_processing.production"),
-           ("Model", "pani_processing.model")],
+           ("Mining", "pani_processing.mining"), ("Production", "pani_processing.production")],
     chat=ChatSpec(
         tools=tools.TOOLS,
         prompt_dir=Path(__file__).resolve().parent / "prompts",
