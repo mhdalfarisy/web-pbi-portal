@@ -1,0 +1,84 @@
+{% extends "portal/base.html" %}
+{% from "portal/_ui.html" import icon %}
+{% block title %}Activity{% endblock %}
+{% block content %}
+{% set qs = request.query_string.decode() %}
+<div class="page-head">
+  <div>
+    <h1>User Activity</h1>
+    <p class="muted">Sign-ins, dashboard pages opened, AI questions, and exports (kept for {{ keep_days }} days).
+      Security events are in the <a href="{{ url_for('admin.audit') }}">Audit Log</a>.</p>
+  </div>
+  <a class="btn ghost" href="{{ url_for('admin.activity_csv') }}{{ '?' ~ qs if qs }}">Download CSV</a>
+</div>
+
+<form class="page-tools filter-bar" method="get">
+  <label class="field-select">{{ icon('users') }}
+    <select name="user" aria-label="User">
+      <option value="">All users</option>
+      {% for uid, email in users %}<option value="{{ uid }}" {{ 'selected' if uid == filters.user }}>{{ email }}</option>{% endfor %}
+    </select>
+  </label>
+  <label class="field-select">{{ icon('filter') }}
+    <select name="action" aria-label="Activity type">
+      <option value="">All activities</option>
+      {% for code, label in actions %}<option value="{{ code }}" {{ 'selected' if code == filters.action }}>{{ label }}</option>{% endfor %}
+    </select>
+  </label>
+  <label class="field-select">{{ icon('layout') }}
+    <select name="dashboard" aria-label="Dashboard">
+      <option value="">All dashboards</option>
+      {% for slug, name in names | dictsort(by='value') %}<option value="{{ slug }}" {{ 'selected' if slug == filters.dashboard }}>{{ name }}</option>{% endfor %}
+    </select>
+  </label>
+  <label class="field-search date">From <input type="date" name="from" value="{{ filters.date_from }}" aria-label="From date"></label>
+  <label class="field-search date">To <input type="date" name="to" value="{{ filters.date_to }}" aria-label="To date"></label>
+  <button class="btn" type="submit">Apply</button>
+  {% if qs %}<a class="btn ghost" href="{{ url_for('admin.activity_log') }}">Reset</a>{% endif %}
+</form>
+
+<section class="panel flush">
+  <h2 class="panel-title">{{ icon('chart') }} Summary per user</h2>
+  <div class="table-wrap">
+    <table class="table stack">
+      <thead><tr><th>User</th><th>Last active</th><th>Sign-ins</th><th>Pages opened</th><th>AI questions</th><th>Exports</th></tr></thead>
+      <tbody>
+      {% for s in summary %}
+        <tr>
+          <td data-label="User"><a class="strong-link" href="{{ url_for('admin.activity_log', user=s.user_id) }}">{{ s.email or '-' }}</a></td>
+          <td class="muted nowrap" data-label="Last active">{{ s.last_at[:16] }}</td>
+          <td data-label="Sign-ins">{{ s.logins }}</td>
+          <td data-label="Pages opened">{{ s.page_views }}</td>
+          <td data-label="AI questions">{{ s.questions }}</td>
+          <td data-label="Exports">{{ s.exports }}</td>
+        </tr>
+      {% else %}
+        <tr class="empty-row"><td colspan="6" class="muted center">No activity for this filter.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel flush">
+  <h2 class="panel-title">{{ icon('history') }} Events (latest {{ rows|length }})</h2>
+  <div class="table-wrap">
+    <table class="table stack">
+      <thead><tr><th>Time</th><th>User</th><th>Activity</th><th>Description</th><th>IP</th></tr></thead>
+      <tbody>
+      {% for r in rows %}
+        <tr>
+          <td class="muted nowrap" data-label="Time">{{ r.e.at }}</td>
+          <td data-label="User">{{ r.e.user_email or '-' }}</td>
+          <td data-label="Activity"><span class="pill">{{ r.label }}</span></td>
+          <td class="wrap" data-label="Description">{{ r.text }}</td>
+          <td class="muted" data-label="IP">{{ r.e.ip or '-' }}</td>
+        </tr>
+      {% else %}
+        <tr class="empty-row"><td colspan="5" class="muted center">No activity for this filter.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

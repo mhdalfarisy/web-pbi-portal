@@ -227,6 +227,9 @@
 .chat-msg.bot { align-self: flex-start; background: #ffffff; border: 1px solid #e6ebf2; color: #0f172a; border-bottom-left-radius: 4px; }
 .chat-msg.loading { color: #64748b; display: flex; align-items: center; gap: 8px; }
 .chat-msg.error { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+.chat-msg.note { align-self: center; max-width: 100%; background: transparent; border: 0; color: #64748b; font-size: 11.5px; text-align: center; padding: 2px 8px; }
+.chat-note { margin: 0; padding: 0 14px 10px; font-size: 10.5px; line-height: 1.4; color: #64748b; background: #ffffff; }
+.chat-note a { color: #2563eb; }
 .chat-table { overflow-x: auto; margin-top: 6px; }
 .chat-table table { border-collapse: collapse; font-size: 11px; width: 100%; }
 .chat-table th, .chat-table td { border: 1px solid #e2e8f0; padding: 4px 6px; text-align: left; white-space: nowrap; }

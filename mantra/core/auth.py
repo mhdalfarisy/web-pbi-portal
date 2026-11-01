@@ -27,7 +27,7 @@ from flask import (Blueprint, current_app, flash, g, jsonify, redirect, render_t
 from werkzeug.security import check_password_hash
 
 from ..config import Config
-from . import accounts
+from . import accounts, activity
 
 bp = Blueprint("auth", __name__)
 
@@ -98,13 +98,15 @@ def auth_disabled():
 
 def _dev_user():
     return {"id": "dev-local", "db_id": None, "name": "Developer (tanpa login)", "email": "dev@localhost",
-            "role": "super_admin", "role_label": accounts.ROLES["super_admin"], "must_change_password": False}
+            "role": "super_admin", "role_label": accounts.ROLES["super_admin"], "must_change_password": False,
+            "can_view_chats": True}
 
 
 def _session_user(row):
     return {"id": str(row["id"]), "db_id": row["id"], "name": row["name"] or row["email"].split("@")[0],
             "email": row["email"], "role": row["role"], "role_label": accounts.ROLES[row["role"]],
-            "must_change_password": bool(row["must_change_password"]) and not session.get("sso")}
+            "must_change_password": bool(row["must_change_password"]) and not session.get("sso"),
+            "can_view_chats": bool(row["can_view_chats"])}
 
 
 def current_user():
@@ -126,6 +128,11 @@ def current_user():
 
 def is_admin(user):
     return bool(user) and user["role"] == "super_admin"
+
+
+def can_view_chats(user):
+    """Boleh membuka Chat Log (riwayat chat AI semua user): Super Admin, atau user yang diberi izin di Admin > Users."""
+    return is_admin(user) or bool(user and user.get("can_view_chats"))
 
 
 def allowed_slugs(user):
@@ -364,6 +371,7 @@ def logout():
     sso = session.get("sso")
     if user and user["db_id"] is not None:
         accounts.audit("logout", "user", user["db_id"], actor=user)
+        activity.log("logout", user=user)
     session.clear()
     if not sso or auth_disabled() or not entra_configured():
         return redirect(url_for("auth.login"))

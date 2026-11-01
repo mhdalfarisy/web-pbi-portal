@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 from flask import has_request_context, request
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from . import activity
 from .db import get_db
 
 ROLES = {"super_admin": "Super Admin", "user": "User"}
@@ -181,6 +182,21 @@ def set_role(user_id, role, actor=None):
     audit("role_changed", "user", user_id, actor=actor, email=user["email"], old=user["role"], new=role)
 
 
+def set_chat_viewer(user_id, allowed, actor=None):
+    """Izin melihat riwayat chat AI semua user (menu Chat Log). Super Admin selalu boleh tanpa izin ini.
+    Mengembalikan True kalau ada perubahan."""
+    user = get_user(user_id)
+    if user is None:
+        raise AccountError("User not found.")
+    if bool(user["can_view_chats"]) == bool(allowed):
+        return False
+    conn = get_db()
+    conn.execute("UPDATE users SET can_view_chats = ?, updated_at = ? WHERE id = ?", (int(bool(allowed)), _now(), user_id))
+    conn.commit()
+    audit("chat_viewer_granted" if allowed else "chat_viewer_revoked", "user", user_id, actor=actor, email=user["email"])
+    return True
+
+
 def _active_admins():
     return get_db().execute("SELECT count(*) FROM users WHERE role = 'super_admin' AND is_active = 1").fetchone()[0]
 
@@ -225,6 +241,7 @@ def record_login(user, method):
                  (_now(), user["id"]))
     conn.commit()
     audit("login_success", "user", user["id"], actor={"id": user["id"], "email": user["email"]}, method=method)
+    activity.log("login", user={"id": user["id"], "email": user["email"]}, method=method)
 
 
 # ------------------------------------------------------------------ katalog dashboard
@@ -374,10 +391,13 @@ AUDIT_LABELS = {
     "user_activated": "User activated", "user_deactivated": "User deactivated", "role_changed": "Role changed",
     "access_granted": "Access granted", "access_revoked": "Access revoked", "dashboard_activated": "Dashboard activated",
     "dashboard_deactivated": "Dashboard deactivated", "access_denied": "Access denied",
+    "chat_viewer_granted": "Chat Log access granted", "chat_viewer_revoked": "Chat Log access revoked",
+    "chat_log_exported": "Chat Log exported", "activity_exported": "Activity exported",
 }
 _AUDIT_BAD = {"login_failed", "account_locked", "login_throttled", "access_denied", "user_deactivated",
-              "access_revoked", "dashboard_deactivated"}
-_AUDIT_GOOD = {"login_success", "user_created", "user_activated", "access_granted", "dashboard_activated"}
+              "access_revoked", "dashboard_deactivated", "chat_viewer_revoked"}
+_AUDIT_GOOD = {"login_success", "user_created", "user_activated", "access_granted", "dashboard_activated",
+               "chat_viewer_granted"}
 _LOGIN_REASONS = {"invalid": "wrong email or password", "locked": "account is locked",
                   "inactive": "account is inactive", "not_registered": "Microsoft account is not registered in Power BI Portal"}
 _RESET_RESULTS = {"pending": "waiting for a Super Admin", "not_registered": "email is not registered, ignored",
@@ -441,6 +461,13 @@ def describe_audit(rows):
             text = f"Access of {target_user} to {dash} revoked"
         elif action in ("dashboard_activated", "dashboard_deactivated"):
             text = f"Dashboard {dash} {'activated' if action == 'dashboard_activated' else 'deactivated'}"
+        elif action in ("chat_viewer_granted", "chat_viewer_revoked"):
+            text = (f"{target_user} may now view the AI chats of all users (Chat Log)"
+                    if action == "chat_viewer_granted" else f"Chat Log access of {target_user} revoked")
+        elif action in ("chat_log_exported", "activity_exported"):
+            text = (f"Downloaded {d.get('rows', 0)} rows of the "
+                    f"{'AI Chat Log' if action == 'chat_log_exported' else 'Activity log'} as CSV"
+                    + (f" (filter: {d['filters']})" if d.get("filters") else ""))
         elif action == "access_denied":
             text = (f"Tried to open {dash} without permission" if e["target_type"] == "dashboard"
                     else f"Tried to open a Super Admin page ({e['target_id']})")

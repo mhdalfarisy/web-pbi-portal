@@ -11,9 +11,9 @@ from flask import Flask, abort, g, jsonify, render_template, request, session
 from flask.logging import default_handler
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from . import admin, portal
+from . import admin, chats, portal
 from .config import APP_ENVS, BASE_DIR, ENV_OVERRIDDEN, Config
-from .core import accounts, auth, db, registry
+from .core import accounts, activity, auth, db, registry
 from .core.chat import providers
 from .core.chat import routes as chat_routes
 
@@ -43,6 +43,7 @@ def create_app(test_config=None):
     app.register_blueprint(portal.bp)
     app.register_blueprint(chat_routes.bp)
     app.register_blueprint(admin.bp)
+    app.register_blueprint(chats.bp)
     registry.init_app(app)  # semua folder di mantra/dashboards/
 
     # Katalog dashboard di database (dipakai untuk hak akses) mengikuti dashboard yang terdaftar di kode
@@ -63,6 +64,8 @@ def create_app(test_config=None):
     app.jinja_env.globals["now_str"] = lambda: datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     # Label "STAGING" di top bar & halaman login, supaya tester tidak tertukar dengan production
     app.jinja_env.globals["app_env"] = app.config["APP_ENV"]
+    app.jinja_env.filters["filesize"] = activity.format_size
+    app.jinja_env.globals["chat_quota"] = activity.CHAT_QUOTA_BYTES  # dipakai catatan di panel Ask AI
 
     @app.before_request
     def start_timer():
@@ -123,6 +126,7 @@ def create_app(test_config=None):
             "csrf_token": csrf_token,
             "current_user": user,
             "user_is_admin": is_admin,
+            "user_can_view_chats": auth.can_view_chats(user),
             # Jumlah permintaan "Forgot password" yang menunggu, untuk badge menu Admin > Users
             "pending_resets": accounts.pending_reset_count() if is_admin and user["db_id"] is not None else 0,
             "dashboard": dashboard,

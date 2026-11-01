@@ -11,7 +11,7 @@ from typing import Callable
 
 from flask import Blueprint, jsonify, redirect, render_template, request, url_for
 
-from . import accounts, auth, db
+from . import accounts, activity, auth, db
 
 
 @dataclass
@@ -84,7 +84,8 @@ def visible_for(user):
 
 def _guard(dashboard):
     """Pasang login + cek hak akses (database) di SETIAP route dashboard: halaman, API data, dan file static.
-    Dashboard yang tidak diizinkan ditolak 403 walaupun URL-nya dibuka langsung. Halaman yang dibuka dicatat ke History."""
+    Dashboard yang tidak diizinkan ditolak 403 walaupun URL-nya dibuka langsung. Halaman yang dibuka dicatat ke History
+    dan log aktivitas, begitu juga export data."""
     page_endpoints = {endpoint: label for label, endpoint in dashboard.pages}
 
     def check():
@@ -102,6 +103,9 @@ def _guard(dashboard):
         if request.method == "GET" and request.endpoint in page_endpoints:
             db.add_history(user["id"], dashboard.slug, f"{dashboard.title} · {page_endpoints[request.endpoint]}",
                            request.full_path.rstrip("?"))
+            activity.log("page_view", user=user, slug=dashboard.slug, page=page_endpoints[request.endpoint])
+        elif request.method == "GET" and request.path.rstrip("/").endswith("/export"):
+            activity.log("export", user=user, slug=dashboard.slug, path=request.path)
         return None
     return check
 

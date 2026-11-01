@@ -20,7 +20,8 @@ Flask MANTRA ── core/ (login, registry, cache, pembatas query, mesin AI agen
 ```
 
 Data dashboard **tidak** disimpan di MANTRA; semuanya dibaca langsung dari semantic model lewat `executeQueries`.
-File `instance/mantra.db` berisi akun, hak akses dashboard, audit log, Favorites, dan History.
+File `instance/mantra.db` berisi akun, hak akses dashboard, audit log, Favorites, History, riwayat chat AI per user
+(kuota 1 MB per user), dan log aktivitas user (lihat "Riwayat chat AI & log aktivitas" di [docs/AUTH.md](docs/AUTH.md)).
 
 ## Status dashboard
 
@@ -39,10 +40,13 @@ mantra/
   __init__.py              create_app(), CSRF
   config.py                baca .env
   portal.py                Home, Reports, Favorites, History, Settings
-  admin.py                 halaman Super Admin: Users, Dashboard Access, katalog Dashboards, Audit Log
+  admin.py                 halaman Super Admin: Users, Dashboard Access, izin Chat Log, katalog Dashboards, Activity,
+                           Audit Log
+  chats.py                 AI Chats (riwayat chat milik sendiri) & Chat Log (chat semua user, butuh izin)
   core/
     auth.py                login (email + password, Entra opsional), session, role_required, can_open
     accounts.py            users, hak akses dashboard, permintaan lupa password, katalog dashboard, audit log
+    activity.py            riwayat chat AI per user (kuota 1 MB) & log aktivitas user
     common.py, errors.py   helper bersama (WIB, dax_str, logo); respons error Power BI (pesan umum + kode ref)
     registry.py            daftar dashboard (auto-discovery) + kontrak Dashboard / ChatSpec / Tool
     powerbi.py             service principal, Dataset per dashboard, pembatas query bersama
@@ -79,6 +83,7 @@ tests/                     pytest (python -m pytest), lihat tests/README.md
   test_errors_and_security.py     penanganan error, header keamanan, batas AI & data, cache
   test_server_config.py    APP_ENV staging/production, proxy, lokasi data, WAL, /healthz, log, gunicorn
   test_picking_slip.py     DAX di queries.py, data seperti CONCATENATEX, header MANTRA, tools AI agent, hak akses
+  test_chat_history_and_activity.py  riwayat chat AI, kuota 1 MB, izin Chat Log, log aktivitas
 scripts/                   perintah manual (python scripts/<nama>.py), lihat scripts/README.md
   manage_users.py          akun awal (seed), buat user, hak akses, reset password, role, backup database
   check_setup.py           cek .env, Entra (opsional), akses tiap semantic model, AI

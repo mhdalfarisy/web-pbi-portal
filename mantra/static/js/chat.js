@@ -1,5 +1,7 @@
 /* Panel AI agent dashboard: kirim pertanyaan ke /d/<slug>/api/chat, tampilkan jawaban (markdown sederhana) dan data
-   yang dipakai. URL, judul, dan contoh pertanyaan datang dari manifest dashboard (window.CHAT). */
+   yang dipakai. URL, judul, dan contoh pertanyaan datang dari manifest dashboard (window.CHAT).
+   Tanya-jawab disimpan server per percakapan (CONVERSATION); saat panel pertama dibuka, percakapan terakhir di
+   dashboard ini dimuat lagi dari /d/<slug>/api/chat/history. Tombol "New conversation" memulai percakapan baru. */
 (function () {
 'use strict';
 
@@ -10,6 +12,13 @@ const CFG = window.CHAT || {};
 const HISTORY = [];
 const SUGGESTIONS = CFG.suggestions || [];
 let busy = false;
+let CONVERSATION = newConversation();
+
+function newConversation() {
+    // crypto.randomUUID hanya ada di https / localhost; cadangannya cukup unik untuk satu user
+    return window.crypto && crypto.randomUUID ? crypto.randomUUID()
+        : Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
+}
 
 /* ---------- markdown sederhana: tabel, list, bold, italic, code ---------- */
 function inline(s) {
@@ -91,6 +100,7 @@ async function send(text) {
             headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF },
             body: JSON.stringify({
                 message: text,
+                conversation: CONVERSATION,
                 history: HISTORY.slice(-20),
                 context: window.DashContext ? window.DashContext() : '',
                 filters: window.DashFilters ? window.DashFilters() : null,
@@ -101,6 +111,7 @@ async function send(text) {
         wait.className = 'chat-msg bot';
         wait.innerHTML = markdown(data.answer) + toolSummary(data.tools);
         HISTORY.push({ role: 'user', text: text }, { role: 'model', text: data.answer });
+        if (data.conversation) { CONVERSATION = data.conversation; }
     } catch (e) {
         wait.className = 'chat-msg bot error';
         wait.textContent = e.message;
@@ -109,6 +120,35 @@ async function send(text) {
     el('chatSend').disabled = false;
     el('chatInput').focus();
     scroll();
+}
+
+/* ---------- percakapan terakhir ---------- */
+async function restore() {
+    if (!CFG.historyUrl) { return; }
+    busy = true;
+    el('chatSend').disabled = true;
+    try {
+        const r = await fetch(CFG.historyUrl, { headers: { Accept: 'application/json' } });
+        const data = await r.json();
+        if (r.ok && data.conversation && data.messages && data.messages.length) {
+            CONVERSATION = data.conversation;
+            bubble('bot note', '<p>Your last conversation (' + esc(data.messages[0].created_at.slice(0, 16))
+                + '). Press &#8635; to start a new one.</p>');
+            data.messages.forEach((m) => {
+                bubble('user', '<p>' + esc(m.question) + '</p>');
+                if (m.status === 'ok') {
+                    bubble('bot', markdown(m.answer) + toolSummary(m.tools));
+                    HISTORY.push({ role: 'user', text: m.question }, { role: 'model', text: m.answer });
+                } else {
+                    bubble('bot error', '').textContent = m.answer;
+                }
+            });
+        }
+    } catch (e) {
+        /* riwayat gagal dimuat: panel tetap bisa dipakai untuk percakapan baru */
+    }
+    busy = false;
+    el('chatSend').disabled = false;
 }
 
 function autosize() {
@@ -123,12 +163,14 @@ el('chatFab').addEventListener('click', () => {
     panel.hidden = !panel.hidden;
     el('chatFab').classList.toggle('open', !panel.hidden);
     if (!panel.hidden) {
-        if (!el('chatBody').children.length) { welcome(); }
+        if (!el('chatBody').children.length) { welcome(); restore(); }
         el('chatInput').focus();
     }
 });
 el('chatClose').addEventListener('click', () => { el('chatPanel').hidden = true; el('chatFab').classList.remove('open'); });
-el('chatReset').addEventListener('click', () => { if (!busy) { HISTORY.length = 0; welcome(); } });
+el('chatReset').addEventListener('click', () => {
+    if (!busy) { HISTORY.length = 0; CONVERSATION = newConversation(); welcome(); }
+});
 el('chatForm').addEventListener('submit', (e) => { e.preventDefault(); send(el('chatInput').value); });
 el('chatInput').addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(el('chatInput').value); }

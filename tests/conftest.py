@@ -58,7 +58,8 @@ def fresh_data(app):
     with app.app_context():
         conn = db.get_db()
         conn.executescript("""DELETE FROM user_dashboard_access; DELETE FROM users; DELETE FROM audit_log;
-                              DELETE FROM favorites; DELETE FROM history; UPDATE dashboards SET is_active = 1;""")
+                              DELETE FROM favorites; DELETE FROM history; DELETE FROM chat_messages;
+                              DELETE FROM activity_log; UPDATE dashboards SET is_active = 1;""")
         ids = {}
         for key, role, slugs in [("admin", "super_admin", []), ("a", "user", ["material-readiness"]),
                                  ("b", "user", ["pani-processing"])]:
@@ -66,6 +67,7 @@ def fresh_data(app):
             if slugs:
                 accounts.set_access(ids[key], accounts.dashboard_ids_for(slugs))
         conn.execute("DELETE FROM audit_log")
+        conn.execute("DELETE FROM activity_log")
         conn.commit()
     yield ids
 

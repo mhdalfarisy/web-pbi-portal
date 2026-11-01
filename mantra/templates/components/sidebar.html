@@ -3,7 +3,8 @@
 {#- Sidebar global. report = Dashboard yang sedang dibuka (atau none): menu Reports aktif dan nama report tampil di bawahnya. -#}
 {% macro sidebar(report=none) -%}
 {% set nav = [('portal.home', 'Home', 'home'), ('portal.reports', 'Reports', 'reports'),
-              ('portal.favorites', 'Favorites', 'star'), ('portal.history', 'History', 'history')] %}
+              ('portal.favorites', 'Favorites', 'star'), ('portal.history', 'History', 'history'),
+              ('chats.mine', 'AI Chats', 'sparkles')] %}
 <aside class="sidebar" id="sidebar" aria-label="Menu Power BI Portal">
   <a class="sidebar-brand" href="{{ url_for('portal.home') }}" title="Power BI Portal Home">{{ brand(dark=True) }}</a>
   <nav class="side-nav">
@@ -21,6 +22,7 @@
     <hr class="side-sep">
     <span class="side-label">Admin</span>
     {% for endpoint, label, ic in [('admin.users', 'Users', 'users'), ('admin.dashboards', 'Dashboards', 'layout'),
+                                   ('chats.all_users', 'Chat Log', 'database'), ('admin.activity_log', 'Activity', 'chart'),
                                    ('admin.audit', 'Audit Log', 'shield')] %}
     {% set on = request.endpoint == endpoint or (endpoint == 'admin.users' and request.endpoint in ('admin.new_user', 'admin.user_detail')) %}
     {% set badge = pending_resets if endpoint == 'admin.users' else 0 %}
@@ -29,6 +31,11 @@
        {%- if on %} aria-current="page"{% endif %}>{{ icon(ic) }}<span>{{ label }}</span>
       {%- if badge %}<b class="nav-badge" aria-label="{{ badge }} password reset requests">{{ badge }}</b>{% endif %}</a>
     {% endfor %}
+    {% elif user_can_view_chats %}
+    <hr class="side-sep">
+    <span class="side-label">Monitoring</span>
+    <a href="{{ url_for('chats.all_users') }}" title="Chat Log" class="{{ 'active' if request.endpoint == 'chats.all_users' }}"
+       {%- if request.endpoint == 'chats.all_users' %} aria-current="page"{% endif %}>{{ icon('database') }}<span>Chat Log</span></a>
     {% endif %}
     <hr class="side-sep">
     <a href="{{ url_for('portal.settings') }}" title="Settings" class="{{ 'active' if request.endpoint == 'portal.settings' }}"

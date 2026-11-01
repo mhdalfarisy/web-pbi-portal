@@ -81,8 +81,11 @@
     <textarea id="chatInput" rows="1" maxlength="1000" placeholder="Ask about {{ dashboard.title }} data..."></textarea>
     <button type="submit" id="chatSend" aria-label="Send">&#10148;</button>
   </form>
+  <p class="chat-note">Questions and answers are saved in your <a href="{{ url_for('chats.mine') }}">AI Chats</a>
+    (up to {{ chat_quota|filesize }}) and can be read by authorized admins. Do not type passwords or other secrets.</p>
 </section>
-<script>window.CHAT = {{ {"url": url_for("chat.chat", slug=dashboard.slug), "title": dashboard.title,
+<script>window.CHAT = {{ {"url": url_for("chat.chat", slug=dashboard.slug),
+                          "historyUrl": url_for("chat.chat_history", slug=dashboard.slug), "title": dashboard.title,
                           "suggestions": dashboard.chat.suggestions}|tojson }};</script>
 {% endif %}
 {% endblock %}

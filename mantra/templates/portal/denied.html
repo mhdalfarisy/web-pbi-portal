@@ -7,6 +7,9 @@
   <h3>Access denied</h3>
   {% if admin_only %}
   <p>This page is only for the Power BI Portal Super Admin.</p>
+  {% elif chat_log %}
+  <p>The Chat Log of all users is only for the Super Admin and users given Chat Log access. Your own AI chats are in
+    <a href="{{ url_for('chats.mine') }}">AI Chats</a>.</p>
   {% else %}
   <p>Your account has not been given access to <b>{{ dashboard.title if dashboard else 'this dashboard' }}</b>, or the
     dashboard is currently deactivated. Contact the Power BI Portal Super Admin to request access.</p>

@@ -1,0 +1,44 @@
+{% extends "portal/base.html" %}
+{% from "portal/_ui.html" import icon %}
+{% from "portal/_chats.html" import chat_list %}
+{% block title %}Chat Log{% endblock %}
+{% block content %}
+{% set qs = request.query_string.decode() %}
+<div class="page-head">
+  <div>
+    <h1>Chat Log</h1>
+    <p class="muted">AI agent questions and answers of all users · {{ total }} chat{{ 's' if total != 1 }}
+      {%- if total > rows|length %} (showing the latest {{ rows|length }}){% endif %}</p>
+  </div>
+  <a class="btn ghost" href="{{ url_for('chats.all_users_csv') }}{{ '?' ~ qs if qs }}">Download CSV</a>
+</div>
+
+<form class="page-tools filter-bar" method="get">
+  <label class="field-select">{{ icon('users') }}
+    <select name="user" aria-label="User">
+      <option value="">All users</option>
+      {% for uid, email in users %}<option value="{{ uid }}" {{ 'selected' if uid == filters.user }}>{{ email }}</option>{% endfor %}
+    </select>
+  </label>
+  <label class="field-select">{{ icon('layout') }}
+    <select name="dashboard" aria-label="Dashboard">
+      <option value="">All dashboards</option>
+      {% for slug, name in names | dictsort(by='value') %}<option value="{{ slug }}" {{ 'selected' if slug == filters.dashboard }}>{{ name }}</option>{% endfor %}
+    </select>
+  </label>
+  <label class="field-search">{{ icon('search') }}
+    <input type="search" name="q" value="{{ filters.q }}" placeholder="Search question or answer" aria-label="Search">
+  </label>
+  <label class="field-search date">From <input type="date" name="from" value="{{ filters.date_from }}" aria-label="From date"></label>
+  <label class="field-search date">To <input type="date" name="to" value="{{ filters.date_to }}" aria-label="To date"></label>
+  <button class="btn" type="submit">Apply</button>
+  {% if qs %}<a class="btn ghost" href="{{ url_for('chats.all_users') }}">Reset</a>{% endif %}
+</form>
+
+{% if rows %}
+{{ chat_list(rows, names, show_user=True) }}
+{% else %}
+<div class="empty">{{ icon('sparkles') }}<h3>No chats found</h3><p>Change the filter, or wait until users ask the AI agents.</p></div>
+{% endif %}
+<p class="muted small">Opening this page is recorded in the Activity log; downloads are recorded in the Audit Log.</p>
+{% endblock %}

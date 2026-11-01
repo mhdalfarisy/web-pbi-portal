@@ -1,11 +1,13 @@
-"""Data milik portal (instance/mantra.db): akun & hak akses, Favorites, History, audit log.
+"""Data milik portal (instance/mantra.db): akun & hak akses, Favorites, History, audit log, riwayat chat AI, dan
+log aktivitas user.
 
 Data dashboard TIDAK disimpan di sini; semuanya dibaca langsung dari semantic model Power BI.
 
 Skema dikelola lewat MIGRATIONS (nomor versi disimpan di PRAGMA user_version). Saat start, migrasi yang belum jalan
 dipasang otomatis, dan database yang sudah berisi data di-backup dulu ke instance/backups/. Migrasi hanya boleh
 MENAMBAH (tabel/kolom/index baru); jangan ubah migrasi yang sudah ada, tambahkan yang baru di akhir list.
-Fungsi akun, hak akses dashboard, dan audit log ada di core/accounts.py.
+Fungsi akun, hak akses dashboard, dan audit log ada di core/accounts.py; riwayat chat AI & log aktivitas ada di
+core/activity.py.
 """
 import sqlite3
 from datetime import datetime
@@ -90,6 +92,41 @@ MIGRATIONS = [
     #    kosong lagi setelah password di-reset / permintaan diabaikan)
     """
     ALTER TABLE users ADD COLUMN reset_requested_at TEXT;
+    """,
+    # 4: riwayat chat AI per user (kuota per user, lihat core/activity.py), log aktivitas user di website, dan izin
+    #    melihat chat AI semua user (diberikan Super Admin di Admin > Users)
+    f"""
+    ALTER TABLE users ADD COLUMN can_view_chats INTEGER NOT NULL DEFAULT 0 CHECK (can_view_chats IN (0, 1));
+    CREATE TABLE IF NOT EXISTS chat_messages (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        created_at   TEXT NOT NULL DEFAULT {NOW},
+        user_id      TEXT NOT NULL,
+        user_email   TEXT NOT NULL,
+        slug         TEXT NOT NULL,
+        conversation TEXT NOT NULL,
+        question     TEXT NOT NULL,
+        answer       TEXT NOT NULL DEFAULT '',
+        tools        TEXT,
+        model        TEXT,
+        status       TEXT NOT NULL DEFAULT 'ok' CHECK (status IN ('ok', 'error')),
+        duration_ms  INTEGER,
+        size_bytes   INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS ix_chat_user ON chat_messages (user_id, id DESC);
+    CREATE INDEX IF NOT EXISTS ix_chat_conversation ON chat_messages (user_id, slug, conversation, id);
+    CREATE INDEX IF NOT EXISTS ix_chat_at ON chat_messages (created_at DESC, id DESC);
+    CREATE TABLE IF NOT EXISTS activity_log (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        at         TEXT NOT NULL DEFAULT {NOW},
+        user_id    TEXT,
+        user_email TEXT,
+        action     TEXT NOT NULL,
+        slug       TEXT,
+        detail     TEXT,
+        ip         TEXT
+    );
+    CREATE INDEX IF NOT EXISTS ix_activity_at ON activity_log (at DESC, id DESC);
+    CREATE INDEX IF NOT EXISTS ix_activity_user ON activity_log (user_id, at DESC);
     """,
 ]
 

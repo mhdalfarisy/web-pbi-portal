@@ -1,0 +1,49 @@
+{% extends "portal/base.html" %}
+{% from "portal/_ui.html" import icon %}
+{% from "portal/_chats.html" import chat_list, quota_meter %}
+{% block title %}AI Chats{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>AI Chats</h1>
+    <p class="muted">Questions you asked the dashboard AI agents and their answers (latest 200)</p>
+  </div>
+  <div class="page-tools">
+    <form method="get">
+      <label class="field-select">{{ icon('filter') }}
+        <select name="dashboard" aria-label="Dashboard" onchange="this.form.submit()">
+          <option value="">All dashboards</option>
+          {% for slug, name in names | dictsort(by='value') %}<option value="{{ slug }}" {{ 'selected' if slug == dashboard_filter }}>{{ name }}</option>{% endfor %}
+        </select>
+      </label>
+    </form>
+    {% if usage %}
+    <form method="post" action="{{ url_for('chats.delete_mine') }}">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <button class="btn danger" type="submit" data-confirm="Delete all of your saved AI chats? This cannot be undone.">Delete my chat history</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<section class="panel">
+  {{ quota_meter(usage, quota) }}
+  <p class="muted small chat-privacy">Saved: your questions, the AI answers, and which data queries were used (with their
+    filters). Power BI data itself, passwords, and tokens are not saved. The Super Admin and users given Chat Log access
+    can read these chats.</p>
+</section>
+
+{% if rows %}
+{{ chat_list(rows, names) }}
+{% else %}
+<div class="empty">{{ icon('sparkles') }}<h3>No AI chats yet</h3><p>Questions you ask with <b>Ask AI</b> on a dashboard will appear here.</p></div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+  document.addEventListener('submit', (e) => {
+    const b = e.submitter;
+    if (b && b.dataset.confirm && !confirm(b.dataset.confirm)) { e.preventDefault(); }
+  });
+</script>
+{% endblock %}

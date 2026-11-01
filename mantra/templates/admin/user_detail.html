@@ -74,6 +74,28 @@
   </section>
 </div>
 
+<section class="panel">
+  <h2>{{ icon('sparkles') }} AI Chats</h2>
+  <dl class="kv">
+    <dt>Saved chat history</dt>
+    <dd>{{ chat_usage|filesize }} of {{ chat_quota|filesize }}
+      {%- if chat_usage %} · <a href="{{ url_for('chats.all_users', user=user.id) }}">view chats</a>{% endif %}</dd>
+    <dt>Chat Log access</dt>
+    <dd>{% if is_admin_user %}Yes (Super Admin){% elif user.can_view_chats %}Yes, may read the AI chats of all users{% else %}No, sees own chats only{% endif %}</dd>
+    <dt>Activity</dt>
+    <dd><a href="{{ url_for('admin.activity_log', user=user.id) }}">Pages opened, AI questions, exports</a></dd>
+  </dl>
+  {% if not is_admin_user %}
+  <form method="post" action="{{ url_for('admin.user_chat_viewer', user_id=user.id) }}">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="allowed" value="{{ '0' if user.can_view_chats else '1' }}">
+    <button class="btn {{ 'danger' if user.can_view_chats else 'ghost' }}" type="submit"
+            data-confirm="{{ ('Remove Chat Log access from ' if user.can_view_chats else 'Allow ') ~ user.email ~ ('?' if user.can_view_chats else ' to read the AI chats of ALL users?') }}">
+      {{ 'Remove Chat Log access' if user.can_view_chats else 'Allow viewing all AI chats' }}</button>
+  </form>
+  {% endif %}
+</section>
+
 <section class="panel flush">
   <h2 class="panel-title">{{ icon('history') }} Recent activity</h2>
   {% include "admin/_audit_table.html" %}

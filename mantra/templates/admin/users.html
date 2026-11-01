@@ -32,7 +32,7 @@
         <tr class="{{ 'row-muted' if not u.is_active }}">
           <td data-label="Email"><a class="strong-link" href="{{ url_for('admin.user_detail', user_id=u.id) }}">{{ u.email }}</a>
             {% if u.name %}<div class="muted small">{{ u.name }}</div>{% endif %}</td>
-          <td data-label="Role">{{ role_pill(u.role, roles) }}</td>
+          <td data-label="Role">{{ role_pill(u.role, roles) }}{% if u.can_view_chats and u.role != 'super_admin' %} <span class="pill" title="May read the AI chats of all users">Chat Log</span>{% endif %}</td>
           <td data-label="Status">{{ active_status(u) }}</td>
           <td class="wrap" data-label="Dashboards">
             {% if u.role == 'super_admin' %}<span class="muted">All active dashboards</span>

@@ -1,4 +1,5 @@
-"""Halaman Super Admin: User Management, Dashboard Access, permintaan lupa password, katalog dashboard, audit log.
+"""Halaman Super Admin: User Management, Dashboard Access, izin Chat Log, permintaan lupa password, katalog dashboard,
+audit log, log aktivitas user.
 
 Semua route di sini hanya untuk role super_admin (cek di server, bukan sekadar menu disembunyikan) dan semua POST
 dilindungi CSRF (lihat create_app). Role super_admin TIDAK bisa diberikan dari sini; pakai scripts/manage_users.py.
@@ -6,7 +7,7 @@ Password sementara (user baru / reset) hanya ditampilkan sekali di respons, tida
 """
 from flask import Blueprint, abort, flash, make_response, redirect, render_template, request, url_for
 
-from .core import accounts, registry
+from .core import accounts, activity, registry
 from .core.auth import admin_required, current_user
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -67,7 +68,8 @@ def user_detail(user_id):
     user = _user_or_404(user_id)
     return render_template("admin/user_detail.html", user=user, roles=accounts.ROLES,
                            dashboards=accounts.list_dashboards(), granted=accounts.granted_ids(user_id),
-                           history=accounts.describe_audit(accounts.audit_for_user(user_id)))
+                           history=accounts.describe_audit(accounts.audit_for_user(user_id)),
+                           chat_usage=activity.chat_usage(user_id), chat_quota=activity.CHAT_QUOTA_BYTES)
 
 
 @bp.post("/users/<int:user_id>/access")
@@ -85,6 +87,18 @@ def user_access(user_id):
         flash("Access saved (" + "; ".join(parts) + ").", "success")
     else:
         flash("No access changes.", "info")
+    return redirect(url_for("admin.user_detail", user_id=user_id)), 303
+
+
+@bp.post("/users/<int:user_id>/chat-viewer")
+@admin_required
+def user_chat_viewer(user_id):
+    """Beri / cabut izin melihat riwayat chat AI semua user (menu Chat Log)."""
+    user = _user_or_404(user_id)
+    allowed = request.form.get("allowed") == "1"
+    if accounts.set_chat_viewer(user_id, allowed, actor=current_user()):
+        flash(f"{user['email']} {'may now view' if allowed else 'can no longer view'} the AI chats of all users.",
+              "success")
     return redirect(url_for("admin.user_detail", user_id=user_id)), 303
 
 
@@ -153,3 +167,35 @@ def audit():
     return render_template("admin/audit.html",
                            rows=accounts.describe_audit(accounts.audit_entries(limit=300, action=action)),
                            actions=accounts.audit_actions(), action=action)
+
+
+ACTIVITY_CSV_HEADER = ["Time", "User", "Activity", "Description", "Dashboard", "IP"]
+
+
+def _dashboard_names():
+    return {r["slug"]: r["name"] for r in accounts.list_dashboards()}
+
+
+@bp.get("/activity")
+@admin_required
+def activity_log():
+    filters = activity.clean_filters(request.args)
+    names = _dashboard_names()
+    return render_template("admin/activity.html", filters=filters, names=names,
+                           rows=activity.describe_activity(activity.activity_entries(filters), names),
+                           summary=activity.activity_summary(filters), users=activity.activity_users(),
+                           actions=activity.activity_actions(), keep_days=activity.ACTIVITY_KEEP_DAYS)
+
+
+@bp.get("/activity.csv")
+@admin_required
+def activity_csv():
+    filters = activity.clean_filters(request.args)
+    names = _dashboard_names()
+    rows = activity.describe_activity(activity.activity_entries(filters, limit=activity.EXPORT_LIMIT), names)
+    accounts.audit("activity_exported", actor=current_user(), rows=len(rows),
+                   filters={k: v for k, v in filters.items() if v and k != "q"})
+    return activity.csv_response(
+        "mantra-activity.csv", ACTIVITY_CSV_HEADER,
+        ([r["e"]["at"], r["e"]["user_email"] or "", r["label"], r["text"], names.get(r["e"]["slug"], r["e"]["slug"] or ""),
+          r["e"]["ip"] or ""] for r in rows))

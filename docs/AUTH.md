@@ -13,6 +13,9 @@ database, migrasi, backup & rollback, dan cara mengelola akun.
 - Semua cek dilakukan di server pada setiap request. Menyembunyikan menu hanya untuk kenyamanan, bukan pengaman.
 - Lupa password: link **Forgot password?** di halaman login mengirim permintaan ke Super Admin (lihat
   "Lupa password" di bawah). Portal tidak mengirim email.
+- Riwayat chat AI disimpan per user (kuota 1 MB per user). Chat semua user (**Chat Log**) hanya untuk Super Admin dan
+  user yang diberi izin. Aktivitas user (login, halaman, pertanyaan AI, export) tercatat di **Admin > Activity**.
+  Lihat "Riwayat chat AI & log aktivitas" di bawah.
 - Tampilan website (nama: **Power BI Portal**) berbahasa Inggris; dokumen developer ini tetap berbahasa Indonesia.
 
 | Akun awal | Role | Dashboard |
@@ -68,6 +71,8 @@ users                                   dashboards
   last_login_at, password_changed_at      id            PK
   reset_requested_at (v3) permintaan
                      Forgot password
+  can_view_chats (v4) 0|1 boleh buka
+                     Chat Log
   created_at, updated_at                  user_id       FK users ON DELETE CASCADE
                                           dashboard_id  FK dashboards ON DELETE CASCADE
 audit_log                                 granted_by    FK users ON DELETE SET NULL
@@ -75,6 +80,15 @@ audit_log                                 granted_by    FK users ON DELETE SET N
   action, target_type, target_id,         UNIQUE (user_id, dashboard_id), INDEX (dashboard_id)
   detail (JSON), ip
                                         favorites, history  (sudah ada sebelumnya, tidak diubah)
+
+chat_messages (v4)                      activity_log (v4)
+  id, created_at                          id, at
+  user_id (teks), user_email              user_id (teks), user_email
+  slug, conversation                      action   login|logout|page_view|ai_question|export|
+  question, answer                                 chat_history_deleted|chat_log_viewed
+  tools (JSON: name, label, args)         slug, detail (JSON), ip
+  model, status ok|error, duration_ms
+  size_bytes (untuk kuota 1 MB per user)
 ```
 
 `favorites.user_id` dan `history.user_id` berisi id user sebagai teks (mis. `"2"`). Data lama (id Entra /
@@ -90,7 +104,9 @@ workspace / dataset mengikuti kode. `is_active` yang sudah diatur Super Admin ti
 | Home, Reports, Favorites, History, Settings | ✓ | ✓ (hanya dashboard yang diizinkan) | → /login |
 | Halaman, API data, file static `/d/<slug>/...` | dashboard aktif | dashboard aktif + diizinkan, selain itu **403** | → /login, API **401** |
 | `POST /d/<slug>/api/chat` (AI agent) | dashboard aktif | dashboard aktif + diizinkan, selain itu **403** | **401** |
-| `/admin/*` | ✓ | **403** | → /login |
+| `/chats` (AI Chats: chat milik sendiri, hapus riwayat sendiri) | ✓ | ✓ | → /login |
+| `/chats/all` (Chat Log: chat semua user, CSV) | ✓ | hanya kalau diberi izin Chat Log, selain itu **403** | → /login |
+| `/admin/*` (termasuk Activity) | ✓ | **403** | → /login |
 | Beri role `super_admin` | hanya lewat `scripts/manage_users.py set-role` (butuh akses server) | ✗ | ✗ |
 
 Lainnya:
@@ -135,7 +151,11 @@ Kalau Super Admin satu-satunya yang lupa password: `python scripts/manage_users.
 | GET | `/`, `/reports`, `/favorites`, `/history`, `/settings` | login | portal |
 | POST | `/api/favorites/<slug>` | login + akses dashboard | tandai favorit |
 | GET | `/d/<slug>/...` | login + akses dashboard | halaman, API data, static dashboard |
-| POST | `/d/<slug>/api/chat` | login + akses dashboard | AI agent |
+| POST | `/d/<slug>/api/chat` | login + akses dashboard | AI agent (tanya-jawab disimpan ke riwayat chat) |
+| GET | `/d/<slug>/api/chat/history` | login + akses dashboard | percakapan terakhir user di dashboard ini |
+| GET | `/chats` | login | AI Chats: riwayat chat milik sendiri + pemakaian kuota |
+| POST | `/chats/delete` | login | hapus seluruh riwayat chat milik sendiri |
+| GET | `/chats/all`, `/chats/all.csv` | super_admin / izin Chat Log | Chat Log semua user (filter user, dashboard, kata, tanggal) |
 | GET | `/admin/users` | super_admin | User Management |
 | GET, POST | `/admin/users/new` | super_admin | buat user (role `user`), password sementara tampil sekali |
 | GET | `/admin/users/<id>` | super_admin | detail user, Dashboard Access, aktivitas |
@@ -143,9 +163,11 @@ Kalau Super Admin satu-satunya yang lupa password: `python scripts/manage_users.
 | POST | `/admin/users/<id>/status` | super_admin | aktifkan / nonaktifkan |
 | POST | `/admin/users/<id>/reset-password` | super_admin | password sementara baru, tampil sekali |
 | POST | `/admin/users/<id>/dismiss-reset` | super_admin | abaikan permintaan Forgot password (password tetap) |
+| POST | `/admin/users/<id>/chat-viewer` | super_admin | beri / cabut izin Chat Log |
 | GET | `/admin/dashboards` | super_admin | katalog dashboard + status |
 | POST | `/admin/dashboards/<id>/status` | super_admin | aktifkan / nonaktifkan dashboard |
 | GET | `/admin/audit` | super_admin | audit log |
+| GET | `/admin/activity`, `/admin/activity.csv` | super_admin | log aktivitas user + rekap per user |
 
 ## Audit log
 
@@ -153,7 +175,35 @@ Tercatat di tabel `audit_log` (lihat **Admin > Audit Log**): `login_success`, `l
 `account_locked`, `login_throttled`, `logout`, `password_changed`, `password_reset`, `password_reset_requested`,
 `password_reset_dismissed`, `user_created`,
 `user_activated`, `user_deactivated`, `role_changed`, `access_granted`, `access_revoked`, `dashboard_activated`,
-`dashboard_deactivated`, `access_denied`. Password, hash, token, dan secret tidak pernah dicatat (dicek oleh test).
+`dashboard_deactivated`, `access_denied`, `chat_viewer_granted`, `chat_viewer_revoked`, `chat_log_exported`,
+`activity_exported`. Password, hash, token, dan secret tidak pernah dicatat (dicek oleh test).
+
+## Riwayat chat AI & log aktivitas
+
+Kode: `mantra/core/activity.py` (simpan & baca), `mantra/chats.py` (halaman AI Chats & Chat Log), `mantra/admin.py`
+(Activity, izin Chat Log), `mantra/static/js/chat.js` (panel Ask AI).
+
+**Riwayat chat AI** (tabel `chat_messages`)
+- Setiap pertanyaan di panel Ask AI disimpan bersama jawabannya, nama tool + parameternya (mis. `company=MDKA`), model,
+  lama proses, dan status. Pertanyaan yang gagal (AI sibuk, Power BI error) disimpan dengan status `error`.
+- **Tidak** disimpan: hasil query Power BI (data mentah), password, token, secret. Panel Ask AI menampilkan catatan
+  bahwa pertanyaan disimpan dan meminta user tidak mengetik password.
+- Kuota **1 MB per user** (`CHAT_QUOTA_BYTES`). Setelah setiap chat disimpan, chat paling lama milik user itu dihapus
+  sampai total kembali di bawah kuota. Chat user lain tidak terpengaruh.
+- Panel Ask AI memuat lagi percakapan terakhir user di dashboard itu (20 tanya-jawab terakhir). Tombol ↻ memulai
+  percakapan baru; percakapan lama tetap tersimpan.
+- User melihat chat miliknya di menu **AI Chats** dan bisa menghapus semuanya.
+- **Chat Log** (chat semua user): Super Admin, dan user yang diberi izin lewat **Admin > Users > (user) > Allow viewing
+  all AI chats** (kolom `users.can_view_chats`). Izin berlaku di request berikutnya. Membuka Chat Log dicatat di log
+  aktivitas; download CSV dicatat di audit log (`chat_log_exported`).
+
+**Log aktivitas** (tabel `activity_log`, menu **Admin > Activity**, hanya Super Admin)
+- Dicatat: login, logout, halaman dashboard yang dibuka, pertanyaan AI (hanya nama tool & status, isi pertanyaan ada di
+  riwayat chat), export data, hapus riwayat chat, membuka Chat Log.
+- Disimpan **365 hari** (`ACTIVITY_KEEP_DAYS`); yang lebih lama dihapus otomatis (dicek paling sering sekali sejam).
+- Halaman Activity: rekap per user (terakhir aktif, jumlah login, halaman, pertanyaan AI, export) dan daftar kejadian,
+  dengan filter user, jenis, dashboard, tanggal, dan download CSV.
+- Kejadian keamanan (login gagal, akun dikunci, perubahan akun & hak akses) tetap di **Audit Log**.
 
 ## Mengelola akun dari server
 
@@ -229,4 +279,5 @@ penolakan akses (HTTP 403). Cakupan: login & pesan gagal, normalisasi email, daf
 langsung (halaman, API, static, AI agent), halaman admin, akun nonaktif, cabut akses, dashboard nonaktif, manipulasi
 request, CSRF, password sementara, reset password, lockout, throttle IP, cookie palsu, hash password, seed idempotent,
 seed tidak menimpa akun, migrasi data lama + backup, constraint tabel, audit/log tanpa secret, lupa password
-(`tests/test_forgot_password.py`), dan perbaikan audit teknis (`tests/test_errors_and_security.py`).
+(`tests/test_forgot_password.py`), perbaikan audit teknis (`tests/test_errors_and_security.py`), serta riwayat chat AI,
+kuota 1 MB, izin Chat Log, dan log aktivitas (`tests/test_chat_history_and_activity.py`).

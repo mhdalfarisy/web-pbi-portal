@@ -1,0 +1,38 @@
+{#- Daftar tanya-jawab AI (halaman AI Chats & Chat Log). rows = hasil activity.chats_of() / chat_entries(),
+    names = {slug: nama dashboard}. Jawaban ditampilkan sebagai teks biasa (tidak dirender sebagai HTML). -#}
+{% macro chat_list(rows, names, show_user=False) -%}
+<ul class="chat-log">
+  {% for c in rows %}
+  <li class="{{ 'is-error' if c.status == 'error' }}">
+    <div class="cl-meta">
+      <time datetime="{{ c.created_at }}">{{ c.created_at[:16] }}</time>
+      {% if show_user %}<a class="strong-link" href="{{ url_for('chats.all_users', user=c.user_id) }}">{{ c.user_email }}</a>{% endif %}
+      <span class="pill">{{ names.get(c.slug, c.slug) }}</span>
+      {% if c.status == 'error' %}<span class="pill act-bad">Failed</span>{% endif %}
+      {% if c.duration_ms is not none %}<span class="muted small">{{ '%.1f' % (c.duration_ms / 1000) }} s</span>{% endif %}
+    </div>
+    <p class="cl-question">{{ c.question }}</p>
+    <details>
+      <summary>{{ 'Error message' if c.status == 'error' else 'Answer' }}{% if c.tools %} · {{ c.tools|length }} data {{ 'query' if c.tools|length == 1 else 'queries' }}{% endif %}</summary>
+      <div class="cl-answer">{{ c.answer }}</div>
+      {% if c.tools %}
+      <ul class="cl-tools">
+        {% for t in c.tools %}
+        <li><b>{{ t.label or t.name }}</b>{% if t.args %} · {% for k, v in t.args.items() %}{{ k }}={{ v }}{{ ', ' if not loop.last }}{% endfor %}{% endif %}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      {% if c.model %}<p class="muted small">Model: {{ c.model }}</p>{% endif %}
+    </details>
+  </li>
+  {% endfor %}
+</ul>
+{%- endmacro %}
+
+{% macro quota_meter(usage, quota) -%}
+{% set pct = [100, (usage * 100 / quota) | round(1)] | min %}
+<div class="quota" title="{{ usage|filesize }} of {{ quota|filesize }}">
+  <div class="quota-bar"><i style="width: {{ pct }}%"></i></div>
+  <span class="muted small">{{ usage|filesize }} of {{ quota|filesize }} used · when full, the oldest chats are removed automatically</span>
+</div>
+{%- endmacro %}

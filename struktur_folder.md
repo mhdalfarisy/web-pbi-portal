@@ -26,12 +26,15 @@ Web App MANTRA/
 │   ├── __init__.py             Merakit aplikasi (create_app): pasang semua modul, CSRF, header keamanan, halaman error
 │   ├── config.py               Membaca .env lalu menjadikannya pengaturan aplikasi
 │   ├── portal.py               Halaman Home, Reports, Favorites, History, Settings
-│   ├── admin.py                Halaman Super Admin: kelola user, hak akses, katalog dashboard, audit log
+│   ├── admin.py                Halaman Super Admin: kelola user, hak akses, izin Chat Log, katalog dashboard, Activity,
+│   │                           audit log
+│   ├── chats.py                Halaman AI Chats (chat milik sendiri) & Chat Log (chat semua user, butuh izin)
 │   │
 │   ├── core/                   FONDASI BERSAMA (dipakai semua dashboard)
 │   │   ├── __init__.py         Penanda package
 │   │   ├── auth.py             Login (email+password / Microsoft), logout, lupa & ganti password, cek hak akses
 │   │   ├── accounts.py         Logika akun: buat user, hash password, kunci akun, role, hak akses, audit log
+│   │   ├── activity.py         Riwayat chat AI per user (kuota 1 MB per user) & log aktivitas user
 │   │   ├── db.py               Koneksi SQLite, migrasi otomatis + backup, Favorites & History
 │   │   ├── registry.py         Mendeteksi otomatis semua dashboard di folder dashboards/ dan memasang pengaman akses
 │   │   ├── powerbi.py          Koneksi ke Power BI (token Microsoft + menjalankan query DAX), batas query per menit
@@ -42,7 +45,7 @@ Web App MANTRA/
 │   │   │   └── base.md         Aturan umum untuk SEMUA AI agent
 │   │   └── chat/               MESIN AI AGENT
 │   │       ├── __init__.py     Penanda package
-│   │       ├── routes.py       Endpoint chat /d/<dashboard>/api/chat + batas pertanyaan per user
+│   │       ├── routes.py       Endpoint chat /d/<dashboard>/api/chat (+ simpan riwayat), /api/chat/history, batas per user
 │   │       ├── engine.py       Menjalankan satu pertanyaan: susun prompt, panggil AI, jalankan tools
 │   │       ├── providers.py    Penghubung ke penyedia AI (Gemini + model cadangan)
 │   │       ├── prompt.py       Membaca & memvalidasi file prompt, mengisi placeholder (tanggal, bulan, dll.)
@@ -98,6 +101,7 @@ Web App MANTRA/
 │   │   │   ├── _auth_layout.html   Kerangka halaman login & lupa password
 │   │   │   ├── _ui.html            Komponen: ikon, logo, kartu report
 │   │   │   ├── home.html, reports.html, favorites.html, history.html, settings.html   Halaman portal
+│   │   │   ├── chats.html, chat_log.html, _chats.html   AI Chats, Chat Log, komponen daftar chat
 │   │   │   ├── login.html, forgot_password.html, change_password.html   Halaman akun
 │   │   │   └── denied.html, error.html   Halaman "akses ditolak" & error umum
 │   │   ├── admin/
@@ -105,6 +109,7 @@ Web App MANTRA/
 │   │   │   ├── temp_password.html  Menampilkan password sementara (sekali saja)
 │   │   │   ├── dashboards.html     Katalog dashboard (aktif/nonaktif)
 │   │   │   ├── audit.html          Audit log
+│   │   │   ├── activity.html       Log aktivitas user + rekap per user
 │   │   │   └── _ui.html, _audit_table.html   Komponen: label role/status, tabel audit
 │   │   └── dashboard/
 │   │       ├── base.html       Kerangka halaman report: header biru, menu halaman, panel AI agent
@@ -121,7 +126,7 @@ Web App MANTRA/
 │       │   ├── shell.js        Sidebar ringkas/drawer, loading pindah halaman, tombol favorit
 │       │   ├── portal.js       Pencarian & filter kategori di halaman Reports
 │       │   ├── dash-common.js  Fungsi bersama halaman report (format angka, warna status, header)
-│       │   └── chat.js         Panel AI agent: kirim pertanyaan & tampilkan jawaban
+│       │   └── chat.js         Panel AI agent: kirim pertanyaan, tampilkan jawaban, muat percakapan terakhir
 │       └── img/
 │           └── mantra-mark.svg Logo MANTRA
 │
@@ -143,7 +148,8 @@ Web App MANTRA/
 │   ├── test_forgot_password.py         Alur lupa password
 │   ├── test_errors_and_security.py     Penanganan error, header keamanan, batas AI & data, cache
 │   ├── test_server_config.py           APP_ENV staging/production, proxy, lokasi data, WAL, /healthz, log, gunicorn
-│   └── test_picking_slip.py            DAX di queries.py, data seperti CONCATENATEX, header MANTRA, tools AI, hak akses
+│   ├── test_picking_slip.py            DAX di queries.py, data seperti CONCATENATEX, header MANTRA, tools AI, hak akses
+│   └── test_chat_history_and_activity.py  Riwayat chat AI, kuota 1 MB, izin Chat Log, log aktivitas
 │
 ├── .venv/                      Python + semua library (dibuat: python -m venv .venv). Jangan dihapus
 ├── .pytest_cache/              Cache pytest (otomatis, boleh dihapus)
