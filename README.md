@@ -28,7 +28,7 @@ File `instance/mantra.db` berisi akun, hak akses dashboard, audit log, Favorites
 |---|---|---|---|
 | Material Readiness | `material-readiness` | `pbi_pro_a@merdeka.com` | Siap. Angka identik dengan project lama (66 perbandingan) dan 8 pertanyaan acuan AI agent lulus |
 | PROCESSING, EQUIPMENT, MINING & STOCKPILE PRODUCTION (PANI) | `pani-processing` | `pbi_pro_b@merdeka.com` | Siap. 4 halaman (Processing, Equipment, Mining, Production) dari model "PANI - PRCS - Processing". Angka dibandingkan langsung dengan measure HTML report: `python scripts/compare_pani_with_powerbi.py` (272 sama, 76 beda karena bug di report). DAX perbaikan untuk report dulu ada di `docs/powerbi_fixes/` (sekarang dihapus dari working tree, masih ada di riwayat git: `git restore docs/powerbi_fixes`); dengan `--fixed` (19 measure) hasilnya 348/348 sama |
-| Picking Slip | `picking-slip` | Super Admin (beri akses lewat Admin > Users) | Siap. 2 halaman (Summary, Detail) dari measure HTML `dax_picking_slip_summary_v9` & `dax_picking_slip_detail_header_v5` di model "All Site - SCM - Picking Slip" (workspace ALLDATASET). DAX data diketik di `queries.py` (dijalankan per tabel, jadi Detail tidak kena batas teks DAX 2,1 juta karakter); tampilan & JS di `templates/` + `static/`. Data identik dengan measure. Belum ada AI agent |
+| Picking Slip | `picking-slip` | Super Admin (beri akses lewat Admin > Users) | Siap. 2 halaman (Summary, Detail) dari measure HTML `dax_picking_slip_summary_v9` & `dax_picking_slip_detail_header_v5` di model "All Site - SCM - Picking Slip" (workspace ALLDATASET). Struktur sama dengan PANI: DAX di `queries.py` (dijalankan per tabel, jadi Detail tidak kena batas teks DAX 2,1 juta karakter), `templates/` + `_ui.html`, `static/picking.css` & `picking.js`, AI agent (`tools.py`, `prompts/`, `chat_cases.py`). Data identik dengan measure; 4 pertanyaan acuan AI agent lulus |
 
 ## Struktur folder
 
@@ -63,7 +63,7 @@ mantra/
     material_readiness/    __init__.py (manifest), queries.py, routes.py, tools.py, prompts/, templates/, static/,
                            chat_cases.py (pertanyaan acuan AI agent)
     pani_processing/       4 halaman PANI (Processing, Equipment, Mining, Production) + AI agent
-    picking_slip/          Summary & Detail dari measure HTML Power BI: DAX di queries.py, tampilan di templates/ + static/
+    picking_slip/          Summary & Detail dari measure HTML Power BI (DAX di queries.py) + AI agent
 docs/
   AUTH.md                  login, RBAC, skema database, migrasi, backup & rollback, daftar route
   DEPLOY_SERVER.md         untuk tim infra: gunicorn, systemd, reverse proxy, .env server, backup/restore, log
@@ -78,7 +78,7 @@ tests/                     pytest (python -m pytest), lihat tests/README.md
   test_forgot_password.py  alur lupa password
   test_errors_and_security.py     penanganan error, header keamanan, batas AI & data, cache
   test_server_config.py    APP_ENV staging/production, proxy, lokasi data, WAL, /healthz, log, gunicorn
-  test_picking_slip.py     DAX di queries.py, data digabung seperti CONCATENATEX, header MANTRA, JSON aman, hak akses
+  test_picking_slip.py     DAX di queries.py, data seperti CONCATENATEX, header MANTRA, tools AI agent, hak akses
 scripts/                   perintah manual (python scripts/<nama>.py), lihat scripts/README.md
   manage_users.py          akun awal (seed), buat user, hak akses, reset password, role, backup database
   check_setup.py           cek .env, Entra (opsional), akses tiap semantic model, AI

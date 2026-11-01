@@ -1,8 +1,9 @@
 {#- Halaman Summary Picking Slip: isi dari measure dax_picking_slip_summary_v9 (header memakai header dashboard MANTRA).
-    Data: queries.summary() -> window.PICKING_SLIP -> static/summary.js -#}
+    Data: queries.summary() -> window.PICKING_SLIP -> static/picking.js -#}
 {% extends "dashboard/base.html" %}
+{% from "picking_slip/_ui.html" import styles, scripts with context %}
 {% block title %}Summary - Picking Slip{% endblock %}
-{% block head %}<link rel="stylesheet" href="{{ url_for('picking_slip.static', filename='summary.css') }}">{% endblock %}
+{% block head %}{{ styles() }}{% endblock %}
 {% block main_title %}Picking Slip Summary{% endblock %}
 {% block pill %}Summary{% endblock %}
 {% block desc %}Summary of Picking Slip Orders and Status{% endblock %}
@@ -81,7 +82,4 @@
   </div>
 </div>
 {% endblock %}
-{% block scripts %}
-<script>window.PICKING_SLIP = {{ data|tojson }};</script>
-<script src="{{ url_for('picking_slip.static', filename='summary.js') }}"></script>
-{% endblock %}
+{% block scripts %}{{ scripts() }}{% endblock %}

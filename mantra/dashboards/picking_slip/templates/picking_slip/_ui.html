@@ -1,0 +1,10 @@
+{#- Potongan bersama halaman Picking Slip (dipakai summary.html & detail.html). -#}
+
+{% macro styles() -%}
+<link rel="stylesheet" href="{{ url_for('picking_slip.static', filename='picking.css') }}">
+{%- endmacro %}
+
+{% macro scripts() -%}
+<script>window.PICKING_SLIP = {{ payload|tojson }};</script>
+<script src="{{ url_for('picking_slip.static', filename='picking.js') }}"></script>
+{%- endmacro %}

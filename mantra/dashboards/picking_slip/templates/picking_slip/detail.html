@@ -1,8 +1,9 @@
 {#- Halaman Detail Picking Slip: isi dari measure dax_picking_slip_detail_header_v5 (header memakai header dashboard MANTRA).
-    Data: queries.detail() -> window.PICKING_SLIP -> static/detail.js -#}
+    Data: queries.detail() -> window.PICKING_SLIP -> static/picking.js -#}
 {% extends "dashboard/base.html" %}
+{% from "picking_slip/_ui.html" import styles, scripts with context %}
 {% block title %}Detail - Picking Slip{% endblock %}
-{% block head %}<link rel="stylesheet" href="{{ url_for('picking_slip.static', filename='detail.css') }}">{% endblock %}
+{% block head %}{{ styles() }}{% endblock %}
 {% block main_title %}Picking Slip Detail{% endblock %}
 {% block pill %}Detail{% endblock %}
 {% block desc %}Complete list of picking slip records{% endblock %}
@@ -55,7 +56,4 @@
   <div class='cpm' id='cpm'><div class='cpm-box'><div class='cpm-h'>Press Ctrl+C to copy<button type='button' id='cpmX'>&times;</button></div><textarea id='cpmTa' readonly></textarea></div></div>
 </div>
 {% endblock %}
-{% block scripts %}
-<script>window.PICKING_SLIP = {{ data|tojson }};</script>
-<script src="{{ url_for('picking_slip.static', filename='detail.js') }}"></script>
-{% endblock %}
+{% block scripts %}{{ scripts() }}{% endblock %}

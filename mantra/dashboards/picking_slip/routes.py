@@ -7,19 +7,20 @@ from . import queries
 bp = Blueprint("picking_slip", __name__, url_prefix="/d/picking-slip", template_folder="templates", static_folder="static")
 
 
-def _page(template, load):
+def _page(template, page, load):
     try:
         data, fetched = load()
     except queries.DATA_ERRORS as exc:
         return data_error_page(exc)
-    return render_template(f"picking_slip/{template}", data=data, header=queries.stamp_info(fetched))
+    return render_template(f"picking_slip/{template}", payload={**data, "page": page},
+                           header=queries.stamp_info(fetched))
 
 
 @bp.get("/")
 def summary():
-    return _page("summary.html", queries.summary)
+    return _page("summary.html", "summary", queries.summary)
 
 
 @bp.get("/detail")
 def detail():
-    return _page("detail.html", queries.detail)
+    return _page("detail.html", "detail", queries.detail)

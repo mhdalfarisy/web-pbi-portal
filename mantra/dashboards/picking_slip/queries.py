@@ -6,7 +6,7 @@ Dua halaman diambil dari measure HTML report di model itu:
 Measure membuat setiap kumpulan data dengan CONCATENATEX ( <tabel>, <teks satu baris>, SEP_R ) lalu menempelkannya ke
 JavaScript. Di sini <tabel> dan <teks satu baris> yang sama dijalankan sebagai query tabel biasa (tanpa batas teks DAX
 ~2,1 juta karakter yang membuat measure Detail gagal), lalu digabung di Python dengan pemisah yang sama. JS halaman
-(static/summary.js, static/detail.js) membaca teks itu persis seperti di measure. Escape untuk literal JS di measure
+(static/picking.js) membaca teks itu persis seperti di measure. Escape untuk literal JS di measure
 (\\, \', \x3C) tidak dipakai: data dikirim sebagai JSON.
 """
 from ...config import Config
@@ -355,10 +355,96 @@ def _load(queries):
 
 
 def summary():
-    """Data halaman Summary untuk static/summary.js. Mengembalikan (data, waktu diambil)."""
+    """Data halaman Summary untuk static/picking.js. Mengembalikan (data, waktu diambil)."""
     return _cache.get("summary", lambda: _load(SUMMARY))
 
 
 def detail():
-    """Data halaman Detail untuk static/detail.js. Mengembalikan (data, waktu diambil)."""
+    """Data halaman Detail untuk static/picking.js. Mengembalikan (data, waktu diambil)."""
     return _cache.get("detail", lambda: _load(DETAIL))
+
+
+# ---------------------------------------------------------------- Data rapi untuk AI agent (tools.py)
+# Dibaca dari teks yang sama dengan halaman (summary() / detail()), jadi angka AI = angka di halaman.
+
+SEP_F = "\ue000"
+# Kelompok kartu KPI di halaman Summary (sama dengan STATUS di static/picking.js)
+STATUS_GROUPS = {
+    "Ready for Picking": ("ready for picking", "c/n ready. for picking", "transfer rdy to pick"),
+    "In Progress": ("picking slip printed", "assem. pick slip prt", "c/n ready to print"),
+    "Finished": ("finished", "complete", "completed", "invoiced"),
+    "Backorder": ("backorder", "transfer backorder"),
+}
+
+
+def _split(text):
+    return [row.split(SEP_F) for row in text.split(SEP_R) if row]
+
+
+def _num(value):
+    try:
+        return float(value or 0)
+    except ValueError:
+        return 0.0
+
+
+def _date(value):
+    return f"{value[:4]}-{value[4:6]}-{value[6:8]}" if value and len(value) == 8 else None
+
+
+def status_group(category):
+    key = " ".join(str(category or "").lower().split())
+    return next((g for g, names in STATUS_GROUPS.items() if key in names), "Others")
+
+
+def companies():
+    """{kode company: nama company} dari master logo."""
+    data, _ = summary()
+    return {f[0]: f[1] for f in _split(data["jsComp"]) if f and f[0]}
+
+
+def summary_records():
+    """Baris halaman Summary: satu per company | PS | item | status | unit | warehouse | department | tanggal."""
+    data, fetched = summary()
+    status = {f[0]: f[1] for f in _split(data["jsStat"])}
+    wo = {f[0]: (f[1], f[2]) for f in _split(data["jsProj"])}
+    names = companies()
+    rows = []
+    for f in _split(data["jsRaw"]):
+        f += [""] * (10 - len(f))
+        category = status.get(f[3], "")
+        rows.append({"company": f[0], "company_name": names.get(f[0], f[0]), "ps_number": f[1], "item": f[2],
+                     "status_code": f[3], "status": category, "status_group": status_group(category), "unit": f[4],
+                     "warehouse": f[5], "department": f[6], "amount": _num(f[7]), "date": _date(f[8]),
+                     "lines": int(_num(f[9])), "wo": wo.get(f"{f[0]}|{f[1]}", ("", ""))})
+    return rows, fetched
+
+
+def item_names():
+    data, _ = summary()
+    return {f[0]: f[1] for f in _split(data["jsItems"]) if f}
+
+
+def detail_records():
+    """Baris halaman Detail: satu per baris picking slip, dilengkapi header PS, stok, deskripsi item, dan WO."""
+    data, fetched = detail()
+    status = {f[0]: f[1] for f in _split(data["jsStat"])}
+    order = {f[0]: f[1:] for f in _split(data["jsOrd"])}
+    stock = {f[0]: f[1:] for f in _split(data["jsStk"])}
+    desc = {f[0]: f[1] for f in _split(data["jsDesc"])}
+    job = {f[0]: f[1:] for f in _split(data["jsJob"])}
+    names = companies()
+    rows = []
+    for f in _split(data["jsRaw"]):
+        f += [""] * (10 - len(f))
+        o = order.get(f"{f[0]}|{f[1]}", []) + [""] * 7
+        st = stock.get(f"{f[0]}|{f[4]}|{o[6]}", []) + [""] * 3
+        jb = job.get(f"{f[0]}|{f[6]}", []) + [""] * 2
+        rows.append({"company": f[0], "company_name": names.get(f[0], f[0]), "ps_number": f[1], "sequence": f[2],
+                     "type": f[3], "item": f[4], "item_description": desc.get(f"{f[0]}|{f[4]}", ""), "unit": f[5],
+                     "wo_number": f[6], "wo_status": jb[0], "wo_description": jb[1], "ordered_qty": _num(f[7]),
+                     "shipped_qty": _num(f[8]), "backorder_qty": _num(f[9]), "department": o[1],
+                     "update_date": _date(o[2]), "order_date": _date(o[3]), "required_date": _date(o[4]),
+                     "status": status.get(o[5], ""), "warehouse": o[6], "qty_on_hand": _num(st[0]),
+                     "qty_on_order": _num(st[1])})
+    return rows, fetched
