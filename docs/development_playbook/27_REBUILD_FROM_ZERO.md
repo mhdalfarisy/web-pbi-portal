@@ -44,7 +44,6 @@ Buat `requirements.txt` & `requirements-dev.txt` (isi di dok 05 §G), `pytest.in
 __pycache__/
 *.pyc
 instance/
-.claude/
 .pytest_cache/
 .DS_Store
 ```

@@ -326,7 +326,7 @@ dan [27](development_playbook/27_REBUILD_FROM_ZERO.md), revisi 28 Okt 2026):
 #### Langkah 0.2 — `.gitignore`
 
 - **File:** [.gitignore](../.gitignore)
-- **Kerjakan:** isi 8 baris: `.env`, `.venv/`, `__pycache__/`, `*.pyc`, `instance/`, `.claude/`, `.pytest_cache/`, `.DS_Store` (metadata Finder macOS).
+- **Kerjakan:** isi 7 baris: `.env`, `.venv/`, `__pycache__/`, `*.pyc`, `instance/`, `.pytest_cache/`, `.DS_Store` (metadata Finder macOS).
 - **Kenapa:** `.env` berisi secret dan `instance/` berisi database akun. Keduanya **tidak boleh** masuk GitHub. Buat file
   ini **sebelum** commit pertama.
 - **Cek:** `git check-ignore .env instance/mantra.db` → keduanya tercetak.
