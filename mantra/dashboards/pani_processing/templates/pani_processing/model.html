@@ -1,0 +1,16 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Model - PANI{% endblock %}
+{% block main_title %}Data Model{% endblock %}
+{% block pill %}Model{% endblock %}
+{% block desc %}Tabel &amp; kolom di semantic model PANI{% endblock %}
+{% block content %}
+<section class="panel">
+  <h2>{{ rows|length }} kolom</h2>
+  <table>
+    <thead><tr><th>Tabel</th><th>Kolom</th><th>Tipe data</th></tr></thead>
+    <tbody>
+      {% for r in rows %}<tr><td>{{ r.tabel }}</td><td>{{ r.kolom }}</td><td>{{ r.tipe }}</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
