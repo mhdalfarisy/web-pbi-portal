@@ -1,0 +1,17 @@
+{#- Halaman Picking Slip: menu halaman + iframe berisi HTML measure Power BI (routes.frame). Header report ada di
+    dalam HTML measure itu sendiri, jadi header biru dashboard/base.html tidak dipakai (block main ditimpa). -#}
+{% extends "dashboard/base.html" %}
+{% block title %}{{ 'Summary' if page == 'summary' else 'Detail' }} - Picking Slip{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('picking_slip.static', filename='picking.css') }}">{% endblock %}
+{% block main %}
+<div class="ps-page">
+  <nav class="ps-tabs" aria-label="Picking Slip pages">
+    {% for label, endpoint in dashboard.pages %}
+    <a href="{{ url_for(endpoint) }}" class="{{ 'on' if request.endpoint == endpoint }}"
+       {%- if request.endpoint == endpoint %} aria-current="page"{% endif %}>{{ label }}</a>
+    {% endfor %}
+  </nav>
+  <iframe class="ps-frame" src="{{ url_for('picking_slip.frame', page=page) }}" title="Picking Slip {{ page|title }}"
+          sandbox="allow-scripts allow-popups allow-downloads"></iframe>
+</div>
+{% endblock %}

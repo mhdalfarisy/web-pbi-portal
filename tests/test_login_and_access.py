@@ -5,7 +5,7 @@ import pytest
 
 from conftest import APIS, EMAILS, PAGES
 
-ALL = {"material-readiness", "pani-processing"}
+ALL = {"material-readiness", "pani-processing", "picking-slip"}
 
 
 def report_links(html):
@@ -128,7 +128,7 @@ def test_granting_access_through_admin_is_persisted(login_as, fresh_data, query)
                {"dashboard": [str(ids["material-readiness"]), str(ids["pani-processing"])]})
     rows = query("""SELECT d.slug, a.granted_by FROM user_dashboard_access a JOIN dashboards d ON d.id = a.dashboard_id
                     WHERE a.user_id = ?""", (fresh_data["a"],))
-    assert {r["slug"] for r in rows} == ALL
+    assert {r["slug"] for r in rows} == {"material-readiness", "pani-processing"}
     assert {r["granted_by"] for r in rows if r["slug"] == "pani-processing"} == {fresh_data["admin"]}
     assert login_as("a").get(PAGES["pani-processing"][0]).status_code == 502
 

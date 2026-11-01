@@ -50,7 +50,7 @@ def test_seed_is_idempotent_and_secret_free(tmp_path):
     access = conn.execute("""SELECT u.email, d.slug FROM user_dashboard_access a JOIN users u ON u.id = a.user_id
                              JOIN dashboards d ON d.id = a.dashboard_id""").fetchall()
     assert sorted(tuple(r) for r in access) == [(EMAILS["a"], "material-readiness"), (EMAILS["b"], "pani-processing")]
-    assert conn.execute("SELECT count(*) FROM dashboards").fetchone()[0] == 2
+    assert conn.execute("SELECT count(*) FROM dashboards").fetchone()[0] == 3
     audit = " ".join(str(tuple(r)) for r in conn.execute("SELECT * FROM audit_log"))
     assert "Seed-Tmp-777" not in audit
 

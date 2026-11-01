@@ -72,7 +72,9 @@ Web App MANTRA/
 │   │   │   ├── templates/material_readiness/summary.html, detail.html   Tampilan halaman
 │   │   │   └── static/summary.js, detail.js   Chart, slicer & tabel di browser
 │   │   │
-│   │   └── pani_processing/    DASHBOARD PANI (4 halaman: Processing, Equipment, Mining, Production)
+│   │   ├── pani_processing/    DASHBOARD PANI (4 halaman: Processing, Equipment, Mining, Production)
+│   │   └── picking_slip/       DASHBOARD Picking Slip (Summary, Detail): dax/ = salinan measure HTML Power BI,
+│   │                           measure_html.py menjalankannya per tabel; halaman tampil di iframe sandbox
 │   │       ├── __init__.py         Manifest dashboard
 │   │       ├── queries.py          Query DAX + perhitungan angka (direkonstruksi dari report Power BI)
 │   │       ├── routes.py           4 halaman + filter tanggal dari URL
@@ -139,7 +141,8 @@ Web App MANTRA/
 │   ├── test_passwords_and_database.py  Hash password, seed akun, migrasi & backup DB, log tanpa secret
 │   ├── test_forgot_password.py         Alur lupa password
 │   ├── test_errors_and_security.py     Penanganan error, header keamanan, batas AI & data, cache
-│   └── test_server_config.py           APP_ENV staging/production, proxy, lokasi data, WAL, /healthz, log, gunicorn
+│   ├── test_server_config.py           APP_ENV staging/production, proxy, lokasi data, WAL, /healthz, log, gunicorn
+│   └── test_picking_slip.py            Measure HTML dipecah jadi query tabel, iframe sandbox, hak akses Picking Slip
 │
 ├── .venv/                      Python + semua library (dibuat: python -m venv .venv). Jangan dihapus
 ├── .pytest_cache/              Cache pytest (otomatis, boleh dihapus)
